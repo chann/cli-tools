@@ -1,0 +1,38 @@
+[package]
+name = "code-cost"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "code-cost"
+path = "src/main.rs"
+
+[dependencies]
+cli-core = { path = "../cli-core" }
+
+# CLI
+clap = { workspace = true }
+owo-colors = { workspace = true }
+indicatif = { workspace = true }
+comfy-table = { workspace = true }
+
+# Git & Code Analysis
+git2 = { workspace = true }
+ignore = { workspace = true }
+walkdir = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error Handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+
+# Utils
+chrono = { workspace = true }
