@@ -1,0 +1,40 @@
+[workspace]
+members = [
+    "crates/cli-core",
+    "crates/code-cost",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["CHANN"]
+license = "MIT"
+repository = "https://github.com/channprj/cli-tools"
+
+[workspace.dependencies]
+# CLI
+clap = { version = "4.5", features = ["derive", "cargo", "color"] }
+owo-colors = "4.0"
+comfy-table = "7.1"
+indicatif = "0.17"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+csv = "1.3"
+
+# Git & Code Analysis
+git2 = "0.19"
+ignore = "0.4"
+walkdir = "2.5"
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async
+tokio = { version = "1.40", features = ["full"] }
+
+# Utils
+chrono = "0.4"

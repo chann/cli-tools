@@ -1,0 +1,24 @@
+[package]
+name = "cli-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# CLI & UI
+owo-colors = { workspace = true }
+comfy-table = { workspace = true }
+indicatif = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+csv = { workspace = true }
+
+# Error Handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Template engine for HTML export
+askama = "0.12"
