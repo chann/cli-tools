@@ -28,8 +28,17 @@ Analyze code repositories and calculate their monetary value based on developmen
   - Complexity and maturity bonuses
   - Learning time estimation
 
+- **Advanced Analysis Features**
+  - Detailed project metrics (complexity, maturity, code quality)
+  - Language breakdown with percentages
+  - AI usage estimation and code quality scoring
+  - Developer level cost breakdown (Junior to Principal)
+  - Test coverage statistics
+
 - **Multiple Output Formats**
   - Beautiful colored table output
+  - Detailed analysis mode (default) with comprehensive metrics
+  - Simple mode (--simple) for basic summary
   - JSON (compact and pretty-printed)
   - CSV export
   - HTML report
@@ -49,38 +58,51 @@ cargo build --release
 
 #### Usage
 
-Analyze current directory:
+**Basic Analysis** (detailed mode is default):
 ```bash
 code-cost
 ```
 
-Analyze multiple repositories:
+**Simple Mode** (table only):
+```bash
+code-cost --simple
+```
+
+**Developer Level Breakdown**:
+```bash
+code-cost --dev-levels
+```
+
+**Analyze Multiple Repositories**:
 ```bash
 code-cost ~/project1 ~/project2 ~/project3
 ```
 
-JSON output:
+**JSON Output**:
 ```bash
 code-cost --format json-pretty
 ```
 
-Export to CSV:
+**Export Results**:
 ```bash
+# CSV format
 code-cost --export report.csv
-```
 
-Export to HTML:
-```bash
+# HTML format
 code-cost --export report.html
+
+# Markdown format
+code-cost --export report.md
 ```
 
-Custom hourly rate:
+**Custom Hourly Rate**:
 ```bash
 code-cost --hourly-rate 50000
 ```
 
 #### Example Output
 
+**Detailed Mode** (default):
 ```
 🔍 Code Cost Analyzer
 
@@ -90,13 +112,43 @@ code-cost --hourly-rate 50000
 ┌────────────┬────────────┬────────┬─────────┬────────────┬──────────────────┐
 │ Repository ┆ Lines      ┆ Files  ┆ Commits ┆ Est. Hours ┆ Total Cost (KRW) │
 ╞════════════╪════════════╪════════╪═════════╪════════════╪══════════════════╡
-│ cli-tools  ┆       1257 ┆     19 ┆       1 ┆      197.3 ┆ ₩   1,979,217    │
+│ cli-tools  ┆       1658 ┆     20 ┆       4 ┆      237.2 ┆ ₩   2,379,027    │
 └────────────┴────────────┴────────┴─────────┴────────────┴──────────────────┘
+
+📁 cli-tools
+
+ℹ Languages:
+  • Rust - 80.9% (1,342 lines, 15 files)
+  • Markdown - 11.9% (198 lines, 1 files)
+  • TOML - 6.2% (102 lines, 3 files)
+  • JSON - 1.0% (16 lines, 1 files)
+
+ℹ Project Metrics:
+  • Complexity Score: 2.84/5.0
+  • Maturity Score: 20.8%
+  • Code Quality: 34.1%
+  • Test Files: 0 (0.0%)
+
+ℹ AI Usage Analysis:
+  • Estimated AI Usage: 25.0%
+  • Indicators:
+    - Consistent file size distribution
+    - Use of modern programming languages
 
 📊 Summary
   Total repositories: 1
-  Total estimated hours: 197.3 hours
-  Total estimated cost: ₩1,979,217
+  Total estimated hours: 237.2 hours
+  Total estimated cost: ₩2,379,027
+```
+
+**With Developer Level Breakdown** (--dev-levels):
+```
+ℹ Developer Level Breakdown:
+  • Junior       ₩  15,000/hr → ₩3,557,867
+  • Mid-level    ₩  25,000/hr → ₩5,929,778
+  • Senior       ₩  40,000/hr → ₩9,487,646
+  • Lead         ₩  60,000/hr → ₩14,231,469
+  • Principal    ₩ 100,000/hr → ₩23,719,115
 ```
 
 #### Value Calculation Algorithm
@@ -114,6 +166,18 @@ The tool uses a sophisticated algorithm to estimate code value:
 3. **Complexity Multiplier**: Based on code complexity (1.0 - 2.0x)
 4. **Maturity Bonus**: Up to 30% extra for well-maintained projects (tests, docs, multiple contributors)
 5. **Learning Time**: Estimated time needed to learn the technologies used
+6. **AI Usage Estimation**: Analyzes code patterns to estimate AI-assisted development
+   - Low comment ratio with high code quality
+   - Consistent file size distribution
+   - High complexity with comprehensive testing
+   - Modern language usage (Rust, TypeScript, Go, etc.)
+   - Strong test coverage
+7. **Developer Level Rates**: Market-based hourly rates for South Korea (2025)
+   - Junior (1-3 years): ₩15,000/hr
+   - Mid-level (3-5 years): ₩25,000/hr
+   - Senior (5-10 years): ₩40,000/hr
+   - Lead (10+ years, team lead): ₩60,000/hr
+   - Principal (architect, senior engineer): ₩100,000/hr
 
 ## Project Structure
 
