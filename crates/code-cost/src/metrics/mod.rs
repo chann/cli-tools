@@ -112,16 +112,35 @@ impl MetricsCollector {
 
 fn is_ignored(path: &Path) -> bool {
     let ignored_dirs = [
+        // Build outputs
         "target",
-        "node_modules",
-        ".git",
         "dist",
         "build",
-        ".next",
-        "__pycache__",
+        "out",
+        // Dependencies
+        "node_modules",
         "vendor",
+        // Python virtual environments
+        ".venv",
+        "venv",
+        "env",
+        "virtualenv",
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".tox",
+        // Version control
+        ".git",
+        ".svn",
+        ".hg",
+        // Framework-specific
+        ".next",
+        ".nuxt",
+        ".cache",
+        // IDE/Editor
         ".idea",
         ".vscode",
+        ".vs",
     ];
 
     path.components().any(|c| {

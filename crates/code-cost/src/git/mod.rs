@@ -2,15 +2,12 @@ use anyhow::Result;
 use git2::Repository;
 use std::collections::HashSet;
 use std::path::Path;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone)]
 pub struct GitStats {
     pub commit_count: usize,
     pub contributor_count: usize,
     pub age_in_days: i64,
-    pub first_commit: Option<DateTime<Utc>>,
-    pub last_commit: Option<DateTime<Utc>>,
 }
 
 pub struct GitAnalyzer;
@@ -59,15 +56,10 @@ impl GitAnalyzer {
             0
         };
 
-        let first_commit = first_commit_time.map(|t| DateTime::from_timestamp(t, 0).unwrap());
-        let last_commit = last_commit_time.map(|t| DateTime::from_timestamp(t, 0).unwrap());
-
         Ok(GitStats {
             commit_count,
             contributor_count: contributors.len(),
             age_in_days,
-            first_commit,
-            last_commit,
         })
     }
 }
