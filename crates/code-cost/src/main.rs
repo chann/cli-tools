@@ -21,6 +21,25 @@ struct ExportRow {
     total_cost_krw: f64,
 }
 
+fn get_repository_name(path: &PathBuf) -> String {
+    // Try to get git repository name first
+    if let Ok(repo) = git2::Repository::open(path) {
+        if let Some(name) = repo
+            .workdir()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+        {
+            return name.to_string();
+        }
+    }
+
+    // Fallback to directory name
+    path.canonicalize()
+        .ok()
+        .and_then(|p| p.file_name().and_then(|n| n.to_str().map(String::from)))
+        .unwrap_or_else(|| path.to_string_lossy().to_string())
+}
+
 #[derive(Parser, Debug)]
 #[command(
     name = "code-cost",
@@ -47,9 +66,13 @@ struct Cli {
     #[arg(long, value_name = "RATE", default_value = "10030")]
     hourly_rate: f64,
 
-    /// Show detailed metrics for each repository
+    /// Simple output mode (hide detailed analysis)
     #[arg(short, long)]
-    verbose: bool,
+    simple: bool,
+
+    /// Show developer level breakdown
+    #[arg(long)]
+    dev_levels: bool,
 }
 
 #[tokio::main]
@@ -124,13 +147,10 @@ fn display_results(
             ]);
 
             for (path, analysis, cost) in results {
-                let path_str = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("unknown");
+                let repo_name = get_repository_name(path);
 
                 table.add_row(vec![
-                    Cell::new(path_str),
+                    Cell::new(&repo_name),
                     Cell::new(format!("{:>10}", analysis.total_lines)),
                     Cell::new(format!("{:>6}", analysis.total_files)),
                     Cell::new(format!("{:>7}", analysis.commit_count)),
@@ -141,6 +161,83 @@ fn display_results(
             }
 
             println!("{table}");
+
+            // Detailed analysis (unless --simple)
+            if !cli.simple {
+                println!();
+                for (path, analysis, cost) in results {
+                    let repo_name = get_repository_name(path);
+                    println!("{}", Theme::header(&format!("📁 {}", repo_name)));
+                    println!();
+
+                    // Language breakdown
+                    if !analysis.language_stats.is_empty() {
+                        println!("{}", Theme::info("Languages:"));
+                        for lang in &analysis.language_stats {
+                            let percentage =
+                                (lang.lines as f64 / analysis.total_lines as f64) * 100.0;
+                            println!(
+                                "  • {} {} {}% ({} lines, {} files)",
+                                Theme::value(&lang.name),
+                                Theme::dim("-"),
+                                Theme::highlight(&format!("{:.1}", percentage)),
+                                format_number(lang.lines as u64),
+                                lang.files
+                            );
+                        }
+                        println!();
+                    }
+
+                    // Project metrics
+                    println!("{}", Theme::info("Project Metrics:"));
+                    println!(
+                        "  • Complexity Score: {}",
+                        Theme::highlight(&format!("{:.2}/5.0", analysis.complexity_score))
+                    );
+                    println!(
+                        "  • Maturity Score: {}",
+                        Theme::highlight(&format!("{:.1}%", analysis.maturity_score * 100.0))
+                    );
+                    println!(
+                        "  • Code Quality: {}",
+                        Theme::highlight(&format!("{:.1}%", cost.ai_analysis.code_quality_score * 100.0))
+                    );
+                    println!(
+                        "  • Test Files: {} ({:.1}%)",
+                        Theme::highlight(&analysis.test_file_count.to_string()),
+                        (analysis.test_file_count as f64 / analysis.total_files as f64) * 100.0
+                    );
+                    println!();
+
+                    // AI Analysis
+                    println!("{}", Theme::info("AI Usage Analysis:"));
+                    println!(
+                        "  • Estimated AI Usage: {}",
+                        Theme::highlight(&format!("{:.1}%", cost.ai_analysis.estimated_ai_usage * 100.0))
+                    );
+                    if !cost.ai_analysis.potential_ai_indicators.is_empty() {
+                        println!("  {} Indicators:", Theme::dim("•"));
+                        for indicator in &cost.ai_analysis.potential_ai_indicators {
+                            println!("    - {}", Theme::dim(indicator));
+                        }
+                    }
+                    println!();
+
+                    // Developer level breakdown (if requested)
+                    if cli.dev_levels {
+                        println!("{}", Theme::info("Developer Level Breakdown:"));
+                        for level in &cost.developer_levels {
+                            println!(
+                                "  • {:<12} ₩{:>8}/hr → ₩{}",
+                                Theme::value(&level.level),
+                                format_number(level.hourly_rate as u64),
+                                Theme::highlight(&format_number(level.estimated_cost as u64))
+                            );
+                        }
+                        println!();
+                    }
+                }
+            }
 
             // Summary
             let total_cost: f64 = results.iter().map(|(_, _, c)| c.total_cost).sum();
