@@ -179,6 +179,214 @@ The tool uses a sophisticated algorithm to estimate code value:
    - Lead (10+ years, team lead): ₩60,000/hr
    - Principal (architect, senior engineer): ₩100,000/hr
 
+### work-summary
+
+Analyze git commit history and generate meaningful work activity summaries with time estimation and value calculation.
+
+#### Features
+
+- **Git Commit Analysis**
+  - Complete commit history with diff tracking
+  - File change statistics per commit
+  - Author and timestamp information
+  - Language-specific change tracking
+
+- **Hybrid Time Estimation**
+  - Time-gap based estimation (between commits)
+  - Code change-based estimation (lines added/deleted with complexity)
+  - Weighted average of both methods for accuracy
+  - Configurable maximum session gap (4 hours default)
+
+- **Work Pattern Analysis**
+  - Hourly commit distribution
+  - Daily commit patterns (weekdays vs weekends)
+  - Peak working hours identification
+  - Commit frequency and active days tracking
+
+- **Value Calculation**
+  - Developer level-based estimates (Junior to Principal)
+  - Base hourly rate: ₩10,030 (2025 Korean minimum wage)
+  - Level multipliers matching code-cost tool
+  - Complexity-adjusted value estimation
+
+- **Contributor Statistics**
+  - Per-contributor commit counts
+  - Lines added/deleted per contributor
+  - Contribution percentage breakdown
+  - Top contributors ranking
+
+- **Date Filtering**
+  - Date range filters: `--from`, `--to` (YYYY-MM-DD)
+  - Quick filters: `--today`, `--week`, `--month`
+  - Commit count limit: `--limit N`
+
+- **Multiple Output Modes**
+  - Simple mode: Basic summary with key metrics
+  - Detail mode: Comprehensive analysis with all statistics
+  - JSON export support
+  - Multiple repository analysis
+
+#### Installation
+
+```bash
+cargo install --path crates/work-summary
+```
+
+Or build from source:
+
+```bash
+cargo build --release --package work-summary
+```
+
+#### Usage
+
+**Basic Analysis** (current directory, detailed mode):
+```bash
+work-summary
+```
+
+**Simple Summary**:
+```bash
+work-summary --simple
+```
+
+**Analyze Recent Commits**:
+```bash
+work-summary --limit 10
+```
+
+**Date Range Filtering**:
+```bash
+# Specific date range
+work-summary --from 2025-01-01 --to 2025-01-31
+
+# Quick filters
+work-summary --today
+work-summary --week
+work-summary --month
+```
+
+**Multiple Repositories**:
+```bash
+work-summary ~/project1 ~/project2 ~/project3
+```
+
+**Export Results**:
+```bash
+work-summary --export summary.json --format json
+```
+
+**Custom Hourly Rate**:
+```bash
+work-summary --hourly-rate 15000
+```
+
+#### Example Output
+
+**Simple Mode**:
+```
+Work Summary
+v0.1.0
+
+════════════════════════════════════════════════════════════
+Total Summary
+════════════════════════════════════════════════════════════
+
+Repository: my-project
+  Period: 2025-01-01 ~ 2025-01-31
+  Commits: 42
+  Estimated Hours: 105.5h
+  Value (Mid-level): ₩1,587,232
+```
+
+**Detail Mode**:
+```
+════════════════════════════════════════════════════════════════════════════════
+Repository: my-project
+════════════════════════════════════════════════════════════════════════════════
+
+Basic Information
+  Period: 2025-01-01 ~ 2025-01-31
+  Total Commits: 42
+  Contributors: 3
+  Files Changed: 127
+  Lines: +2,450 / -856
+  Estimated Hours: 105.5h
+
+Recent Commits
+┌──────────────────┬────────┬───────────────────────────────────────────────────────┬────────────┐
+│ Time             ┆ Author ┆ Message                                               ┆ Changes    │
+╞══════════════════╪════════╪═══════════════════════════════════════════════════════╪════════════╡
+│ 2025-01-31 18:30 ┆ Alice  ┆ feat: add new authentication module                   ┆ +452 / -23 │
+│ 2025-01-31 15:20 ┆ Bob    ┆ fix: resolve memory leak in worker pool               ┆ +18 / -34  │
+│ 2025-01-30 09:15 ┆ Alice  ┆ refactor: improve error handling                      ┆ +89 / -67  │
+└──────────────────┴────────┴───────────────────────────────────────────────────────┴────────────┘
+
+Language Breakdown
+┌────────────┬────────────┬───────────┬────────────┬───────┐
+│ Language   ┆ Insertions ┆ Deletions ┆ Net Change ┆ %     │
+╞════════════╪════════════╪═══════════╪════════════╪═══════╡
+│ Rust       ┆ +1,840     ┆ -456      ┆ +1,384     ┆ 69.5% │
+│ TypeScript ┆ +445       ┆ -289      ┆ +156       ┆ 22.2% │
+│ Markdown   ┆ +165       ┆ -111      ┆ +54        ┆ 8.3%  │
+└────────────┴────────────┴───────────┴────────────┴───────┘
+
+Top Contributors
+┌───────┬─────────┬────────────┬───────────┬────────┐
+│ Name  ┆ Commits ┆ Insertions ┆ Deletions ┆ %      │
+╞═══════╪═════════╪════════════╪═══════════╪════════╡
+│ Alice ┆ 25      ┆ +1,520     ┆ -450      ┆ 59.5%  │
+│ Bob   ┆ 12      ┆ +680       ┆ -289      ┆ 28.6%  │
+│ Carol ┆ 5       ┆ +250       ┆ -117      ┆ 11.9%  │
+└───────┴─────────┴────────────┴───────────┴────────┘
+
+Work Patterns
+  Peak Hours: 14:00, 15:00, 16:00
+  Most Active Day: Wednesday
+  Avg Commits/Day: 1.4
+  Active Days: 30 / 31
+
+Value Estimates
+┌──────────────┬────────────┬─────────────┬─────────────┐
+│ Level        ┆ Multiplier ┆ Hourly Rate ┆ Total Value │
+╞══════════════╪════════════╪═════════════╪═════════════╡
+│ Junior       ┆ 1x         ┆ ₩12,036     ┆ ₩1,058,155  │
+│ Mid-level ⭐ ┆ 1.5x       ┆ ₩18,054     ┆ ₩1,587,232  │
+│ Senior       ┆ 2x         ┆ ₩24,072     ┆ ₩2,116,310  │
+│ Lead         ┆ 2.5x       ┆ ₩30,090     ┆ ₩2,645,387  │
+│ Principal    ┆ 3x         ┆ ₩36,108     ┆ ₩3,174,465  │
+└──────────────┴────────────┴─────────────┴─────────────┘
+```
+
+#### Time Estimation Algorithm
+
+The tool uses a hybrid approach combining two estimation methods:
+
+1. **Time-Gap Method (60% weight)**
+   - Measures time between consecutive commits
+   - Caps at 4 hours to avoid overnight/weekend gaps
+   - Assumes continuous work within reasonable timeframes
+
+2. **Code-Change Method (40% weight)**
+   - Estimates based on lines added/deleted
+   - Applies language complexity multipliers (same as code-cost)
+   - Adjusts for file change complexity (more files = higher complexity)
+   - Base rate: 20 lines of code per hour
+
+3. **Final Estimate**
+   - Weighted average of both methods
+   - Provides balanced estimate considering both time and work volume
+   - More accurate than either method alone
+
+#### Use Cases
+
+- **Freelancer invoicing**: Calculate billable hours from git history
+- **Project retrospectives**: Understand team work patterns
+- **Time tracking**: Estimate time spent on projects retroactively
+- **Team analytics**: Analyze contributor activity and patterns
+- **Work reports**: Generate professional summaries of development work
+- **Portfolio documentation**: Showcase project effort and value
+
 ## Project Structure
 
 ```
@@ -190,12 +398,18 @@ cli-tools/
 │   │   │   ├── output/     # Output formatters (table, JSON, CSV, HTML, MD)
 │   │   │   ├── config/     # Configuration management
 │   │   │   └── ui/         # UI theming and colors
-│   └── code-cost/          # Code value analyzer tool
+│   ├── code-cost/          # Code value analyzer tool
+│   │   └── src/
+│   │       ├── analyzer/   # Repository analysis logic
+│   │       ├── calculator/ # Cost calculation
+│   │       ├── metrics/    # Code metrics collection
+│   │       └── git/        # Git repository analysis
+│   └── work-summary/       # Git commit work summarizer
 │       └── src/
-│           ├── analyzer/   # Repository analysis logic
-│           ├── calculator/ # Cost calculation
-│           ├── metrics/    # Code metrics collection
-│           └── git/        # Git repository analysis
+│           ├── git/        # Commit history & diff analysis
+│           ├── analyzer/   # Work analysis & value calculation
+│           ├── patterns/   # Work pattern detection
+│           └── summary/    # Summary generation
 └── README.md
 ```
 
