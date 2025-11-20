@@ -2,6 +2,7 @@
 members = [
     "crates/cli-core",
     "crates/code-cost",
+    "crates/work-summary",
 ]
 resolver = "2"
 
@@ -37,4 +38,4 @@ thiserror = "1.0"
 tokio = { version = "1.40", features = ["full"] }
 
 # Utils
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
