@@ -36,7 +36,12 @@ impl CommitAnalyzer {
         Ok(Self { repo })
     }
 
-    pub fn analyze_commits(&self, limit: Option<usize>) -> Result<Vec<CommitInfo>> {
+    pub fn analyze_commits(
+        &self,
+        limit: Option<usize>,
+        from_date: Option<DateTime<Utc>>,
+        to_date: Option<DateTime<Utc>>,
+    ) -> Result<Vec<CommitInfo>> {
         let mut revwalk = self.repo.revwalk()?;
         revwalk.push_head()?;
 
@@ -54,6 +59,18 @@ impl CommitAnalyzer {
             let commit = self.repo.find_commit(oid)?;
 
             if let Ok(info) = self.extract_commit_info(&commit) {
+                if let Some(from) = from_date {
+                    if info.timestamp < from {
+                        continue;
+                    }
+                }
+
+                if let Some(to) = to_date {
+                    if info.timestamp > to {
+                        continue;
+                    }
+                }
+
                 commits.push(info);
                 count += 1;
             }

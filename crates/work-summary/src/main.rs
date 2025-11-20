@@ -4,6 +4,7 @@ mod patterns;
 mod summary;
 
 use anyhow::{Context, Result};
+use chrono::{Datelike, DateTime, Duration, Local, NaiveDate, Timelike, Utc};
 use clap::Parser;
 use comfy_table::{presets::UTF8_FULL, Cell, Color, Table};
 use git::{time_estimator::TimeEstimator, CommitAnalyzer};
@@ -117,7 +118,9 @@ fn analyze_repository(path: &PathBuf, cli: &Cli) -> Result<RepositorySummary> {
     let analyzer = CommitAnalyzer::new(path)
         .context(format!("Failed to open repository at {}", path.display()))?;
 
-    let commits = analyzer.analyze_commits(cli.limit)?;
+    let (from_date, to_date) = parse_date_filters(cli)?;
+
+    let commits = analyzer.analyze_commits(cli.limit, from_date, to_date)?;
 
     if commits.is_empty() {
         return Ok(RepositorySummary::new(
@@ -137,6 +140,63 @@ fn analyze_repository(path: &PathBuf, cli: &Cli) -> Result<RepositorySummary> {
         estimated_hours,
         cli.hourly_rate,
     ))
+}
+
+fn parse_date_filters(cli: &Cli) -> Result<(Option<DateTime<Utc>>, Option<DateTime<Utc>>)> {
+    if cli.today {
+        let now = Local::now();
+        let start_of_day = now.date_naive().and_hms_opt(0, 0, 0).unwrap();
+        let end_of_day = now.date_naive().and_hms_opt(23, 59, 59).unwrap();
+
+        return Ok((
+            Some(start_of_day.and_local_timezone(Local).unwrap().with_timezone(&Utc)),
+            Some(end_of_day.and_local_timezone(Local).unwrap().with_timezone(&Utc)),
+        ));
+    }
+
+    if cli.week {
+        let now = Local::now();
+        let days_since_monday = now.weekday().num_days_from_monday();
+        let start_of_week = now - Duration::days(days_since_monday as i64);
+        let start_of_week = start_of_week.date_naive().and_hms_opt(0, 0, 0).unwrap();
+
+        return Ok((
+            Some(start_of_week.and_local_timezone(Local).unwrap().with_timezone(&Utc)),
+            None,
+        ));
+    }
+
+    if cli.month {
+        let now = Local::now();
+        let start_of_month = NaiveDate::from_ymd_opt(
+            now.year(),
+            now.month(),
+            1,
+        ).unwrap().and_hms_opt(0, 0, 0).unwrap();
+
+        return Ok((
+            Some(start_of_month.and_local_timezone(Local).unwrap().with_timezone(&Utc)),
+            None,
+        ));
+    }
+
+    let from_date = if let Some(from_str) = &cli.from {
+        let date = NaiveDate::parse_from_str(from_str, "%Y-%m-%d")
+            .context("Invalid --from date format. Use YYYY-MM-DD")?;
+        Some(date.and_hms_opt(0, 0, 0).unwrap().and_local_timezone(Local).unwrap().with_timezone(&Utc))
+    } else {
+        None
+    };
+
+    let to_date = if let Some(to_str) = &cli.to {
+        let date = NaiveDate::parse_from_str(to_str, "%Y-%m-%d")
+            .context("Invalid --to date format. Use YYYY-MM-DD")?;
+        Some(date.and_hms_opt(23, 59, 59).unwrap().and_local_timezone(Local).unwrap().with_timezone(&Utc))
+    } else {
+        None
+    };
+
+    Ok((from_date, to_date))
 }
 
 fn print_simple_summary(summary: &TotalSummary) {
@@ -186,6 +246,7 @@ fn print_detailed_summary(summary: &TotalSummary) {
         println!("{}", "═".repeat(80).dimmed());
 
         print_basic_info(repo);
+        print_commit_list(repo);
         print_language_breakdown(repo);
         print_contributor_breakdown(repo);
         print_work_patterns(repo);
@@ -209,6 +270,61 @@ fn print_basic_info(repo: &RepositorySummary) {
         format!("-{}", repo.analysis.total_deletions).red()
     );
     println!("  Estimated Hours: {:.1}h", repo.analysis.estimated_hours);
+}
+
+fn print_commit_list(repo: &RepositorySummary) {
+    if repo.commits.is_empty() {
+        return;
+    }
+
+    println!("\n{}", "Recent Commits".bold().yellow());
+
+    let display_count = repo.commits.len().min(10);
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL);
+    table.set_header(vec!["Time", "Author", "Message", "Changes"]);
+
+    for commit in repo.commits.iter().take(display_count) {
+        let time = commit.timestamp.format("%Y-%m-%d %H:%M").to_string();
+        let message = commit
+            .message
+            .lines()
+            .next()
+            .unwrap_or("")
+            .chars()
+            .take(50)
+            .collect::<String>();
+        let message = if commit.message.len() > 50 {
+            format!("{}...", message)
+        } else {
+            message
+        };
+
+        let changes = format!(
+            "{} / {}",
+            format!("+{}", commit.insertions).as_str(),
+            format!("-{}", commit.deletions).as_str()
+        );
+
+        table.add_row(vec![
+            Cell::new(time),
+            Cell::new(&commit.author),
+            Cell::new(message),
+            Cell::new(changes),
+        ]);
+    }
+
+    println!("{table}");
+
+    if repo.commits.len() > display_count {
+        println!(
+            "  {} (showing {} of {})",
+            "...".dimmed(),
+            display_count,
+            repo.commits.len()
+        );
+    }
 }
 
 fn print_language_breakdown(repo: &RepositorySummary) {
