@@ -4,7 +4,7 @@ mod patterns;
 mod summary;
 
 use anyhow::{Context, Result};
-use chrono::{Datelike, DateTime, Duration, Local, NaiveDate, Timelike, Utc};
+use chrono::{Datelike, DateTime, Duration, Local, NaiveDate, Utc};
 use clap::Parser;
 use comfy_table::{presets::UTF8_FULL, Cell, Color, Table};
 use git::{time_estimator::TimeEstimator, CommitAnalyzer};
