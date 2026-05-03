@@ -13,6 +13,7 @@ pub struct Metrics {
     pub blank_lines: usize,
     pub total_files: usize,
     pub test_file_count: usize,
+    pub total_tokens: usize,
     pub has_readme: bool,
     pub language_stats: Vec<LanguageStat>,
 }
@@ -31,6 +32,7 @@ impl MetricsCollector {
         let mut blank_lines = 0;
         let mut total_files = 0;
         let mut test_file_count = 0;
+        let mut total_tokens = 0;
         let mut has_readme = false;
         let mut language_map: HashMap<String, (usize, usize)> = HashMap::new();
 
@@ -67,8 +69,13 @@ impl MetricsCollector {
                 test_file_count += 1;
             }
 
-            // Count lines
+            // Count lines and tokens
             if let Ok(content) = std::fs::read_to_string(path) {
+                let char_count = content.chars().count();
+                // Approximation for Claude 4.7 xhigh tokens: 
+                // 1 token ≈ 3.5 chars for code, with 1.35x inflation factor
+                total_tokens += ((char_count as f64 / 3.5) * 1.35) as usize;
+
                 let lines: Vec<&str> = content.lines().collect();
                 let line_count = lines.len();
 
@@ -104,6 +111,7 @@ impl MetricsCollector {
             blank_lines,
             total_files,
             test_file_count,
+            total_tokens,
             has_readme,
             language_stats,
         })

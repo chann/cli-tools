@@ -17,6 +17,18 @@ pub struct AIAnalysis {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TokenCost {
+    pub base_tokens: usize,
+    pub estimated_prompt_tokens: usize,
+    pub estimated_output_tokens: usize,
+    pub total_estimated_tokens: usize,
+    pub input_cost_krw: f64,
+    pub output_cost_krw: f64,
+    pub total_cost_krw: f64,
+    pub model_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CostEstimate {
     pub base_hours: f64,
     pub complexity_multiplier: f64,
@@ -27,6 +39,7 @@ pub struct CostEstimate {
     pub total_cost: f64,
     pub developer_levels: Vec<DeveloperLevel>,
     pub ai_analysis: AIAnalysis,
+    pub token_cost: TokenCost,
 }
 
 pub struct CostCalculator {
@@ -65,6 +78,9 @@ impl CostCalculator {
         // Analyze AI usage
         let ai_analysis = self.analyze_ai_usage(analysis);
 
+        // Calculate token cost (Claude 4.7 xhigh)
+        let token_cost = self.calculate_token_cost(analysis);
+
         CostEstimate {
             base_hours,
             complexity_multiplier,
@@ -75,6 +91,48 @@ impl CostCalculator {
             total_cost,
             developer_levels,
             ai_analysis,
+            token_cost,
+        }
+    }
+
+    fn calculate_token_cost(&self, analysis: &Analysis) -> TokenCost {
+        // Claude Opus 4.7 xhigh pricing:
+        // Input: $5.00 / 1M tokens
+        // Output: $25.00 / 1M tokens
+        // 1 USD ≈ 1,400 KRW
+        let input_price_per_m_usd = 5.0;
+        let output_price_per_m_usd = 25.0;
+        let exchange_rate = 1400.0;
+        
+        let input_price_per_m_krw = input_price_per_m_usd * exchange_rate;
+        let output_price_per_m_krw = output_price_per_m_usd * exchange_rate;
+
+        // Base tokens from the current codebase
+        let base_tokens = analysis.total_tokens;
+
+        // AI Development Simulation Heuristics:
+        // 1. Output tokens: Usually developers iterate. Assume AI generated the code 1.5 times on average.
+        let estimated_output_tokens = (base_tokens as f64 * 1.5) as usize;
+
+        // 2. Prompt tokens: To generate that code, AI needs context (previous code, instructions).
+        // Assume an average context multiplier of 10x per output generation.
+        let estimated_prompt_tokens = estimated_output_tokens * 10;
+
+        let total_estimated_tokens = estimated_prompt_tokens + estimated_output_tokens;
+
+        let input_cost_krw = (estimated_prompt_tokens as f64 / 1_000_000.0) * input_price_per_m_krw;
+        let output_cost_krw = (estimated_output_tokens as f64 / 1_000_000.0) * output_price_per_m_krw;
+        let total_cost_krw = input_cost_krw + output_cost_krw;
+
+        TokenCost {
+            base_tokens,
+            estimated_prompt_tokens,
+            estimated_output_tokens,
+            total_estimated_tokens,
+            input_cost_krw,
+            output_cost_krw,
+            total_cost_krw,
+            model_name: "Claude Opus 4.7 xhigh".to_string(),
         }
     }
 

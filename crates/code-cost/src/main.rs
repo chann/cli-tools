@@ -17,8 +17,12 @@ struct ExportRow {
     lines: usize,
     files: usize,
     commits: usize,
+    base_tokens: usize,
+    estimated_prompt_tokens: usize,
+    estimated_output_tokens: usize,
     estimated_hours: f64,
     total_cost_krw: f64,
+    total_api_cost_krw: f64,
 }
 
 fn get_repository_name(path: &PathBuf) -> String {
@@ -223,6 +227,28 @@ fn display_results(
                     }
                     println!();
 
+                    // Token Cost Analysis
+                    println!("{}", Theme::info("AI Dev Simulation Token Cost (Claude Opus 4.7 xhigh):"));
+                    println!(
+                        "  • Base Codebase Tokens: {}",
+                        Theme::value(&format_number(cost.token_cost.base_tokens as u64))
+                    );
+                    println!(
+                        "  • Estimated Prompt Tokens: {} {}",
+                        Theme::value(&format_number(cost.token_cost.estimated_prompt_tokens as u64)),
+                        Theme::dim("(10x context multiplier)")
+                    );
+                    println!(
+                        "  • Estimated Output Tokens: {} {}",
+                        Theme::value(&format_number(cost.token_cost.estimated_output_tokens as u64)),
+                        Theme::dim("(1.5x revision multiplier)")
+                    );
+                    println!(
+                        "  • Total API Cost: ₩{}",
+                        Theme::highlight(&format_number(cost.token_cost.total_cost_krw.round() as u64))
+                    );
+                    println!();
+
                     // Developer level breakdown (if requested)
                     if cli.dev_levels {
                         println!("{}", Theme::info("Developer Level Breakdown:"));
@@ -304,8 +330,12 @@ fn export_results(
             lines: analysis.total_lines,
             files: analysis.total_files,
             commits: analysis.commit_count,
+            base_tokens: cost.token_cost.base_tokens,
+            estimated_prompt_tokens: cost.token_cost.estimated_prompt_tokens,
+            estimated_output_tokens: cost.token_cost.estimated_output_tokens,
             estimated_hours: cost.estimated_hours,
             total_cost_krw: cost.total_cost,
+            total_api_cost_krw: cost.token_cost.total_cost_krw,
         })
         .collect();
 
