@@ -1,0 +1,36 @@
+[package]
+name = "dev-pulse"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+cli-core = { path = "../cli-core" }
+
+# CLI
+clap = { workspace = true }
+owo-colors = { workspace = true }
+comfy-table = { workspace = true }
+indicatif = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Git & Code Analysis
+git2 = { workspace = true }
+ignore = { workspace = true }
+walkdir = { workspace = true }
+
+# Error Handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+
+# Utils
+chrono = { workspace = true }
+regex = "1.10"
