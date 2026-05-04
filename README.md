@@ -9,6 +9,8 @@ This project is built with a modular architecture:
 - **`cli-core`**: A shared library providing common functionality for UI theming, output formatting (Table, JSON, CSV, HTML, Markdown), and configuration management.
 - **`code-cost`**: Analyzes entire repositories to estimate their total monetary value.
 - **`work-summary`**: Analyzes Git history to summarize recent work activity and productivity.
+- **`dev-pulse`**: A collection of tools for developer productivity, including branch cleanup and code scanning.
+- **`dev-utils`**: A "Swiss Army Knife" of small, frequently used developer utilities (UUID, Base64, JSON, Port, etc.).
 
 ## Tools
 
@@ -150,9 +152,149 @@ work-summary --limit 20
 
 # Simple mode
 work-summary --simple
-
 # Export to JSON
 work-summary --export summary.json
+```
+
+---
+
+### dev-pulse
+
+Developer pulse check and convenience tools to keep your development environment healthy.
+
+#### Features
+
+- **Git Branch Cleanup**
+  - Identifies branches that have already been merged into `main` or `master`.
+  - Dry-run by default to prevent accidental deletions.
+  - Delete multiple merged branches at once with `--force`.
+
+- **Marker Scanning**
+  - Scans the codebase for `TODO`, `FIXME`, `BUG`, `HACK`, and `OPTIMIZE` markers.
+  - Automatically respects `.gitignore`.
+  - Customizable marker list via command line.
+
+- **Project Health Check**
+  - Verifies the presence of essential project files:
+    - `README.md` (Documentation)
+    - `LICENSE` (Legal)
+    - `.gitignore` (Git hygiene)
+    - `.git` (Repository setup)
+    - `tests/` (Test suite)
+    - CI Configuration (Github Actions, etc.)
+  - Provides a health score and detailed pass/fail report.
+
+- **.env Validator**
+  - Compares `.env` against `.env.example` to ensure all required environment variables are configured.
+  - Lists missing keys and provides tips for configuration.
+
+- **Changelog Generator**
+  - Automatically generates a grouped changelog from Git history.
+  - Recognizes conventional commit types (feat, fix, docs, etc.).
+  - Supports range filtering (`--from`, `--to`) and commit limits.
+
+- **Commit Wizard**
+  - Interactive terminal UI for creating Conventional Commits.
+  - Guides you through type selection, scoping, description, and breaking changes.
+  - Automatically handles staged changes and creates the commit.
+
+#### Installation
+
+```bash
+cargo install --path crates/dev-pulse
+```
+
+#### Usage
+
+```bash
+# Git Branch Cleanup
+dev-pulse cleanup
+dev-pulse cleanup --force
+dev-pulse cleanup --target develop
+
+# Marker Scanning
+dev-pulse scan
+dev-pulse scan --markers "TODO,DEBUG"
+
+# Project Health Check
+dev-pulse health
+dev-pulse health --verbose
+
+# .env Validation
+dev-pulse env
+
+# Changelog Generation
+dev-pulse changelog
+dev-pulse changelog --from v1.0.0 --limit 10
+
+# Interactive Commit
+dev-pulse commit
+```
+
+---
+
+### dev-utils
+
+A collection of small, frequently used utilities for developers to handle common data transformations and system checks.
+
+#### Features
+
+- **UUID Generation**: Generate single or multiple UUID v4/v7 strings.
+- **Base64 Tool**: Quick encoding and decoding of strings/files to/from Base64.
+- **URL Tool**: URL encoding and decoding for web development.
+- **JSON Formatter**: Pretty-print or minify JSON strings with validation, query with JSONPath.
+- **Model Generation**: Convert JSON to TypeScript interfaces, Rust structs, or Go structs.
+- **Port Manager**: Check which processes are using a port and optionally kill them.
+- **Hash Generator**: Generate SHA-256, MD5, SHA-1 hashes for strings or files.
+- **Time Converter**: Convert between Unix timestamps and ISO8601 strings, or get current time.
+- **Project Tree**: Visualize project structure while respecting `.gitignore`.
+- **IP Info**: Quickly check your local and public IP addresses with location data.
+- **Morse Code**: Encode and decode Morse code strings.
+- **Password Tool**: Generate secure passwords and check their strength.
+
+#### Installation
+
+```bash
+cargo install --path crates/dev-utils
+```
+
+#### Usage
+
+```bash
+# Generate UUIDs
+dev-utils uuid --count 5 --v7
+
+# Base64 Encoding/Decoding
+dev-utils base64 "hello world"
+dev-utils base64 --decode "aGVsbG8gd29ybGQ="
+
+# JSON and Model Generation
+dev-utils json '{"a":1,"b":2}'
+dev-utils rust '{"name": "test", "age": 20}'
+dev-utils go '{"name": "test", "age": 20}'
+dev-utils typescript '{"name": "test", "age": 20}'
+
+# Port Management
+dev-utils port 8080
+dev-utils port 8080 --kill
+
+# File Hashing and Checksums
+dev-utils hash README.md --file
+dev-utils checksum README.md --file --algo sha512
+
+# Time Conversion
+dev-utils time
+dev-utils time 1740000000
+
+# Password Strength
+dev-utils password --check "P@ssw0rd123"
+
+# Morse Code
+dev-utils morse "HELLO WORLD"
+dev-utils morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
+
+# IP Information
+dev-utils ip
 ```
 
 ## Value Calculation Algorithms
@@ -185,6 +327,7 @@ cli-tools/
 ├── crates/
 │   ├── cli-core/           # Shared foundation (UI, I/O, Formatting)
 │   ├── code-cost/          # Repository value analyzer
+│   ├── dev-pulse/          # Developer productivity tools
 │   └── work-summary/       # Git work productivity summarizer
 ```
 

@@ -9,6 +9,8 @@
 - **`cli-core`**: UI 테마, 출력 포맷팅(Table, JSON, CSV, HTML, Markdown), 설정 관리를 위한 공통 기능을 제공하는 공유 라이브러리입니다.
 - **`code-cost`**: 전체 저장소를 분석하여 총 금전적 가치를 추산합니다.
 - **`work-summary`**: Git 히스토리를 분석하여 최근 업무 활동과 생산성을 요약합니다.
+- **`dev-pulse`**: 브랜치 정리, 코드 스캔 등 개발자 생산성을 위한 도구 모음입니다.
+- **`dev-utils`**: 개발자들이 자주 사용하는 데이터 변환 및 시스템 확인 도구들이 포함된 "맥가이버 칼" 같은 유틸리티 모음입니다.
 
 ## 도구
 
@@ -150,9 +152,125 @@ work-summary --limit 20
 
 # 요약 모드
 work-summary --simple
-
 # JSON으로 내보내기
 work-summary --export summary.json
+```
+
+---
+
+### dev-pulse
+
+개발 환경을 건강하게 유지하기 위한 개발자 상태 체크 및 편의 도구입니다.
+
+#### 주요 기능
+
+- **Git 브랜치 정리 (Cleanup)**
+  - `main` 또는 `master` 브랜치에 이미 병합된 브랜치들을 식별합니다.
+  - 실수로 인한 삭제를 방지하기 위해 기본적으로 드라이 런(Dry-run) 모드로 동작합니다.
+  - `--force` 옵션을 통해 병합된 여러 브랜치를 한 번에 삭제할 수 있습니다.
+
+- **마커 스캔 (Scan)**
+  - 코드베이스에서 `TODO`, `FIXME`, `BUG`, `HACK`, `OPTIMIZE` 마커를 찾아냅니다.
+  - `.gitignore` 설정을 자동으로 존중하여 스캔합니다.
+  - 커맨드라인을 통해 스캔할 마커 목록을 사용자 정의할 수 있습니다.
+
+- **프로젝트 건강도 체크 (Health)**
+  - 다음과 같은 필수 프로젝트 파일의 존재 여부를 확인합니다:
+    - `README.md` (문서화)
+    - `LICENSE` (법적 라이선스)
+    - `.gitignore` (Git 관리 위생)
+    - `.git` (저장소 설정)
+    - `tests/` (테스트 수트)
+    - CI 설정 (Github Actions 등)
+  - 건강도 점수와 함께 상세한 통과/실패 보고서를 제공합니다.
+
+#### 설치 방법
+
+```bash
+cargo install --path crates/dev-pulse
+```
+
+#### 사용법
+
+```bash
+# Git 브랜치 정리
+dev-pulse cleanup
+dev-pulse cleanup --force
+dev-pulse cleanup --target develop
+
+# 마커 스캔
+dev-pulse scan
+dev-pulse scan --markers "TODO,DEBUG"
+
+# 프로젝트 건강도 체크
+dev-pulse health
+dev-pulse health --verbose
+```
+
+---
+
+### dev-utils
+
+개발자들이 공통 데이터 변환 및 시스템 확인을 처리하기 위해 자주 사용하는 작고 유용한 유틸리티 모음입니다.
+
+#### 주요 기능
+
+- **UUID 생성**: 단일 또는 다중 UUID v4/v7 문자열을 생성합니다.
+- **Base64 도구**: 문자열이나 파일을 Base64로 빠르게 인코딩 및 디코딩합니다.
+- **URL 도구**: 웹 개발을 위한 URL 인코딩 및 디코딩을 수행합니다.
+- **JSON 포매터**: JSON 문자열을 예쁘게 출력하거나 압축하며, 유효성 검사 및 JSONPath 쿼리를 지원합니다.
+- **모델 생성**: JSON을 TypeScript 인터페이스, Rust 구조체 또는 Go 구조체로 변환합니다.
+- **포트 관리자**: 특정 포트를 사용 중인 프로세스를 확인하고 선택적으로 종료할 수 있습니다.
+- **해시 생성기**: 문자열이나 파일에 대해 SHA-256, MD5, SHA-1 해시를 생성합니다.
+- **시간 변환기**: Unix 타임스탬프와 ISO8601 문자열 간 변환 또는 현재 시간을 확인합니다.
+- **프로젝트 트리**: `.gitignore`를 존중하며 프로젝트 구조를 시각화합니다.
+- **IP 정보**: 지역 정보와 함께 로컬 및 공용 IP 주소를 빠르게 확인합니다.
+- **모스 부호**: 모스 부호 문자열을 인코딩 및 디코딩합니다.
+- **비밀번호 도구**: 안전한 비밀번호를 생성하고 강도를 체크합니다.
+
+#### 설치 방법
+
+```bash
+cargo install --path crates/dev-utils
+```
+
+#### 사용법
+
+```bash
+# UUID 생성
+dev-utils uuid --count 5 --v7
+
+# Base64 인코딩/디코딩
+dev-utils base64 "hello world"
+dev-utils base64 --decode "aGVsbG8gd29ybGQ="
+
+# JSON 및 모델 생성
+dev-utils json '{"a":1,"b":2}'
+dev-utils rust '{"name": "test", "age": 20}'
+dev-utils go '{"name": "test", "age": 20}'
+dev-utils typescript '{"name": "test", "age": 20}'
+
+# 포트 관리
+dev-utils port 8080
+dev-utils port 8080 --kill
+
+# 파일 해시 및 체크섬
+dev-utils hash README.md --file
+dev-utils checksum README.md --file --algo sha512
+
+# 시간 변환
+dev-utils time
+dev-utils time 1740000000
+
+# 비밀번호 강도
+dev-utils password --check "P@ssw0rd123"
+
+# 모스 부호
+dev-utils morse "HELLO WORLD"
+dev-utils morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
+
+# IP 정보 확인
+dev-utils ip
 ```
 
 ## 가치 계산 알고리즘
@@ -185,6 +303,7 @@ cli-tools/
 ├── crates/
 │   ├── cli-core/           # 공통 기반 (UI, I/O, 포맷팅)
 │   ├── code-cost/          # 저장소 가치 분석기
+│   ├── dev-pulse/          # 개발자 생산성 도구
 │   └── work-summary/       # Git 업무 생산성 요약기
 ```
 
