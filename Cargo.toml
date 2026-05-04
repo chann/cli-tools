@@ -4,6 +4,7 @@ members = [
     "crates/code-cost",
     "crates/dev-pulse",
     "crates/work-summary",
+    "crates/dev-utils",
 ]
 resolver = "2"
 
