@@ -21,11 +21,18 @@ fn generate_struct(value: &Value, name: &str) {
 
     if let Value::Object(map) = value {
         for (key, val) in map {
-            let field_name = key.to_snake_case();
+            let mut field_name = key.to_snake_case();
+            // Handle Rust reserved keywords
+            if matches!(field_name.as_str(), "type" | "use" | "mod" | "let" | "fn" | "struct" | "enum" | "match" | "if" | "else" | "loop" | "while" | "for" | "in" | "as" | "break" | "continue" | "crate" | "extern" | "false" | "true" | "impl" | "move" | "mut" | "pub" | "ref" | "return" | "self" | "Self" | "static" | "trait" | "unsafe" | "where") {
+                field_name = format!("r#{}", field_name);
+            }
+
             let (type_name, nested) = get_rust_type(val, key);
             
-            if field_name != *key {
+            if field_name != *key && !field_name.starts_with("r#") {
                 println!("    #[serde(rename = \"{}\")]", key);
+            } else if field_name.starts_with("r#") {
+                 println!("    #[serde(rename = \"{}\")]", key);
             }
             println!("    pub {}: {},", field_name, type_name);
 

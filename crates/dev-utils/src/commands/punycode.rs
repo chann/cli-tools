@@ -1,16 +1,20 @@
 use anyhow::Result;
+use cli_core::ui::Theme;
+use owo_colors::OwoColorize;
 
 pub fn encode_puny(input: &str) -> Result<()> {
     let encoded = punycode::encode(input)
-        .map_err(|_| anyhow::anyhow!("Failed to encode Punycode"))?;
-    println!("xn--{}", encoded);
+        .map_err(|_| anyhow::anyhow!("Failed to encode Punycode: {}", input))?;
+    
+    println!("{} {}", Theme::info("Punycode:"), format!("xn--{}", encoded).bright_white().bold());
     Ok(())
 }
 
 pub fn decode_puny(input: &str) -> Result<()> {
     let target = input.trim_start_matches("xn--");
     let decoded = punycode::decode(target)
-        .map_err(|_| anyhow::anyhow!("Failed to decode Punycode"))?;
-    println!("{}", decoded);
+        .map_err(|_| anyhow::anyhow!("Failed to decode Punycode: {}", input))?;
+    
+    println!("{} {}", Theme::info("Decoded: "), decoded.bright_white().bold());
     Ok(())
 }

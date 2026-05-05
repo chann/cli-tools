@@ -1,8 +1,8 @@
 use anyhow::Result;
-use owo_colors::OwoColorize;
 use similar::{ChangeTag, TextDiff};
 use std::fs;
 use std::path::Path;
+use cli_core::ui::Theme;
 
 pub fn compare(old: &str, new: &str, is_file: bool) -> Result<()> {
     let (old_content, new_content) = if is_file {
@@ -23,19 +23,35 @@ pub fn compare(old: &str, new: &str, is_file: bool) -> Result<()> {
 
     let diff = TextDiff::from_lines(&old_content, &new_content);
 
+    println!("{}", Theme::header("--- Diff Comparison ---"));
+    if is_file {
+        println!("{} {} vs {}", Theme::dim("Files:"), old, new);
+    }
+    println!();
+
+    let mut additions = 0;
+    let mut deletions = 0;
+
     for change in diff.iter_all_changes() {
         match change.tag() {
             ChangeTag::Delete => {
-                print!("-{}", change.value().red());
+                deletions += 1;
+                print!("{}", Theme::red(format!("-{}", change.value())));
             }
             ChangeTag::Insert => {
-                print!("+{}", change.value().green());
+                additions += 1;
+                print!("{}", Theme::green(format!("+{}", change.value())));
             }
             ChangeTag::Equal => {
-                print!(" {}", change.value().dimmed());
+                print!(" {}", Theme::dim(change.value()));
             }
         };
     }
+
+    println!("\n{}", Theme::header("--- Summary ---"));
+    println!("{}: {}", Theme::success("Additions"), additions);
+    println!("{}: {}", Theme::error("Deletions"), deletions);
+    println!("{}: {}", Theme::info("Total Changes"), additions + deletions);
 
     Ok(())
 }

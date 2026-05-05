@@ -42,7 +42,7 @@ enum Commands {
         #[arg(short, long, default_value = "8080")]
         port: u16,
     },
-    /// Generate UUIDs
+    /// Generate or inspect UUIDs
     Uuid {
         /// Number of UUIDs to generate
         #[arg(short, long, default_value = "1")]
@@ -50,6 +50,9 @@ enum Commands {
         /// Generate UUID v7 instead of v4
         #[arg(long)]
         v7: bool,
+        /// ID to inspect
+        #[arg(short, long)]
+        inspect: Option<String>,
     },
     /// Base64 encoding/decoding
     Base64 {
@@ -67,6 +70,9 @@ enum Commands {
         /// Generate data URI (e.g., data:image/png;base64,...)
         #[arg(long)]
         data_uri: bool,
+        /// Use URL-safe character set
+        #[arg(long)]
+        url_safe: bool,
     },
     /// URL encoding/decoding
     Url {
@@ -116,10 +122,13 @@ enum Commands {
         #[arg(short, long)]
         list: bool,
     },
-    /// Hash utilities (SHA-256)
+    /// Hash utilities
     Hash {
         /// Text or file path to hash
         input: String,
+        /// Algorithm (md5, sha1, sha256, sha512)
+        #[arg(short, long, default_value = "sha256")]
+        algo: String,
         /// Treat input as a file path
         #[arg(short, long)]
         file: bool,
@@ -140,20 +149,44 @@ enum Commands {
         /// Maximum depth
         #[arg(short, long)]
         depth: Option<usize>,
+        /// Show file sizes
+        #[arg(short, long)]
+        size: bool,
+        /// Show git status
+        #[arg(short, long)]
+        git: bool,
     },
     /// Show IP information
-    Ip,
-    /// Generate random strings
+    Ip {
+        /// Optional IP address or hostname to lookup
+        target: Option<String>,
+    },
+    /// Generate random data
     Random {
+        /// Type of random data (string, number, boolean)
+        #[arg(short, long, default_value = "string")]
+        kind: String,
+        /// Number of items to generate
+        #[arg(short, long, default_value = "1")]
+        count: usize,
         /// Length of the string
         #[arg(short, long, default_value = "16")]
         length: usize,
-        /// Include numbers
+        /// Minimum value for number
+        #[arg(long, default_value = "0")]
+        min: usize,
+        /// Maximum value for number
+        #[arg(long, default_value = "100")]
+        max: usize,
+        /// Include numbers (for string)
         #[arg(short, long)]
         numeric: bool,
-        /// Include symbols
+        /// Include symbols (for string)
         #[arg(short, long)]
         symbols: bool,
+        /// Use uppercase only (for string)
+        #[arg(short, long)]
+        uppercase: bool,
     },
     /// String case conversion
     Case {
@@ -161,7 +194,7 @@ enum Commands {
         text: String,
         /// Target case (snake, camel, pascal, kebab, shouty, train)
         #[arg(short, long)]
-        to: String,
+        to: Option<String>,
     },
     /// Inspect or generate JWT token
     Jwt {
@@ -174,7 +207,7 @@ enum Commands {
         #[arg(short, long)]
         payload: Option<String>,
         /// Secret key for HS256
-        #[arg(short, long)]
+        #[arg(short = 'S', long)]
         secret: Option<String>,
     },
     /// List or search environment variables
@@ -199,15 +232,24 @@ enum Commands {
     },
     /// Generate Lorem Ipsum text
     Lorem {
-        /// Number of paragraphs to generate
+        /// Number of paragraphs/sentences/words to generate
         #[arg(short, long, default_value = "1")]
-        paragraphs: usize,
+        count: usize,
+        /// Type of generation (paragraphs, sentences, words)
+        #[arg(short, long, default_value = "paragraphs")]
+        kind: String,
     },
     /// Generate a secure password or check strength
     Password {
         /// Length of the password to generate
         #[arg(short, long, default_value = "16")]
         length: usize,
+        /// Generate a passphrase instead of a random string
+        #[arg(short, long)]
+        passphrase: bool,
+        /// Number of words in the passphrase
+        #[arg(short, long, default_value = "5")]
+        words: usize,
         /// Disable numbers
         #[arg(long)]
         no_numbers: bool,
@@ -235,13 +277,28 @@ enum Commands {
         #[arg(short, long)]
         body: Option<String>,
         /// Request headers (Key: Value)
-        #[arg(short, long)]
+        #[arg(short = 'H', long)]
         header: Vec<String>,
+        /// Output file path to save the response body
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Show detailed request/response info
+        #[arg(short, long)]
+        verbose: bool,
     },
-    /// Generate a QR code in the terminal
+    /// Generate a QR code in the terminal or as a file
     Qr {
         /// Text or URL to encode
         text: String,
+        /// Output file path (e.g., qrcode.png, qrcode.svg)
+        #[arg(short, long)]
+        output: Option<String>,
+        /// Error correction level (L, M, Q, H)
+        #[arg(short, long, default_value = "M")]
+        level: String,
+        /// Size of the QR code in pixels (for file output)
+        #[arg(short, long, default_value = "256")]
+        size: u32,
     },
     /// Path utilities
     Path {
@@ -277,7 +334,7 @@ enum Commands {
     Text {
         /// Text to process
         text: String,
-        /// Operation (sort, reverse, unique, trim, upper, lower, replace)
+        /// Operation (sort, reverse, unique, trim, upper, lower, replace, shuffle, count, prefix, suffix, truncate)
         #[arg(short, long, default_value = "trim")]
         op: String,
         /// Sort in reverse order
@@ -286,12 +343,24 @@ enum Commands {
         /// Remove duplicate lines
         #[arg(long)]
         unique: bool,
-        /// Text to replace
+        /// Text to replace or prefix/suffix/truncate value
         #[arg(long)]
         from: Option<String>,
         /// Replacement text
         #[arg(long)]
         to: Option<String>,
+        /// Show line numbers
+        #[arg(short, long)]
+        line_numbers: bool,
+        /// Prefix to add to each line
+        #[arg(long)]
+        prefix: Option<String>,
+        /// Suffix to add to each line
+        #[arg(long)]
+        suffix: Option<String>,
+        /// Truncate lines to this length
+        #[arg(long)]
+        truncate: Option<usize>,
     },
     /// Explain a cron expression in plain language
     Cron {
@@ -335,12 +404,15 @@ enum Commands {
     Base {
         /// Value to convert
         value: String,
-        /// Source base (2, 8, 10, 16)
+        /// Source base (2-36)
         #[arg(short, long, default_value = "10")]
         from: u32,
-        /// Target base (2, 8, 10, 16)
-        #[arg(short, long, default_value = "16")]
-        to: u32,
+        /// Target base (2-36). If not provided, shows common bases.
+        #[arg(short, long)]
+        to: Option<u32>,
+        /// Show all common bases (2, 8, 10, 16, 32, 36)
+        #[arg(short, long)]
+        all: bool,
     },
     /// Calculate checksums
     Checksum {
@@ -352,6 +424,9 @@ enum Commands {
         /// Treat input as a file path
         #[arg(short, long)]
         file: bool,
+        /// Verify against a hash
+        #[arg(short, long)]
+        check: Option<String>,
     },
     /// Show a hex dump of a string or file
     Hexview {
@@ -408,10 +483,13 @@ enum Commands {
     /// Inspect SSL/TLS certificate
     Cert {
         /// Hostname (e.g., google.com)
-        host: String,
+        host: Option<String>,
         /// Port (default: 443)
         #[arg(short, long, default_value = "443")]
         port: u16,
+        /// Path to a local certificate file (PEM or DER)
+        #[arg(short, long)]
+        file: Option<PathBuf>,
     },
     /// Unit conversion (Temperature, Length, Weight)
     Unit {
@@ -431,28 +509,40 @@ enum Commands {
         /// Target currency (e.g., EUR)
         to: String,
     },
-    /// Generate ULIDs
+    /// Generate or inspect ULIDs
     Ulid {
         /// Number of ULIDs to generate
         #[arg(short, long, default_value = "1")]
         count: usize,
+        /// ID to inspect
+        #[arg(short, long)]
+        inspect: Option<String>,
     },
     /// Generate NanoIDs
     Nanoid {
         /// Length of the ID
         #[arg(short, long, default_value = "21")]
         length: usize,
+        /// Number of IDs to generate
+        #[arg(short, long, default_value = "1")]
+        count: usize,
+        /// Custom alphabet to use
+        #[arg(short, long)]
+        alphabet: Option<String>,
     },
-    /// Generate a TOTP code
+    /// Generate a TOTP code or a new secret
     Totp {
-        /// Secret key (Base32 encoded)
-        secret: String,
+        /// Secret key (Base32 encoded). If not provided, a new one will be generated.
+        secret: Option<String>,
         /// Number of digits (default: 6)
         #[arg(short, long, default_value = "6")]
         digits: usize,
         /// Skew in seconds (default: 0)
         #[arg(short, long, default_value = "0")]
         skew: u8,
+        /// Generate a new random secret instead of a code
+        #[arg(short, long)]
+        generate_secret: bool,
     },
     /// Convert CSV to JSON/YAML/Markdown
     Csv {
@@ -487,7 +577,20 @@ enum Commands {
     /// Basic SQL formatter
     Sql {
         /// SQL query to format
-        query: String,
+        #[arg(required_unless_present = "file")]
+        query: Option<String>,
+        /// Read query from a file
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+        /// Indentation size (default: 2)
+        #[arg(short, long, default_value = "2")]
+        indent: usize,
+        /// Use tabs for indentation instead of spaces
+        #[arg(short, long)]
+        tabs: bool,
+        /// Use lowercase keywords instead of uppercase
+        #[arg(short, long)]
+        lowercase: bool,
     },
     /// Generate a URL-friendly slug
     Slug {
@@ -501,27 +604,45 @@ enum Commands {
     },
     /// Base32 encoding/decoding
     Base32 {
-        /// Text to process
+        /// Text or file path to process
         input: String,
         /// Decode instead of encode
         #[arg(short, long)]
         decode: bool,
+        /// Treat input as a file path
+        #[arg(short, long)]
+        file: bool,
+        /// Output file path
+        #[arg(short, long)]
+        output: Option<String>,
     },
     /// Base58 encoding/decoding
     Base58 {
-        /// Text to process
+        /// Text or file path to process
         input: String,
         /// Decode instead of encode
         #[arg(short, long)]
         decode: bool,
+        /// Treat input as a file path
+        #[arg(short, long)]
+        file: bool,
+        /// Output file path
+        #[arg(short, long)]
+        output: Option<String>,
     },
     /// Base85 encoding/decoding
     Base85 {
-        /// Text to process
+        /// Text or file path to process
         input: String,
         /// Decode instead of encode
         #[arg(short, long)]
         decode: bool,
+        /// Treat input as a file path
+        #[arg(short, long)]
+        file: bool,
+        /// Output file path
+        #[arg(short, long)]
+        output: Option<String>,
     },
     /// Punycode encoding/decoding
     Punycode {
@@ -531,13 +652,16 @@ enum Commands {
         #[arg(short, long)]
         decode: bool,
     },
-    /// HMAC utilities (SHA-256)
+    /// HMAC utilities
     Hmac {
         /// Text to process
         text: String,
         /// Secret key
         #[arg(short, long)]
         key: String,
+        /// Algorithm (md5, sha1, sha256, sha512)
+        #[arg(short, long, default_value = "sha256")]
+        algo: String,
     },
     /// Binary string conversion
     Binary {
@@ -547,8 +671,11 @@ enum Commands {
         #[arg(short, long)]
         from: bool,
     },
-    /// Generate a random user agent string
-    UserAgent,
+    /// Generate or inspect a random user agent string
+    UserAgent {
+        /// Optional user agent string to inspect
+        ua: Option<String>,
+    },
     /// Mime type utilities
     Mime {
         /// File path or extension
@@ -564,6 +691,9 @@ enum Commands {
         /// Length of the secret key
         #[arg(short, long, default_value = "50")]
         length: usize,
+        /// Number of keys to generate
+        #[arg(short, long, default_value = "1")]
+        count: usize,
         /// Kind of secret key (default, django, rails, hex, alphanumeric)
         #[arg(short, long, default_value = "default")]
         kind: String,
@@ -696,6 +826,9 @@ enum Commands {
         /// List all common status codes
         #[arg(short, long)]
         list: bool,
+        /// Search by name or description
+        #[arg(short, long)]
+        search: Option<String>,
     },
     /// Display ASCII table
     AsciiTable,
@@ -718,6 +851,9 @@ enum Commands {
         /// Lookup repository information (owner/repo)
         #[arg(short, long)]
         repo: Option<String>,
+        /// Search for repositories
+        #[arg(short, long)]
+        search: Option<String>,
     },
     /// Search for Rust crates on crates.io
     Crates {
@@ -814,14 +950,35 @@ enum Commands {
         /// Topic to search for (e.g., rust/vector)
         query: String,
     },
-    /// Scan for duplicate files in a directory
+    /// Scan for duplicate files, empty files/dirs, or broken links
     Scan {
         /// Target directory
         #[arg(default_value = ".")]
         path: PathBuf,
-        /// Minimum file size in bytes
-        #[arg(short, long, default_value = "1024")]
+        /// Minimum file size in bytes for duplicate scan
+        #[arg(short, long, default_value = "1")]
         min_size: u64,
+        /// Scan for duplicate files
+        #[arg(short, long)]
+        duplicates: bool,
+        /// Scan for empty files
+        #[arg(short, long)]
+        empty: bool,
+        /// Scan for empty directories
+        #[arg(long)]
+        dirs: bool,
+        /// Scan for broken symbolic links
+        #[arg(short, long)]
+        links: bool,
+        /// Show all (duplicates, empty, dirs, links)
+        #[arg(short, long)]
+        all: bool,
+    },
+    /// Check for broken links in files
+    CheckLinks {
+        /// Target directory or file
+        #[arg(default_value = ".")]
+        path: PathBuf,
     },
 }
 
@@ -839,14 +996,18 @@ async fn main() -> Result<()> {
         Commands::Serve { path, port } => {
             commands::serve::run(path, port).await?;
         }
-        Commands::Uuid { count, v7 } => {
-            commands::uuid::generate(count, v7)?;
-        }
-        Commands::Base64 { input, decode, file, output, data_uri } => {
-            if decode {
-                commands::base64::decode(&input, output)?;
+        Commands::Uuid { count, v7, inspect } => {
+            if let Some(id) = inspect {
+                commands::uuid::inspect(&id)?;
             } else {
-                commands::base64::encode(&input, file, data_uri)?;
+                commands::uuid::generate(count, v7)?;
+            }
+        }
+        Commands::Base64 { input, decode, file, output, data_uri, url_safe } => {
+            if decode {
+                commands::base64::decode(&input, output, url_safe)?;
+            } else {
+                commands::base64::encode(&input, file, data_uri, url_safe)?;
             }
         }
         Commands::Url { text, decode } => {
@@ -884,13 +1045,13 @@ async fn main() -> Result<()> {
                 anyhow::bail!("Port number is required for this operation or use --list");
             }
         }
-        Commands::Hash { input, file, compare } => {
+        Commands::Hash { input, algo, file, compare } => {
             if let Some(c) = compare {
-                commands::hash::compare(&input, &c, file)?;
+                commands::hash::compare(&input, &c, &algo, file)?;
             } else if file {
-                commands::hash::hash_file(std::path::Path::new(&input))?;
+                commands::hash::hash_file(std::path::Path::new(&input), &algo)?;
             } else {
-                commands::hash::hash_string(&input)?;
+                commands::hash::hash_string(&input, &algo)?;
             }
         }
         Commands::Time { input } => {
@@ -900,17 +1061,17 @@ async fn main() -> Result<()> {
                 commands::time::current()?;
             }
         }
-        Commands::Tree { path, depth } => {
-            commands::tree::print_tree(&path, depth)?;
+        Commands::Tree { path, depth, size, git } => {
+            commands::tree::print_tree(&path, depth, size, git)?;
         }
-        Commands::Ip => {
-            commands::ip::show().await?;
+        Commands::Ip { target } => {
+            commands::ip::show(target).await?;
         }
-        Commands::Random { length, numeric, symbols } => {
-            commands::random::generate(length, numeric, symbols)?;
+        Commands::Random { kind, count, length, min, max, numeric, symbols, uppercase } => {
+            commands::random::generate(&kind, count, length, min, max, numeric, symbols, uppercase)?;
         }
         Commands::Case { text, to } => {
-            commands::case::convert(&text, &to)?;
+            commands::case::convert(&text, to.as_deref())?;
         }
         Commands::Jwt { token, sign, payload, secret } => {
             if sign {
@@ -920,7 +1081,7 @@ async fn main() -> Result<()> {
                     anyhow::bail!("Sign operation requires --payload and --secret");
                 }
             } else if let Some(t) = token {
-                commands::jwt::inspect(&t)?;
+                commands::jwt::inspect(&t, secret.as_deref())?;
             } else {
                 anyhow::bail!("JWT token is required for inspection or use --sign");
             }
@@ -937,21 +1098,23 @@ async fn main() -> Result<()> {
         Commands::Size { value, unit } => {
             commands::size::convert(value, &unit)?;
         }
-        Commands::Lorem { paragraphs } => {
-            commands::lorem::generate(paragraphs)?;
+        Commands::Lorem { count, kind } => {
+            commands::lorem::generate(count, &kind)?;
         }
-        Commands::Password { length, no_numbers, no_symbols, no_uppercase, no_lowercase, check } => {
+        Commands::Password { length, passphrase, words, no_numbers, no_symbols, no_uppercase, no_lowercase, check } => {
             if let Some(pwd) = check {
                 commands::password::check(&pwd)?;
+            } else if passphrase {
+                commands::password::generate_passphrase(words)?;
             } else {
                 commands::password::generate(length, !no_numbers, !no_symbols, !no_uppercase, !no_lowercase)?;
             }
         }
-        Commands::Http { method, url, body, header } => {
-            commands::http::request(method, url, body, header).await?;
+        Commands::Http { method, url, body, header, output, verbose } => {
+            commands::http::request(method, url, body, header, output, verbose).await?;
         }
-        Commands::Qr { text } => {
-            commands::qr::generate(&text)?;
+        Commands::Qr { text, output, level, size } => {
+            commands::qr::generate(&text, output, &level, size)?;
         }
         Commands::Path { path, resolve } => {
             if resolve {
@@ -978,23 +1141,19 @@ async fn main() -> Result<()> {
                 commands::toml::format(&text)?;
             }
         }
-        Commands::Text { text, op, reverse, unique, from, to } => {
-            match op.as_str() {
-                "sort" => commands::text::sort(&text, reverse, unique)?,
-                "reverse" => commands::text::reverse(&text)?,
-                "unique" => commands::text::filter_unique(&text)?,
-                "trim" => commands::text::trim(&text)?,
-                "upper" => commands::text::to_upper(&text)?,
-                "lower" => commands::text::to_lower(&text)?,
-                "replace" => {
-                    if let (Some(f), Some(t)) = (from, to) {
-                        commands::text::replace(&text, &f, &t)?;
-                    } else {
-                        anyhow::bail!("Replace operation requires --from and --to");
-                    }
-                }
-                _ => anyhow::bail!("Unsupported text operation: {}", op),
-            }
+        Commands::Text { text, op, reverse, unique, from, to, line_numbers, prefix, suffix, truncate } => {
+            commands::text::process(
+                &text,
+                &op,
+                reverse,
+                unique,
+                from,
+                to,
+                line_numbers,
+                prefix,
+                suffix,
+                truncate,
+            )?;
         }
         Commands::Cron { expression } => {
             commands::cron::explain(&expression)?;
@@ -1023,11 +1182,15 @@ async fn main() -> Result<()> {
                 _ => anyhow::bail!("Unsupported escape kind: {}", kind),
             }
         }
-        Commands::Base { value, from, to } => {
-            commands::base::convert(&value, from, to)?;
+        Commands::Base { value, from, to, all } => {
+            commands::base::convert(&value, from, to, all)?;
         }
-        Commands::Checksum { input, algo, file } => {
-            commands::checksum::calculate(&input, &algo, file)?;
+        Commands::Checksum { input, algo, file, check } => {
+            if let Some(c) = check {
+                commands::checksum::verify(&input, &c, &algo, file)?;
+            } else {
+                commands::checksum::calculate(&input, &algo, file)?;
+            }
         }
         Commands::Hexview { input, file } => {
             commands::hexview::view(&input, file)?;
@@ -1057,8 +1220,14 @@ async fn main() -> Result<()> {
         Commands::Whois { domain } => {
             commands::whois::lookup(&domain)?;
         }
-        Commands::Cert { host, port } => {
-            commands::cert::inspect(&host, port).await?;
+        Commands::Cert { host, port, file } => {
+            if let Some(h) = host {
+                commands::cert::inspect_remote(&h, port).await?;
+            } else if let Some(f) = file {
+                commands::cert::inspect_file(&f)?;
+            } else {
+                anyhow::bail!("Either host or file must be provided");
+            }
         }
         Commands::Unit { value, from, to } => {
             commands::unit::convert(value, &from, &to)?;
@@ -1066,14 +1235,24 @@ async fn main() -> Result<()> {
         Commands::Currency { amount, from, to } => {
             commands::currency::convert(amount, &from, &to).await?;
         }
-        Commands::Ulid { count } => {
-            commands::ulid::generate(count)?;
+        Commands::Ulid { count, inspect } => {
+            if let Some(id) = inspect {
+                commands::ulid::inspect(&id)?;
+            } else {
+                commands::ulid::generate(count)?;
+            }
         }
-        Commands::Nanoid { length } => {
-            commands::nanoid::generate(length)?;
+        Commands::Nanoid { length, count, alphabet } => {
+            commands::nanoid::generate(length, count, alphabet.as_deref())?;
         }
-        Commands::Totp { secret, digits, skew } => {
-            commands::totp::generate(&secret, digits, skew)?;
+        Commands::Totp { secret, digits, skew, generate_secret } => {
+            if generate_secret {
+                commands::totp::generate_new_secret()?;
+            } else if let Some(s) = secret {
+                commands::totp::generate(&s, digits, skew)?;
+            } else {
+                anyhow::bail!("Secret key is required for TOTP generation, or use --generate-secret");
+            }
         }
         Commands::Csv { input, json, yaml, markdown } => {
             commands::csv::convert(&input, json, yaml, markdown)?;
@@ -1084,8 +1263,13 @@ async fn main() -> Result<()> {
         Commands::Extract { input, kind, file } => {
             commands::extract::extract(&input, &kind, file)?;
         }
-        Commands::Sql { query } => {
-            commands::sql::format(&query)?;
+        Commands::Sql { query, file, indent, tabs, lowercase } => {
+            let sql = if let Some(f) = file {
+                std::fs::read_to_string(f)?
+            } else {
+                query.unwrap_or_default()
+            };
+            commands::sql::format(&sql, indent, tabs, lowercase)?;
         }
         Commands::Slug { text } => {
             commands::slug::generate(&text)?;
@@ -1093,25 +1277,25 @@ async fn main() -> Result<()> {
         Commands::Chmod { input } => {
             commands::chmod::calculate(&input)?;
         }
-        Commands::Base32 { input, decode } => {
+        Commands::Base32 { input, decode, file, output } => {
             if decode {
-                commands::base32::decode_base32(&input)?;
+                commands::base32::decode_base32(&input, output)?;
             } else {
-                commands::base32::encode_base32(&input)?;
+                commands::base32::encode_base32(&input, file)?;
             }
         }
-        Commands::Base58 { input, decode } => {
+        Commands::Base58 { input, decode, file, output } => {
             if decode {
-                commands::base58::decode_base58(&input)?;
+                commands::base58::decode_base58(&input, output)?;
             } else {
-                commands::base58::encode_base58(&input)?;
+                commands::base58::encode_base58(&input, file)?;
             }
         }
-        Commands::Base85 { input, decode } => {
+        Commands::Base85 { input, decode, file, output } => {
             if decode {
-                commands::base85::decode_base85(&input)?;
+                commands::base85::decode_base85(&input, output)?;
             } else {
-                commands::base85::encode_base85(&input)?;
+                commands::base85::encode_base85(&input, file)?;
             }
         }
         Commands::Punycode { input, decode } => {
@@ -1121,8 +1305,8 @@ async fn main() -> Result<()> {
                 commands::punycode::encode_puny(&input)?;
             }
         }
-        Commands::Hmac { text, key } => {
-            commands::hmac::calculate(&text, &key)?;
+        Commands::Hmac { text, key, algo } => {
+            commands::hmac::calculate(&text, &key, &algo)?;
         }
         Commands::Binary { input, from } => {
             if from {
@@ -1131,8 +1315,12 @@ async fn main() -> Result<()> {
                 commands::binary::to_binary(&input)?;
             }
         }
-        Commands::UserAgent => {
-            commands::user_agent::generate()?;
+        Commands::UserAgent { ua } => {
+            if let Some(val) = ua {
+                commands::user_agent::inspect(&val)?;
+            } else {
+                commands::user_agent::generate()?;
+            }
         }
         Commands::Mime { input, extension } => {
             if extension {
@@ -1144,8 +1332,8 @@ async fn main() -> Result<()> {
         Commands::Joke => {
             commands::joke::random()?;
         }
-        Commands::Secret { length, kind } => {
-            commands::secret::generate(length, &kind)?;
+        Commands::Secret { length, count, kind } => {
+            commands::secret::generate(length, count, &kind)?;
         }
         Commands::Snowflake { inspect, count } => {
             if let Some(id) = inspect {
@@ -1226,13 +1414,15 @@ async fn main() -> Result<()> {
                 commands::compress::gzip(&input, &output)?;
             }
         }
-        Commands::HttpStatus { code, list } => {
+        Commands::HttpStatus { code, list, search } => {
             if list {
                 commands::http_status::list()?;
+            } else if let Some(q) = search {
+                commands::http_status::search(&q)?;
             } else if let Some(c) = code {
                 commands::http_status::lookup(c)?;
             } else {
-                anyhow::bail!("Status code is required or use --list");
+                anyhow::bail!("Status code is required, or use --list or --search");
             }
         }
         Commands::AsciiTable => {
@@ -1241,11 +1431,13 @@ async fn main() -> Result<()> {
         Commands::UrlParse { url } => {
             commands::url_parse::parse(&url)?;
         }
-        Commands::Github { issue, pr, user, repo } => {
+        Commands::Github { issue, pr, user, repo, search } => {
             if let Some(u) = user {
                 commands::github::get_user(&u).await?;
             } else if let Some(r) = repo {
                 commands::github::get_repo(&r).await?;
+            } else if let Some(q) = search {
+                commands::github::search(&q).await?;
             } else {
                 commands::github::open(issue, pr)?;
             }
@@ -1299,8 +1491,24 @@ async fn main() -> Result<()> {
         Commands::Cheat { query } => {
             commands::cheat::run(&query).await?;
         }
-        Commands::Scan { path, min_size } => {
-            commands::scan::run(&path, min_size)?;
+        Commands::Scan { path, min_size, duplicates, empty, dirs, links, all } => {
+            let mut opts = commands::scan::ScanOptions {
+                duplicates,
+                empty,
+                dirs,
+                links,
+                min_size,
+            };
+            if all || (!duplicates && !empty && !dirs && !links) {
+                opts.duplicates = true;
+                opts.empty = true;
+                opts.dirs = true;
+                opts.links = true;
+            }
+            commands::scan::run(&path, opts)?;
+        }
+        Commands::CheckLinks { path } => {
+            commands::check_links::run(&path).await?;
         }
     }
 

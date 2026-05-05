@@ -1,6 +1,6 @@
 use anyhow::Result;
-use owo_colors::OwoColorize;
 use urlencoding::encode;
+use cli_core::ui::Theme;
 
 pub async fn translate(text: &str, target_lang: &str) -> Result<()> {
     // Google Translate mobile API (unofficial but widely used for simple tools)
@@ -10,7 +10,7 @@ pub async fn translate(text: &str, target_lang: &str) -> Result<()> {
         encode(text)
     );
 
-    println!("{}", format!("Translating to {}...", target_lang).dimmed());
+    println!("{}", Theme::info(format!("Translating to {}...", target_lang)));
 
     let resp = reqwest::get(url).await?;
 
@@ -23,8 +23,8 @@ pub async fn translate(text: &str, target_lang: &str) -> Result<()> {
                     translated.push_str(t);
                 }
             }
-            println!("\n{}", "Translated Text:".bold().cyan());
-            println!("{}", translated.green());
+            println!("\n{}", Theme::header("Translated Text"));
+            println!("{}", Theme::highlight(&translated));
         }
     } else {
         anyhow::bail!("Failed to translate: {}", resp.status());

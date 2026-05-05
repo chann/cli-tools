@@ -1,4 +1,5 @@
 use anyhow::Result;
+use cli_core::ui::Theme;
 
 pub fn encode(text: &str) -> Result<()> {
     let mut result = Vec::new();
@@ -7,7 +8,10 @@ pub fn encode(text: &str) -> Result<()> {
             result.push(code);
         }
     }
-    println!("{}", result.join(" "));
+    
+    println!("\n{}", Theme::header("Morse Code Encoding"));
+    println!("{}", Theme::highlight(result.join(" ")));
+    
     Ok(())
 }
 
@@ -18,7 +22,10 @@ pub fn decode(text: &str) -> Result<()> {
             result.push(c);
         }
     }
-    println!("{}", result);
+    
+    println!("\n{}", Theme::header("Morse Code Decoding"));
+    println!("{}", Theme::highlight(&result));
+    
     Ok(())
 }
 

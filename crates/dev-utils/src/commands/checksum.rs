@@ -4,6 +4,8 @@ use sha1::Sha1;
 use sha2::{Sha256, Sha512, Digest};
 use std::fs::File;
 use std::io::Read;
+use cli_core::ui::Theme;
+use owo_colors::OwoColorize;
 
 pub fn calculate(input: &str, algo: &str, is_file: bool) -> Result<()> {
     let result = match algo.to_lowercase().as_str() {
@@ -14,7 +16,34 @@ pub fn calculate(input: &str, algo: &str, is_file: bool) -> Result<()> {
         _ => return Err(anyhow!("Unsupported algorithm: {}. Supported: md5, sha1, sha256, sha512", algo)),
     };
 
-    println!("{}", result);
+    println!("{} {}", Theme::info("Algorithm: "), algo.yellow());
+    println!("{}    {}", Theme::info("Source:    "), if is_file { "File".cyan() } else { "Text".cyan() });
+    println!("{}    {}", Theme::info("Hash:      "), result.bright_white().bold());
+    
+    Ok(())
+}
+
+pub fn verify(input: &str, expected_hash: &str, algo: &str, is_file: bool) -> Result<()> {
+    let actual_hash = match algo.to_lowercase().as_str() {
+        "md5" => hash::<Md5>(input, is_file)?,
+        "sha1" => hash::<Sha1>(input, is_file)?,
+        "sha256" => hash::<Sha256>(input, is_file)?,
+        "sha512" => hash::<Sha512>(input, is_file)?,
+        _ => return Err(anyhow!("Unsupported algorithm: {}. Supported: md5, sha1, sha256, sha512", algo)),
+    };
+
+    println!("{} {}", Theme::info("Algorithm: "), algo.yellow());
+    println!("{}    {}", Theme::info("Source:    "), if is_file { "File".cyan() } else { "Text".cyan() });
+    println!("{}    {}", Theme::info("Expected:  "), expected_hash.dimmed());
+    println!("{}    {}", Theme::info("Actual:    "), actual_hash.bright_white());
+
+    if actual_hash.to_lowercase() == expected_hash.to_lowercase() {
+        println!("\n{}", Theme::success("Verification successful! The hashes match."));
+    } else {
+        println!("\n{}", Theme::error("Verification failed! The hashes do NOT match."));
+        anyhow::bail!("Checksum verification failed");
+    }
+    
     Ok(())
 }
 

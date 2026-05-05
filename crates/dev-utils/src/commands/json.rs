@@ -1,6 +1,7 @@
 use serde_json::Value;
 use anyhow::{Result, anyhow};
 use jsonpath_rust::JsonPath;
+use cli_core::ui::Theme;
 
 pub fn process(text: &str, pretty: bool, query: Option<String>) -> Result<()> {
     let v: Value = serde_json::from_str(text)
@@ -24,12 +25,14 @@ pub fn process(text: &str, pretty: bool, query: Option<String>) -> Result<()> {
 
 pub fn to_yaml(text: &str) -> Result<()> {
     let v: Value = serde_json::from_str(text)?;
+    println!("\n{}", Theme::header("--- YAML Output ---"));
     println!("{}", serde_yaml::to_string(&v)?);
     Ok(())
 }
 
 pub fn to_toml(text: &str) -> Result<()> {
     let v: Value = serde_json::from_str(text)?;
+    println!("\n{}", Theme::header("--- TOML Output ---"));
     println!("{}", toml::to_string_pretty(&v)?);
     Ok(())
 }
@@ -82,7 +85,12 @@ pub fn to_csv(text: &str) -> Result<()> {
 
 pub fn to_schema(text: &str) -> Result<()> {
     let v: Value = serde_json::from_str(text)?;
-    let schema = generate_schema(&v);
+    let mut schema = generate_schema(&v);
+    if let Value::Object(ref mut map) = schema {
+        map.insert("$schema".to_string(), Value::String("http://json-schema.org/draft-07/schema#".to_string()));
+        map.insert("title".to_string(), Value::String("Generated Schema".to_string()));
+    }
+    println!("\n{}", Theme::header("--- JSON Schema Output ---"));
     println!("{}", serde_json::to_string_pretty(&schema)?);
     Ok(())
 }
@@ -91,7 +99,13 @@ fn generate_schema(value: &Value) -> Value {
     match value {
         Value::Null => serde_json::json!({"type": "null"}),
         Value::Bool(_) => serde_json::json!({"type": "boolean"}),
-        Value::Number(_) => serde_json::json!({"type": "number"}),
+        Value::Number(n) => {
+            if n.is_i64() || n.is_u64() {
+                serde_json::json!({"type": "integer"})
+            } else {
+                serde_json::json!({"type": "number"})
+            }
+        }
         Value::String(_) => serde_json::json!({"type": "string"}),
         Value::Array(arr) => {
             let items = if let Some(first) = arr.first() {
@@ -108,11 +122,13 @@ fn generate_schema(value: &Value) -> Value {
                 properties.insert(key.clone(), generate_schema(val));
                 required.push(key.clone());
             }
-            serde_json::json!({
-                "type": "object",
-                "properties": properties,
-                "required": required
-            })
+            let mut schema_obj = serde_json::Map::new();
+            schema_obj.insert("type".to_string(), Value::String("object".to_string()));
+            schema_obj.insert("properties".to_string(), Value::Object(properties));
+            if !required.is_empty() {
+                schema_obj.insert("required".to_string(), Value::Array(required.into_iter().map(Value::String).collect()));
+            }
+            Value::Object(schema_obj)
         }
     }
 }

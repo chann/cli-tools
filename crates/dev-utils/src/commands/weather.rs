@@ -1,5 +1,5 @@
 use anyhow::Result;
-use owo_colors::OwoColorize;
+use cli_core::ui::Theme;
 
 pub async fn get_weather(location: Option<String>) -> Result<()> {
     let url = match location {
@@ -7,7 +7,7 @@ pub async fn get_weather(location: Option<String>) -> Result<()> {
         None => "https://wttr.in/?0".to_string(),
     };
 
-    println!("{}", "Fetching weather information...".dimmed());
+    println!("{}", Theme::info("Fetching weather information..."));
 
     let client = reqwest::Client::new();
     let resp = client

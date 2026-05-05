@@ -1,7 +1,8 @@
 use anyhow::Result;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use serde::Deserialize;
-use owo_colors::OwoColorize;
+use cli_core::output::TableFormatter;
+use cli_core::ui::Theme;
 
 #[derive(Deserialize, Debug)]
 struct CrateResponse {
@@ -23,7 +24,7 @@ pub async fn search(query: &str) -> Result<()> {
 
     let url = format!("https://crates.io/api/v1/crates?page=1&per_page=10&q={}", query);
     
-    println!("Searching for crates matching {}...", query.cyan());
+    println!("{}", Theme::info(format!("Searching for crates matching '{}'...", query)));
 
     let response = client.get(url)
         .headers(headers)
@@ -33,28 +34,45 @@ pub async fn search(query: &str) -> Result<()> {
         .await?;
 
     if response.crates.is_empty() {
-        println!("No crates found for query: {}", query.red());
+        println!("{}", Theme::warning(format!("No crates found for query: {}", query)));
         return Ok(());
     }
 
-    println!("\n{:<20} {:<10} {:<10} {:<}", 
-        "Name".bold(), "Version".bold(), "Downloads".bold(), "Description".bold());
-    println!("{}", "-".repeat(80).dimmed());
+    let mut table = TableFormatter::create_table();
+    table.set_header(vec![
+        TableFormatter::header_cell("Name"),
+        TableFormatter::header_cell("Version"),
+        TableFormatter::header_cell("Downloads"),
+        TableFormatter::header_cell("Description"),
+    ]);
 
     for c in response.crates {
         let desc = c.description.unwrap_or_default();
-        let desc_trimmed = if desc.len() > 50 {
-            format!("{}...", &desc[..47])
+        let desc_trimmed = if desc.len() > 60 {
+            format!("{}...", &desc[..57])
         } else {
             desc
         };
 
-        println!("{:<20} {:<10} {:<10} {:<}", 
-            c.name.green(), 
-            c.max_version.yellow(), 
-            c.downloads.to_string().blue(), 
-            desc_trimmed);
+        table.add_row(vec![
+            TableFormatter::highlight_cell(&c.name),
+            TableFormatter::value_cell(&c.max_version),
+            TableFormatter::value_cell(format_downloads(c.downloads)),
+            TableFormatter::value_cell(&desc_trimmed),
+        ]);
     }
 
+    println!("\n{}", table);
+
     Ok(())
+}
+
+fn format_downloads(count: u64) -> String {
+    if count >= 1_000_000 {
+        format!("{:.1}M", count as f64 / 1_000_000.0)
+    } else if count >= 1_000 {
+        format!("{:.1}K", count as f64 / 1_000.0)
+    } else {
+        count.to_string()
+    }
 }

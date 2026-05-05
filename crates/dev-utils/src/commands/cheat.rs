@@ -1,6 +1,9 @@
 use anyhow::Result;
+use cli_core::ui::Theme;
 
 pub async fn run(query: &str) -> Result<()> {
+    println!("{}", Theme::info(format!("Fetching cheat sheet for '{}'...", query)));
+    
     let url = format!("https://cheat.sh/{}", query);
     
     // cheat.sh detects curl/httpie and returns plain text with ANSI colors
