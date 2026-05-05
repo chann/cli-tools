@@ -12,6 +12,19 @@ use owo_colors::OwoColorize;
 use std::path::PathBuf;
 use summary::{RepositorySummary, TotalSummary};
 
+#[derive(serde::Serialize)]
+struct ExportRow {
+    repository: String,
+    period: String,
+    commits: usize,
+    contributors: usize,
+    files_changed: usize,
+    insertions: usize,
+    deletions: usize,
+    estimated_hours: f64,
+    recommended_value_krw: f64,
+}
+
 #[derive(Parser)]
 #[command(name = "work-summary")]
 #[command(about = "Analyze git commit history and summarize work activity", long_about = None)]
@@ -107,7 +120,7 @@ fn main() -> Result<()> {
     }
 
     if let Some(export_path) = cli.export {
-        export_summary(&total_summary, &export_path, &cli.format)?;
+        export_summary(&total_summary, &export_path)?;
         println!("\n{} {}", "Exported to:".green(), export_path.display());
     }
 
@@ -450,13 +463,53 @@ fn print_total_summary(summary: &TotalSummary) {
 fn export_summary(
     summary: &TotalSummary,
     path: &PathBuf,
-    format: &str,
 ) -> Result<()> {
-    let content = match format {
-        "json" => serde_json::to_string_pretty(summary)?,
-        _ => serde_json::to_string_pretty(summary)?,
-    };
+    let ext = path.extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("json");
 
-    std::fs::write(path, content)?;
+    match ext {
+        "json" => {
+            let content = serde_json::to_string_pretty(summary)?;
+            std::fs::write(path, content)?;
+        }
+        "csv" | "html" | "md" | "markdown" => {
+            use cli_core::output::{CsvExporter, ExportFormat, HtmlExporter, MarkdownExporter};
+            
+            let export_format = ExportFormat::from_extension(ext)?;
+            let rows: Vec<ExportRow> = summary.repositories.iter().map(|repo| {
+                ExportRow {
+                    repository: repo.path.display().to_string(),
+                    period: repo.period.description.clone(),
+                    commits: repo.commits.len(),
+                    contributors: repo.analysis.unique_contributors,
+                    files_changed: repo.analysis.total_files_changed,
+                    insertions: repo.analysis.total_insertions,
+                    deletions: repo.analysis.total_deletions,
+                    estimated_hours: repo.analysis.estimated_hours,
+                    recommended_value_krw: repo.analysis.value_estimate.recommended_value,
+                }
+            }).collect();
+
+            match export_format {
+                ExportFormat::Csv => {
+                    let exporter = CsvExporter::new();
+                    exporter.export(&rows, path.to_str().unwrap())?;
+                }
+                ExportFormat::Html => {
+                    let exporter = HtmlExporter::new();
+                    exporter.export(&rows, path.to_str().unwrap())?;
+                }
+                ExportFormat::Markdown => {
+                    let exporter = MarkdownExporter::new();
+                    exporter.export(&rows, path.to_str().unwrap())?;
+                }
+            }
+        }
+        _ => {
+            let content = serde_json::to_string_pretty(summary)?;
+            std::fs::write(path, content)?;
+        }
+    }
     Ok(())
 }
