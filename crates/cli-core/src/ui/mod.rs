@@ -34,4 +34,20 @@ impl Theme {
     pub fn dim(text: impl AsRef<str>) -> String {
         text.as_ref().dimmed().to_string()
     }
+
+    pub fn green(text: impl AsRef<str>) -> String {
+        text.as_ref().green().to_string()
+    }
+
+    pub fn red(text: impl AsRef<str>) -> String {
+        text.as_ref().red().to_string()
+    }
+
+    pub fn cyan(text: impl AsRef<str>) -> String {
+        text.as_ref().cyan().to_string()
+    }
+
+    pub fn yellow(text: impl AsRef<str>) -> String {
+        text.as_ref().yellow().to_string()
+    }
 }
