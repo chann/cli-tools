@@ -8,6 +8,7 @@ pub struct ChangelogOptions {
     pub from: Option<String>,
     pub to: Option<String>,
     pub limit: Option<usize>,
+    pub format: String,
 }
 
 pub fn generate(path: &Path, options: ChangelogOptions) -> Result<()> {
@@ -52,38 +53,52 @@ pub fn generate(path: &Path, options: ChangelogOptions) -> Result<()> {
         return Ok(());
     }
 
-    println!(
-        "{} Generating changelog for {} commits",
-        Theme::info("Info:"),
-        count
-    );
-    println!();
+    if options.format == "markdown" {
+        println!("# Changelog");
+        println!("\nGenerating changelog for {} commits", count);
+        println!();
+    } else {
+        println!(
+            "{} Generating changelog for {} commits",
+            Theme::info("Info:"),
+            count
+        );
+        println!();
+    }
 
     // Custom order for categories
     let order = vec!["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "other"];
     
     for cat_name in order {
-        let display_name = match cat_name {
-            "feat" => "🚀 Features",
-            "fix" => "🐛 Bug Fixes",
-            "docs" => "📚 Documentation",
-            "style" => "🎨 Style",
-            "refactor" => "🔨 Refactoring",
-            "perf" => "⚡ Performance Improvements",
-            "test" => "🧪 Tests",
-            "build" => "🏗️ Build System",
-            "ci" => "👷 Continuous Integration",
-            "chore" => "🧹 Chore",
-            "other" => "📝 Other Changes",
-            _ => cat_name,
+        let (display_name, emoji) = match cat_name {
+            "feat" => ("Features", "🚀"),
+            "fix" => ("Bug Fixes", "🐛"),
+            "docs" => ("Documentation", "📚"),
+            "style" => ("Style", "🎨"),
+            "refactor" => ("Refactoring", "🔨"),
+            "perf" => ("Performance Improvements", "⚡"),
+            "test" => ("Tests", "🧪"),
+            "build" => ("Build System", "🏗️"),
+            "ci" => ("Continuous Integration", "👷"),
+            "chore" => ("Chore", "🧹"),
+            "other" => ("Other Changes", "📝"),
+            _ => (cat_name, "🔹"),
         };
 
         if let Some(messages) = categories.get(cat_name) {
-            println!("{}", Theme::highlight(display_name));
-            for msg in messages {
-                println!("  • {}", msg);
+            if options.format == "markdown" {
+                println!("## {} {}", emoji, display_name);
+                for msg in messages {
+                    println!("- {}", msg);
+                }
+                println!();
+            } else {
+                println!("{} {}", emoji, Theme::highlight(display_name));
+                for msg in messages {
+                    println!("  • {}", msg);
+                }
+                println!();
             }
-            println!();
         }
     }
 

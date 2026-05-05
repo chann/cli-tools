@@ -4,6 +4,8 @@ mod health;
 mod env;
 mod changelog;
 mod commit;
+mod stats;
+mod pulse;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -55,6 +57,10 @@ enum Commands {
         #[arg(short, long)]
         verbose: bool,
     },
+    /// Show project statistics (LOC, language breakdown)
+    Stats,
+    /// High-level project pulse (Health + Scan Summary + Stats)
+    Pulse,
     /// Validate .env file parity with .env.example
     Env,
     /// Generate a changelog from git history
@@ -70,6 +76,10 @@ enum Commands {
         /// Limit the number of commits
         #[arg(short, long)]
         limit: Option<usize>,
+
+        /// Output format (text, markdown)
+        #[arg(short = 'F', long, default_value = "text")]
+        format: String,
     },
     /// Interactive conventional commit wizard
     Commit,
@@ -92,15 +102,23 @@ async fn main() -> Result<()> {
             println!("{}", Theme::header("🏥 Project Health Check"));
             health::check(&cli.path, verbose)?;
         }
+        Commands::Stats => {
+            println!("{}", Theme::header("📊 Project Statistics"));
+            stats::show(&cli.path).await?;
+        }
+        Commands::Pulse => {
+            println!("{}", Theme::header("💓 Project Pulse Dashboard"));
+            pulse::show(&cli.path).await?;
+        }
         Commands::Env => {
             println!("{}", Theme::header("🔐 .env Validator"));
             env::check(&cli.path)?;
         }
-        Commands::Changelog { from, to, limit } => {
+        Commands::Changelog { from, to, limit, format } => {
             println!("{}", Theme::header("📜 Changelog Generator"));
             changelog::generate(
                 &cli.path,
-                changelog::ChangelogOptions { from, to, limit },
+                changelog::ChangelogOptions { from, to, limit, format },
             )?;
         }
         Commands::Commit => {

@@ -13,6 +13,47 @@ struct Marker {
     file: String,
 }
 
+pub async fn get_summary(path: &Path, markers: Option<Vec<String>>, hidden: bool) -> Result<std::collections::HashMap<String, usize>> {
+    let default_markers = vec![
+        "TODO".to_string(),
+        "FIXME".to_string(),
+        "BUG".to_string(),
+        "HACK".to_string(),
+        "OPTIMIZE".to_string(),
+    ];
+    let active_markers = markers.unwrap_or(default_markers);
+    let pattern = format!(r"(?i)\b({})\b:?\s*(.*)", active_markers.join("|"));
+    let re = Regex::new(&pattern)?;
+
+    let mut summary = std::collections::HashMap::new();
+
+    let walker = WalkBuilder::new(path)
+        .hidden(!hidden)
+        .git_ignore(true)
+        .build();
+
+    for result in walker {
+        let entry = match result {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        if entry.file_type().map_or(false, |ft| ft.is_file()) {
+            let path = entry.path();
+            if let Ok(content) = fs::read_to_string(path) {
+                for line in content.lines() {
+                    if let Some(caps) = re.captures(line) {
+                        let kind = caps.get(1).unwrap().as_str().to_uppercase();
+                        *summary.entry(kind).or_insert(0) += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(summary)
+}
+
 pub async fn scan(path: &Path, markers: Option<Vec<String>>, hidden: bool) -> Result<()> {
     let default_markers = vec![
         "TODO".to_string(),
@@ -78,7 +119,7 @@ pub async fn scan(path: &Path, markers: Option<Vec<String>>, hidden: bool) -> Re
     );
     println!();
 
-    for marker in found_markers {
+    for marker in &found_markers {
         println!(
             "  {} {} {} {}",
             Theme::highlight(&format!("[{}]", marker.kind)),
@@ -86,6 +127,20 @@ pub async fn scan(path: &Path, markers: Option<Vec<String>>, hidden: bool) -> Re
             Theme::dim("-"),
             marker.content
         );
+    }
+
+    // Add summary
+    println!("\n{}", Theme::header("Summary:"));
+    let mut summary = std::collections::HashMap::new();
+    for marker in found_markers {
+        *summary.entry(marker.kind).or_insert(0) += 1;
+    }
+
+    let mut sorted_summary: Vec<_> = summary.into_iter().collect();
+    sorted_summary.sort_by(|a, b| b.1.cmp(&a.1));
+
+    for (kind, count) in sorted_summary {
+        println!("  {:<10} {}", Theme::highlight(&kind), Theme::value(&count.to_string()));
     }
 
     Ok(())
