@@ -1025,6 +1025,15 @@ enum Commands {
         /// Crop image (format: x,y,width,height)
         #[arg(long)]
         crop: Option<String>,
+        /// Adjust brightness (e.g., 20 for brighter, -20 for darker)
+        #[arg(long)]
+        brighten: Option<i32>,
+        /// Adjust contrast (e.g., 10.0, -10.0)
+        #[arg(long)]
+        contrast: Option<f32>,
+        /// Rotate hue by degrees
+        #[arg(long)]
+        hue: Option<i32>,
     },
 }
 
@@ -1559,8 +1568,8 @@ async fn main() -> Result<()> {
         Commands::Detach { command, args } => {
             commands::detach::run(&command, args)?;
         }
-        Commands::Image { input, output, format, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop } => {
-            commands::image::process(&input, output, format, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop)?;
+        Commands::Image { input, output, format, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue } => {
+            commands::image::process(&input, output, format, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue)?;
         }
     }
 

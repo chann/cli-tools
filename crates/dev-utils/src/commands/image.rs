@@ -18,6 +18,9 @@ pub fn process(
     grayscale: bool,
     invert: bool,
     crop: Option<String>,
+    brighten: Option<i32>,
+    contrast: Option<f32>,
+    hue: Option<i32>,
 ) -> Result<()> {
     let input_path = Path::new(input);
     if !input_path.exists() {
@@ -26,7 +29,7 @@ pub fn process(
 
     if input_path.is_dir() {
         process_directory(
-            input_path, output, format_str, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop,
+            input_path, output, format_str, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue,
         )
     } else {
         let output_path = resolve_output_path(input_path, output.as_deref(), format_str.as_deref());
@@ -43,6 +46,9 @@ pub fn process(
             grayscale,
             invert,
             crop.clone(),
+            brighten,
+            contrast,
+            hue,
         )?;
         println!(
             "{}",
@@ -69,6 +75,9 @@ fn process_directory(
     grayscale: bool,
     invert: bool,
     crop: Option<String>,
+    brighten: Option<i32>,
+    contrast: Option<f32>,
+    hue: Option<i32>,
 ) -> Result<()> {
     let out_dir = output_dir
         .map(PathBuf::from)
@@ -123,6 +132,9 @@ fn process_directory(
                 grayscale,
                 invert,
                 crop.clone(),
+                brighten,
+                contrast,
+                hue,
             ) {
                 Ok(_) => processed_count += 1,
                 Err(e) => {
@@ -176,6 +188,9 @@ fn process_single_file(
     grayscale: bool,
     invert: bool,
     crop: Option<String>,
+    brighten: Option<i32>,
+    contrast: Option<f32>,
+    hue: Option<i32>,
 ) -> Result<()> {
     println!("Reading image from {}...", input_path.display());
     let img = ImageReader::open(input_path)
@@ -255,6 +270,21 @@ fn process_single_file(
     if invert {
         println!("Inverting colors...");
         result_img.invert();
+    }
+
+    if let Some(b) = brighten {
+        println!("Adjusting brightness by {}...", b);
+        result_img = result_img.brighten(b);
+    }
+
+    if let Some(c) = contrast {
+        println!("Adjusting contrast by {}...", c);
+        result_img = result_img.adjust_contrast(c);
+    }
+
+    if let Some(h) = hue {
+        println!("Rotating hue by {} degrees...", h);
+        result_img = result_img.huerotate(h);
     }
 
     let out_format = if let Some(fmt) = format_str {
