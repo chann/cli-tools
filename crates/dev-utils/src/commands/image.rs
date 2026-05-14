@@ -15,6 +15,9 @@ pub fn process(
     rotate: Option<u32>,
     flip_h: bool,
     flip_v: bool,
+    grayscale: bool,
+    invert: bool,
+    crop: Option<String>,
 ) -> Result<()> {
     let input_path = Path::new(input);
     if !input_path.exists() {
@@ -23,7 +26,7 @@ pub fn process(
 
     if input_path.is_dir() {
         process_directory(
-            input_path, output, format_str, width, height, blur, rotate, flip_h, flip_v,
+            input_path, output, format_str, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop,
         )
     } else {
         let output_path = resolve_output_path(input_path, output.as_deref(), format_str.as_deref());
@@ -37,6 +40,9 @@ pub fn process(
             rotate,
             flip_h,
             flip_v,
+            grayscale,
+            invert,
+            crop.clone(),
         )?;
         println!(
             "{}",
@@ -60,6 +66,9 @@ fn process_directory(
     rotate: Option<u32>,
     flip_h: bool,
     flip_v: bool,
+    grayscale: bool,
+    invert: bool,
+    crop: Option<String>,
 ) -> Result<()> {
     let out_dir = output_dir
         .map(PathBuf::from)
@@ -111,6 +120,9 @@ fn process_directory(
                 rotate,
                 flip_h,
                 flip_v,
+                grayscale,
+                invert,
+                crop.clone(),
             ) {
                 Ok(_) => processed_count += 1,
                 Err(e) => {
@@ -161,6 +173,9 @@ fn process_single_file(
     rotate: Option<u32>,
     flip_h: bool,
     flip_v: bool,
+    grayscale: bool,
+    invert: bool,
+    crop: Option<String>,
 ) -> Result<()> {
     println!("Reading image from {}...", input_path.display());
     let img = ImageReader::open(input_path)
@@ -211,6 +226,35 @@ fn process_single_file(
     if flip_v {
         println!("Flipping image vertically...");
         result_img = result_img.flipv();
+    }
+
+    if let Some(crop_str) = crop {
+        let parts: Vec<&str> = crop_str.split(',').collect();
+        if parts.len() == 4 {
+            if let (Ok(x), Ok(y), Ok(w), Ok(h)) = (
+                parts[0].trim().parse::<u32>(),
+                parts[1].trim().parse::<u32>(),
+                parts[2].trim().parse::<u32>(),
+                parts[3].trim().parse::<u32>(),
+            ) {
+                println!("Cropping image to {}x{} at ({}, {})...", w, h, x, y);
+                result_img = result_img.crop_imm(x, y, w, h);
+            } else {
+                eprintln!("Warning: Invalid crop format '{}'. Expected 'x,y,w,h' with integers.", crop_str);
+            }
+        } else {
+            eprintln!("Warning: Invalid crop format '{}'. Expected 'x,y,w,h'.", crop_str);
+        }
+    }
+
+    if grayscale {
+        println!("Converting to grayscale...");
+        result_img = result_img.grayscale();
+    }
+
+    if invert {
+        println!("Inverting colors...");
+        result_img.invert();
     }
 
     let out_format = if let Some(fmt) = format_str {

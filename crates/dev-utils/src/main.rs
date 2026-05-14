@@ -1016,6 +1016,15 @@ enum Commands {
         /// Flip vertically
         #[arg(long)]
         flip_v: bool,
+        /// Convert to grayscale
+        #[arg(long)]
+        grayscale: bool,
+        /// Invert colors
+        #[arg(long)]
+        invert: bool,
+        /// Crop image (format: x,y,width,height)
+        #[arg(long)]
+        crop: Option<String>,
     },
 }
 
@@ -1550,8 +1559,8 @@ async fn main() -> Result<()> {
         Commands::Detach { command, args } => {
             commands::detach::run(&command, args)?;
         }
-        Commands::Image { input, output, format, width, height, blur, rotate, flip_h, flip_v } => {
-            commands::image::process(&input, output, format, width, height, blur, rotate, flip_h, flip_v)?;
+        Commands::Image { input, output, format, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop } => {
+            commands::image::process(&input, output, format, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop)?;
         }
     }
 
