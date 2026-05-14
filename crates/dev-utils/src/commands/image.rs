@@ -9,6 +9,8 @@ pub fn process(
     input: &str,
     output: Option<String>,
     format_str: Option<String>,
+    info: bool,
+    thumbnail: Option<u32>,
     width: Option<u32>,
     height: Option<u32>,
     blur: Option<f32>,
@@ -29,7 +31,7 @@ pub fn process(
 
     if input_path.is_dir() {
         process_directory(
-            input_path, output, format_str, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue,
+            input_path, output, format_str, info, thumbnail, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue,
         )
     } else {
         let output_path = resolve_output_path(input_path, output.as_deref(), format_str.as_deref());
@@ -37,6 +39,8 @@ pub fn process(
             input_path,
             &output_path,
             format_str.as_deref(),
+            info,
+            thumbnail,
             width,
             height,
             blur,
@@ -50,13 +54,15 @@ pub fn process(
             contrast,
             hue,
         )?;
-        println!(
-            "{}",
-            Theme::success(&format!(
-                "Image successfully saved to {}",
-                output_path.display()
-            ))
-        );
+        if !info {
+            println!(
+                "{}",
+                Theme::success(&format!(
+                    "Image successfully saved to {}",
+                    output_path.display()
+                ))
+            );
+        }
         Ok(())
     }
 }
@@ -66,6 +72,8 @@ fn process_directory(
     input_dir: &Path,
     output_dir: Option<String>,
     format_str: Option<String>,
+    info: bool,
+    thumbnail: Option<u32>,
     width: Option<u32>,
     height: Option<u32>,
     blur: Option<f32>,
@@ -123,6 +131,8 @@ fn process_directory(
                 &path,
                 &out_file,
                 format_str.as_deref(),
+                info,
+                thumbnail,
                 width,
                 height,
                 blur,
@@ -179,6 +189,8 @@ fn process_single_file(
     input_path: &Path,
     output_path: &Path,
     format_str: Option<&str>,
+    info: bool,
+    thumbnail: Option<u32>,
     width: Option<u32>,
     height: Option<u32>,
     blur: Option<f32>,
@@ -192,6 +204,46 @@ fn process_single_file(
     contrast: Option<f32>,
     hue: Option<i32>,
 ) -> Result<()> {
+    if info {
+        let reader = ImageReader::open(input_path)
+            .context("Failed to open image file")?
+            .with_guessed_format()
+            .context("Failed to guess image format")?;
+
+        let format = reader.format();
+        let dimensions = reader.into_dimensions().context("Failed to get dimensions")?;
+        
+        let mut table = cli_core::output::TableFormatter::create_table();
+        table.set_header(vec![
+            cli_core::output::TableFormatter::header_cell("Property"),
+            cli_core::output::TableFormatter::header_cell("Value"),
+        ]);
+        table.add_row(vec![
+            cli_core::output::TableFormatter::value_cell("Path"),
+            cli_core::output::TableFormatter::value_cell(input_path.display().to_string()),
+        ]);
+        if let Some(fmt) = format {
+            table.add_row(vec![
+                cli_core::output::TableFormatter::value_cell("Format"),
+                cli_core::output::TableFormatter::value_cell(format!("{:?}", fmt)),
+            ]);
+        }
+        table.add_row(vec![
+            cli_core::output::TableFormatter::value_cell("Dimensions"),
+            cli_core::output::TableFormatter::highlight_cell(format!("{} x {}", dimensions.0, dimensions.1)),
+        ]);
+        
+        let file_size = std::fs::metadata(input_path).map(|m| m.len()).unwrap_or(0);
+        table.add_row(vec![
+            cli_core::output::TableFormatter::value_cell("Size"),
+            cli_core::output::TableFormatter::value_cell(format!("{} bytes", file_size)),
+        ]);
+        
+        println!("{}", Theme::header("Image Information"));
+        println!("{}", table);
+        return Ok(());
+    }
+
     println!("Reading image from {}...", input_path.display());
     let img = ImageReader::open(input_path)
         .context("Failed to open image file")?
@@ -202,17 +254,18 @@ fn process_single_file(
 
     let mut result_img = img;
 
-    if let (Some(w), Some(h)) = (width, height) {
-        println!("Resizing image to {}x{}...", w, h);
+    if let Some(s) = thumbnail {
+        println!("Generating thumbnail of size {}...", s);
+        result_img = result_img.thumbnail(s, s);
+    } else if let (Some(w), Some(h)) = (width, height) {
+        println!("Resizing image exactly to {}x{}...", w, h);
         result_img = result_img.resize_exact(w, h, image::imageops::FilterType::Lanczos3);
     } else if let Some(w) = width {
-        let h = (result_img.height() as f32 * (w as f32 / result_img.width() as f32)) as u32;
-        println!("Resizing image to {}x{}...", w, h);
-        result_img = result_img.resize(w, h, image::imageops::FilterType::Lanczos3);
+        println!("Resizing image to width {}...", w);
+        result_img = result_img.resize(w, u32::MAX, image::imageops::FilterType::Lanczos3);
     } else if let Some(h) = height {
-        let w = (result_img.width() as f32 * (h as f32 / result_img.height() as f32)) as u32;
-        println!("Resizing image to {}x{}...", w, h);
-        result_img = result_img.resize(w, h, image::imageops::FilterType::Lanczos3);
+        println!("Resizing image to height {}...", h);
+        result_img = result_img.resize(u32::MAX, h, image::imageops::FilterType::Lanczos3);
     }
 
     if let Some(sigma) = blur {

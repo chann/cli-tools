@@ -998,6 +998,12 @@ enum Commands {
         /// Output format (png, jpg, webp, gif, bmp, ico)
         #[arg(short, long)]
         format: Option<String>,
+        /// Print image info without modifying
+        #[arg(long)]
+        info: bool,
+        /// Generate thumbnail of max size (e.g. 256)
+        #[arg(short, long)]
+        thumbnail: Option<u32>,
         /// Resize width
         #[arg(long)]
         width: Option<u32>,
@@ -1568,8 +1574,8 @@ async fn main() -> Result<()> {
         Commands::Detach { command, args } => {
             commands::detach::run(&command, args)?;
         }
-        Commands::Image { input, output, format, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue } => {
-            commands::image::process(&input, output, format, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue)?;
+        Commands::Image { input, output, format, info, thumbnail, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue } => {
+            commands::image::process(&input, output, format, info, thumbnail, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue)?;
         }
     }
 
