@@ -93,3 +93,4 @@ pub mod morse;
 pub mod cheat;
 pub mod scan;
 pub mod check_links;
+pub mod detach;

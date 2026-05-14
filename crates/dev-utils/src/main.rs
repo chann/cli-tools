@@ -980,6 +980,14 @@ enum Commands {
         #[arg(default_value = ".")]
         path: PathBuf,
     },
+    /// Run a command silently in the background
+    Detach {
+        /// Command to run
+        command: String,
+        /// Arguments for the command
+        #[arg(trailing_var_arg = true)]
+        args: Vec<String>,
+    },
 }
 
 #[tokio::main]
@@ -1509,6 +1517,9 @@ async fn main() -> Result<()> {
         }
         Commands::CheckLinks { path } => {
             commands::check_links::run(&path).await?;
+        }
+        Commands::Detach { command, args } => {
+            commands::detach::run(&command, args)?;
         }
     }
 
