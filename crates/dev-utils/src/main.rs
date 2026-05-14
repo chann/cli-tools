@@ -988,6 +988,23 @@ enum Commands {
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
+    /// Convert and resize images (webp, png, jpg, gif, etc.)
+    Image {
+        /// Input image path
+        input: String,
+        /// Output file path
+        #[arg(short, long)]
+        output: Option<String>,
+        /// Output format (png, jpg, webp, gif, bmp, ico)
+        #[arg(short, long)]
+        format: Option<String>,
+        /// Resize width
+        #[arg(long)]
+        width: Option<u32>,
+        /// Resize height
+        #[arg(long)]
+        height: Option<u32>,
+    },
 }
 
 #[tokio::main]
@@ -1520,6 +1537,9 @@ async fn main() -> Result<()> {
         }
         Commands::Detach { command, args } => {
             commands::detach::run(&command, args)?;
+        }
+        Commands::Image { input, output, format, width, height } => {
+            commands::image::process(&input, output, format, width, height)?;
         }
     }
 
