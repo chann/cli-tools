@@ -988,11 +988,11 @@ enum Commands {
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
-    /// Convert and resize images (webp, png, jpg, gif, etc.)
+    /// Convert, resize, and transform images (webp, png, jpg, gif, etc.). Supports batch processing for directories.
     Image {
-        /// Input image path
+        /// Input image path or directory (for batch processing)
         input: String,
-        /// Output file path
+        /// Output file path or directory
         #[arg(short, long)]
         output: Option<String>,
         /// Output format (png, jpg, webp, gif, bmp, ico)
@@ -1004,6 +1004,18 @@ enum Commands {
         /// Resize height
         #[arg(long)]
         height: Option<u32>,
+        /// Blur with sigma value (e.g., 2.0)
+        #[arg(long)]
+        blur: Option<f32>,
+        /// Rotate degrees (90, 180, 270)
+        #[arg(long)]
+        rotate: Option<u32>,
+        /// Flip horizontally
+        #[arg(long)]
+        flip_h: bool,
+        /// Flip vertically
+        #[arg(long)]
+        flip_v: bool,
     },
 }
 
@@ -1538,8 +1550,8 @@ async fn main() -> Result<()> {
         Commands::Detach { command, args } => {
             commands::detach::run(&command, args)?;
         }
-        Commands::Image { input, output, format, width, height } => {
-            commands::image::process(&input, output, format, width, height)?;
+        Commands::Image { input, output, format, width, height, blur, rotate, flip_h, flip_v } => {
+            commands::image::process(&input, output, format, width, height, blur, rotate, flip_h, flip_v)?;
         }
     }
 
