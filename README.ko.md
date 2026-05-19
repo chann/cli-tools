@@ -9,8 +9,8 @@
 - **`cli-core`**: UI 테마, 출력 포맷팅(Table, JSON, CSV, HTML, Markdown), 설정 관리를 위한 공통 기능을 제공하는 공유 라이브러리입니다.
 - **`code-cost`**: 전체 저장소를 분석하여 총 금전적 가치를 추산합니다.
 - **`work-summary`**: Git 히스토리를 분석하여 최근 업무 활동과 생산성을 요약합니다.
-- **`dev-pulse`**: 브랜치 정리, 코드 스캔 등 개발자 생산성을 위한 도구 모음입니다.
-- **`dev-utils`**: 개발자들이 자주 사용하는 데이터 변환 및 시스템 확인 도구들이 포함된 "맥가이버 칼" 같은 유틸리티 모음입니다.
+- **`gittools`**: 브랜치 정리, 코드 스캔 등 개발자 생산성을 위한 도구 모음입니다.
+- **`devtools`**: 개발자들이 자주 사용하는 데이터 변환 및 시스템 확인 도구들이 포함된 "맥가이버 칼" 같은 유틸리티 모음입니다.
 
 ## 도구
 
@@ -158,7 +158,7 @@ work-summary --export summary.json
 
 ---
 
-### dev-pulse
+### gittools
 
 개발 환경을 건강하게 유지하기 위한 개발자 상태 체크 및 편의 도구입니다.
 
@@ -187,29 +187,29 @@ work-summary --export summary.json
 #### 설치 방법
 
 ```bash
-cargo install --path crates/dev-pulse
+cargo install --path crates/gittools
 ```
 
 #### 사용법
 
 ```bash
 # Git 브랜치 정리
-dev-pulse cleanup
-dev-pulse cleanup --force
-dev-pulse cleanup --target develop
+gittools cleanup
+gittools cleanup --force
+gittools cleanup --target develop
 
 # 마커 스캔
-dev-pulse scan
-dev-pulse scan --markers "TODO,DEBUG"
+gittools scan
+gittools scan --markers "TODO,DEBUG"
 
 # 프로젝트 건강도 체크
-dev-pulse health
-dev-pulse health --verbose
+gittools health
+gittools health --verbose
 ```
 
 ---
 
-### dev-utils
+### devtools
 
 개발자들이 공통 데이터 변환 및 시스템 확인을 처리하기 위해 자주 사용하는 작고 유용한 유틸리티 모음입니다.
 
@@ -231,46 +231,46 @@ dev-pulse health --verbose
 #### 설치 방법
 
 ```bash
-cargo install --path crates/dev-utils
+cargo install --path crates/devtools
 ```
 
 #### 사용법
 
 ```bash
 # UUID 생성
-dev-utils uuid --count 5 --v7
+devtools uuid --count 5 --v7
 
 # Base64 인코딩/디코딩
-dev-utils base64 "hello world"
-dev-utils base64 --decode "aGVsbG8gd29ybGQ="
+devtools base64 "hello world"
+devtools base64 --decode "aGVsbG8gd29ybGQ="
 
 # JSON 및 모델 생성
-dev-utils json '{"a":1,"b":2}'
-dev-utils rust '{"name": "test", "age": 20}'
-dev-utils go '{"name": "test", "age": 20}'
-dev-utils typescript '{"name": "test", "age": 20}'
+devtools json '{"a":1,"b":2}'
+devtools rust '{"name": "test", "age": 20}'
+devtools go '{"name": "test", "age": 20}'
+devtools typescript '{"name": "test", "age": 20}'
 
 # 포트 관리
-dev-utils port 8080
-dev-utils port 8080 --kill
+devtools port 8080
+devtools port 8080 --kill
 
 # 파일 해시 및 체크섬
-dev-utils hash README.md --file
-dev-utils checksum README.md --file --algo sha512
+devtools hash README.md --file
+devtools checksum README.md --file --algo sha512
 
 # 시간 변환
-dev-utils time
-dev-utils time 1740000000
+devtools time
+devtools time 1740000000
 
 # 비밀번호 강도
-dev-utils password --check "P@ssw0rd123"
+devtools password --check "P@ssw0rd123"
 
 # 모스 부호
-dev-utils morse "HELLO WORLD"
-dev-utils morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
+devtools morse "HELLO WORLD"
+devtools morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
 
 # IP 정보 확인
-dev-utils ip
+devtools ip
 ```
 
 ## 가치 계산 알고리즘
@@ -303,7 +303,7 @@ cli-tools/
 ├── crates/
 │   ├── cli-core/           # 공통 기반 (UI, I/O, 포맷팅)
 │   ├── code-cost/          # 저장소 가치 분석기
-│   ├── dev-pulse/          # 개발자 생산성 도구
+│   ├── gittools/          # 개발자 생산성 도구
 │   └── work-summary/       # Git 업무 생산성 요약기
 ```
 

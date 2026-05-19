@@ -1,5 +1,5 @@
 [package]
-name = "dev-pulse"
+name = "gittools"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

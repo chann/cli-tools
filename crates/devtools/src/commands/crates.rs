@@ -20,7 +20,7 @@ struct CrateInfo {
 pub async fn search(query: &str) -> Result<()> {
     let client = reqwest::Client::new();
     let mut headers = HeaderMap::new();
-    headers.insert(USER_AGENT, HeaderValue::from_static("dev-utils (https://github.com/chann/cli-tools)"));
+    headers.insert(USER_AGENT, HeaderValue::from_static("devtools (https://github.com/chann/cli-tools)"));
 
     let url = format!("https://crates.io/api/v1/crates?page=1&per_page=10&q={}", query);
     

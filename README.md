@@ -9,8 +9,8 @@ This project is built with a modular architecture:
 - **`cli-core`**: A shared library providing common functionality for UI theming, output formatting (Table, JSON, CSV, HTML, Markdown), and configuration management.
 - **`code-cost`**: Analyzes entire repositories to estimate their total monetary value.
 - **`work-summary`**: Analyzes Git history to summarize recent work activity and productivity.
-- **`dev-pulse`**: A collection of tools for developer productivity, including branch cleanup and code scanning.
-- **`dev-utils`**: A "Swiss Army Knife" of small, frequently used developer utilities (UUID, Base64, JSON, Port, etc.).
+- **`gittools`**: A collection of tools for developer productivity, including branch cleanup and code scanning.
+- **`devtools`**: A "Swiss Army Knife" of small, frequently used developer utilities (UUID, Base64, JSON, Port, etc.).
 
 ## Tools
 
@@ -158,7 +158,7 @@ work-summary --export summary.json
 
 ---
 
-### dev-pulse
+### gittools
 
 Developer pulse check and convenience tools to keep your development environment healthy.
 
@@ -201,39 +201,39 @@ Developer pulse check and convenience tools to keep your development environment
 #### Installation
 
 ```bash
-cargo install --path crates/dev-pulse
+cargo install --path crates/gittools
 ```
 
 #### Usage
 
 ```bash
 # Git Branch Cleanup
-dev-pulse cleanup
-dev-pulse cleanup --force
-dev-pulse cleanup --target develop
+gittools cleanup
+gittools cleanup --force
+gittools cleanup --target develop
 
 # Marker Scanning
-dev-pulse scan
-dev-pulse scan --markers "TODO,DEBUG"
+gittools scan
+gittools scan --markers "TODO,DEBUG"
 
 # Project Health Check
-dev-pulse health
-dev-pulse health --verbose
+gittools health
+gittools health --verbose
 
 # .env Validation
-dev-pulse env
+gittools env
 
 # Changelog Generation
-dev-pulse changelog
-dev-pulse changelog --from v1.0.0 --limit 10
+gittools changelog
+gittools changelog --from v1.0.0 --limit 10
 
 # Interactive Commit
-dev-pulse commit
+gittools commit
 ```
 
 ---
 
-### dev-utils
+### devtools
 
 A collection of small, frequently used utilities for developers to handle common data transformations and system checks.
 
@@ -255,46 +255,46 @@ A collection of small, frequently used utilities for developers to handle common
 #### Installation
 
 ```bash
-cargo install --path crates/dev-utils
+cargo install --path crates/devtools
 ```
 
 #### Usage
 
 ```bash
 # Generate UUIDs
-dev-utils uuid --count 5 --v7
+devtools uuid --count 5 --v7
 
 # Base64 Encoding/Decoding
-dev-utils base64 "hello world"
-dev-utils base64 --decode "aGVsbG8gd29ybGQ="
+devtools base64 "hello world"
+devtools base64 --decode "aGVsbG8gd29ybGQ="
 
 # JSON and Model Generation
-dev-utils json '{"a":1,"b":2}'
-dev-utils rust '{"name": "test", "age": 20}'
-dev-utils go '{"name": "test", "age": 20}'
-dev-utils typescript '{"name": "test", "age": 20}'
+devtools json '{"a":1,"b":2}'
+devtools rust '{"name": "test", "age": 20}'
+devtools go '{"name": "test", "age": 20}'
+devtools typescript '{"name": "test", "age": 20}'
 
 # Port Management
-dev-utils port 8080
-dev-utils port 8080 --kill
+devtools port 8080
+devtools port 8080 --kill
 
 # File Hashing and Checksums
-dev-utils hash README.md --file
-dev-utils checksum README.md --file --algo sha512
+devtools hash README.md --file
+devtools checksum README.md --file --algo sha512
 
 # Time Conversion
-dev-utils time
-dev-utils time 1740000000
+devtools time
+devtools time 1740000000
 
 # Password Strength
-dev-utils password --check "P@ssw0rd123"
+devtools password --check "P@ssw0rd123"
 
 # Morse Code
-dev-utils morse "HELLO WORLD"
-dev-utils morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
+devtools morse "HELLO WORLD"
+devtools morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
 
 # IP Information
-dev-utils ip
+devtools ip
 ```
 
 ## Value Calculation Algorithms
@@ -327,7 +327,7 @@ cli-tools/
 ├── crates/
 │   ├── cli-core/           # Shared foundation (UI, I/O, Formatting)
 │   ├── code-cost/          # Repository value analyzer
-│   ├── dev-pulse/          # Developer productivity tools
+│   ├── gittools/          # Developer productivity tools
 │   └── work-summary/       # Git work productivity summarizer
 ```
 

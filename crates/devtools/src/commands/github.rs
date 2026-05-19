@@ -51,7 +51,7 @@ pub fn open(issue: Option<u32>, pr: Option<u32>) -> Result<()> {
 pub async fn get_user(username: &str) -> Result<()> {
     let client = reqwest::Client::new();
     let res = client.get(format!("https://api.github.com/users/{}", username))
-        .header("User-Agent", "dev-utils")
+        .header("User-Agent", "devtools")
         .send()
         .await?;
 
@@ -81,7 +81,7 @@ pub async fn get_user(username: &str) -> Result<()> {
 pub async fn get_repo(repo_path: &str) -> Result<()> {
     let client = reqwest::Client::new();
     let res = client.get(format!("https://api.github.com/repos/{}", repo_path))
-        .header("User-Agent", "dev-utils")
+        .header("User-Agent", "devtools")
         .send()
         .await?;
 
@@ -113,7 +113,7 @@ pub async fn search(query: &str) -> Result<()> {
     let client = reqwest::Client::new();
     let res = client.get("https://api.github.com/search/repositories")
         .query(&[("q", query), ("sort", "stars"), ("order", "desc"), ("per_page", "10")])
-        .header("User-Agent", "dev-utils")
+        .header("User-Agent", "devtools")
         .send()
         .await?;
 

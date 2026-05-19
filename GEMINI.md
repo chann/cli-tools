@@ -13,15 +13,15 @@ This project is a collection of Rust-based CLI utilities.
 ## Workspace Structure
 
 - `crates/cli-core`: Shared foundation.
-- `crates/dev-utils`: General purpose developer utilities.
+- `crates/devtools`: General purpose developer utilities.
 - `crates/work-summary`: Git-based work analyzer.
-- `crates/dev-pulse`: Project health and maintenance tools.
+- `crates/gittools`: Project health and maintenance tools.
 - `crates/code-cost`: Repository valuation tool.
 
-## Implementation Guide for `dev-utils`
+## Implementation Guide for `devtools`
 
-When adding a new command to `dev-utils`:
-1. Create a new module in `crates/dev-utils/src/commands/`.
-2. Register the module in `crates/dev-utils/src/commands/mod.rs`.
-3. Add the command to the `Commands` enum in `crates/dev-utils/src/main.rs`.
+When adding a new command to `devtools`:
+1. Create a new module in `crates/devtools/src/commands/`.
+2. Register the module in `crates/devtools/src/commands/mod.rs`.
+3. Add the command to the `Commands` enum in `crates/devtools/src/main.rs`.
 4. Implement the logic in the new module, using `cli-core` where appropriate.

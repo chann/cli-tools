@@ -14,10 +14,10 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "dev-pulse",
+    name = "gittools",
     version,
-    about = "Developer pulse check and convenience tools",
-    long_about = "A collection of tools to keep your development environment healthy. \
+    about = "Git workflow and project health tools",
+    long_about = "A collection of tools to keep your Git-based projects healthy. \
                   Includes branch cleanup, TODO scanning, and project health checks."
 )]
 struct Cli {
