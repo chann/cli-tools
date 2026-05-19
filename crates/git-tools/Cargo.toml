@@ -1,5 +1,5 @@
 [package]
-name = "gittools"
+name = "git-tools"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

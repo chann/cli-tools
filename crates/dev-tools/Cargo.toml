@@ -1,5 +1,5 @@
 [package]
-name = "devtools"
+name = "dev-tools"
 version = "0.1.0"
 edition = "2021"
 authors = ["CHANN"]

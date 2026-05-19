@@ -2,9 +2,9 @@
 members = [
     "crates/cli-core",
     "crates/code-cost",
-    "crates/gittools",
+    "crates/git-tools",
     "crates/work-summary",
-    "crates/devtools",
+    "crates/dev-tools",
 ]
 resolver = "2"
 

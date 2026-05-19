@@ -4,7 +4,7 @@ use clap_complete::{generate, Generator, Shell};
 use std::io;
 
 pub fn generate_completion<G: Generator>(gen: G, cmd: &mut Command) {
-    generate(gen, cmd, "devtools", &mut io::stdout());
+    generate(gen, cmd, "dev-tools", &mut io::stdout());
 }
 
 pub fn run(shell: String) -> Result<()> {

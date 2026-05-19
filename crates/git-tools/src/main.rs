@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "gittools",
+    name = "git-tools",
     version,
     about = "Git workflow and project health tools",
     long_about = "A collection of tools to keep your Git-based projects healthy. \

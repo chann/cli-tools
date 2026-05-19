@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "devtools",
+    name = "dev-tools",
     version,
     about = "Common developer utility tools",
     long_about = "A collection of small, frequently used utilities for developers. \
