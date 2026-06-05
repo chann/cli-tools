@@ -227,11 +227,12 @@ git-tools health --verbose
 - **IP 정보**: 지역 정보와 함께 로컬 및 공용 IP 주소를 빠르게 확인합니다.
 - **모스 부호**: 모스 부호 문자열을 인코딩 및 디코딩합니다.
 - **비밀번호 도구**: 안전한 비밀번호를 생성하고 강도를 체크합니다.
+- **무음 명령 실행기**: 터미널 출력 없이 포그라운드 명령을 실행하고 stdout을 `~/.commands`에 저장합니다.
 
 #### 설치 방법
 
 ```bash
-cargo install --path crates/dev-tools
+cargo install --path crates/dev-tools --force
 ```
 
 #### 사용법
@@ -271,6 +272,15 @@ dev-tools morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
 
 # IP 정보 확인
 dev-tools ip
+
+# 무음 명령 로그 저장
+dev-tools silent echo "hello"
+dev-tools silent git status --short
+dev-tools silent python script.py
+
+# 로그 저장 위치:
+# ~/.commands/{yymmdd}/{hhmmss}-{command_name}.log
+# 예: ~/.commands/260605/224512-echo.log
 ```
 
 ## 가치 계산 알고리즘

@@ -988,6 +988,15 @@ enum Commands {
         #[arg(trailing_var_arg = true)]
         args: Vec<String>,
     },
+    /// Run a command silently in the foreground and save stdout to ~/.commands
+    Silent {
+        /// Command to run
+        #[arg(allow_hyphen_values = true)]
+        command: String,
+        /// Arguments for the command
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
     /// Convert, resize, and transform images (webp, png, jpg, gif, etc.). Supports batch processing for directories.
     Image {
         /// Input image path or directory (for batch processing)
@@ -1573,6 +1582,9 @@ async fn main() -> Result<()> {
         }
         Commands::Detach { command, args } => {
             commands::detach::run(&command, args)?;
+        }
+        Commands::Silent { command, args } => {
+            commands::silent::run(&command, args)?;
         }
         Commands::Image { input, output, format, info, thumbnail, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue } => {
             commands::image::process(&input, output, format, info, thumbnail, width, height, blur, rotate, flip_h, flip_v, grayscale, invert, crop, brighten, contrast, hue)?;

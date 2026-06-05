@@ -94,5 +94,6 @@ pub mod cheat;
 pub mod scan;
 pub mod check_links;
 pub mod detach;
+pub mod silent;
 pub mod encoding;
 pub mod image;

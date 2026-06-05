@@ -251,11 +251,12 @@ A collection of small, frequently used utilities for developers to handle common
 - **IP Info**: Quickly check your local and public IP addresses with location data.
 - **Morse Code**: Encode and decode Morse code strings.
 - **Password Tool**: Generate secure passwords and check their strength.
+- **Silent Command Runner**: Run a foreground command without terminal output and save stdout to `~/.commands`.
 
 #### Installation
 
 ```bash
-cargo install --path crates/dev-tools
+cargo install --path crates/dev-tools --force
 ```
 
 #### Usage
@@ -295,6 +296,15 @@ dev-tools morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
 
 # IP Information
 dev-tools ip
+
+# Silent command logging
+dev-tools silent echo "hello"
+dev-tools silent git status --short
+dev-tools silent python script.py
+
+# Logs are saved as:
+# ~/.commands/{yymmdd}/{hhmmss}-{command_name}.log
+# Example: ~/.commands/260605/224512-echo.log
 ```
 
 ## Value Calculation Algorithms
