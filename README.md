@@ -299,7 +299,9 @@ dev-tools ip
 
 # Silent command logging
 dev-tools silent echo "hello"
+zzz echo "hello"
 dev-tools silent git status --short
+zzz git status --short
 dev-tools silent python script.py
 
 # Logs are saved as:

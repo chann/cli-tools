@@ -275,7 +275,9 @@ dev-tools ip
 
 # 무음 명령 로그 저장
 dev-tools silent echo "hello"
+zzz echo "hello"
 dev-tools silent git status --short
+zzz git status --short
 dev-tools silent python script.py
 
 # 로그 저장 위치:
