@@ -6,11 +6,11 @@ A collection of powerful Rust-based CLI tools for developers, designed for codeb
 
 This project is built with a modular architecture:
 
-- **`cli-core`**: A shared library providing common functionality for UI theming, output formatting (Table, JSON, CSV, HTML, Markdown), and configuration management.
-- **`code-cost`**: Analyzes entire repositories to estimate their total monetary value.
-- **`work-summary`**: Analyzes Git history to summarize recent work activity and productivity.
-- **`git-tools`**: A collection of tools for developer productivity, including branch cleanup and code scanning.
-- **`dev-tools`**: A "Swiss Army Knife" of small, frequently used developer utilities (UUID, Base64, JSON, Port, etc.).
+- `**cli-core**`: A shared library providing common functionality for UI theming, output formatting (Table, JSON, CSV, HTML, Markdown), and configuration management.
+- `**code-cost**`: Analyzes entire repositories to estimate their total monetary value.
+- `**work-summary**`: Analyzes Git history to summarize recent work activity and productivity.
+- `**git-tools**`: A collection of tools for developer productivity, including branch cleanup and code scanning.
+- `**dev-tools**`: A "Swiss Army Knife" of small, frequently used developer utilities (UUID, Base64, JSON, Port, etc.).
 
 ## Tools
 
@@ -25,12 +25,10 @@ Analyze code repositories and calculate their monetary value based on developmen
   - Multiple programming languages with weighted difficulty scores
   - Cyclomatic complexity estimation based on LOC and language factors
   - Project maturity scoring (tests, documentation, repository age, contributor count)
-
 - **Git Repository Analysis**
   - Commit count and history
   - Contributor analysis
   - Repository age tracking
-
 - **Monetary Value Calculation**
   - Estimated development hours
   - Customizable hourly rate (default: ₩10,030 - 2025 South Korea minimum wage)
@@ -38,14 +36,12 @@ Analyze code repositories and calculate their monetary value based on developmen
   - Complexity and maturity bonuses
   - Learning time estimation for technologies used
   - **Token-based Cost Estimation**: Calculates cost based on **Claude Opus 4.7 xhigh** pricing ($5/1M input tokens)
-
 - **Advanced Analysis Features**
   - Detailed project metrics (complexity, maturity, code quality)
   - Language breakdown with percentages
   - **AI Usage Estimation**: Analyzes patterns to estimate AI-assisted development
   - Developer level cost breakdown (Junior to Principal)
   - Test coverage statistics
-
 - **Multiple Output Formats**
   - Beautiful colored terminal UI
   - Detailed analysis mode (default)
@@ -96,32 +92,26 @@ Analyze git commit history and generate meaningful work activity summaries with 
   - File change statistics per commit
   - Author and timestamp information
   - Language-specific change tracking within commits
-
 - **Hybrid Time Estimation**
   - **Time-gap based**: Measures intervals between commits (capped at 4 hours)
   - **Code-change based**: Estimates effort from lines added/deleted and complexity
   - Weighted hybrid algorithm for high accuracy
-
 - **Work Pattern Analysis**
   - Hourly commit distribution (Peak hours)
   - Daily activity tracking (Most active days)
   - Commit frequency and active day ratios
-
 - **Value Calculation**
   - Developer level-based estimates (Junior to Principal)
   - Base hourly rate: ₩10,030 (2025 KRW minimum wage)
   - Complexity-adjusted value estimation based on commit size
-
 - **Contributor Statistics**
   - Per-contributor commit counts and line stats
   - Contribution percentage breakdown
   - Top contributors ranking
-
 - **Flexible Filtering**
   - Date ranges: `--from`, `--to` (YYYY-MM-DD)
   - Quick filters: `--today`, `--week`, `--month`
   - Limit: `--limit N` most recent commits
-
 - **Output Options**
   - Detail mode: Comprehensive analysis (default)
   - Simple mode: Basic summary summary (`--simple`)
@@ -135,7 +125,7 @@ cargo install --path crates/work-summary
 
 #### Usage
 
-```bash
+```
 # Analyze last 30 days (default)
 work-summary
 
@@ -168,12 +158,10 @@ Developer pulse check and convenience tools to keep your development environment
   - Identifies branches that have already been merged into `main` or `master`.
   - Dry-run by default to prevent accidental deletions.
   - Delete multiple merged branches at once with `--force`.
-
 - **Marker Scanning**
   - Scans the codebase for `TODO`, `FIXME`, `BUG`, `HACK`, and `OPTIMIZE` markers.
   - Automatically respects `.gitignore`.
   - Customizable marker list via command line.
-
 - **Project Health Check**
   - Verifies the presence of essential project files:
     - `README.md` (Documentation)
@@ -183,16 +171,13 @@ Developer pulse check and convenience tools to keep your development environment
     - `tests/` (Test suite)
     - CI Configuration (Github Actions, etc.)
   - Provides a health score and detailed pass/fail report.
-
 - **.env Validator**
   - Compares `.env` against `.env.example` to ensure all required environment variables are configured.
   - Lists missing keys and provides tips for configuration.
-
 - **Changelog Generator**
   - Automatically generates a grouped changelog from Git history.
   - Recognizes conventional commit types (feat, fix, docs, etc.).
   - Supports range filtering (`--from`, `--to`) and commit limits.
-
 - **Commit Wizard**
   - Interactive terminal UI for creating Conventional Commits.
   - Guides you through type selection, scoping, description, and breaking changes.
@@ -345,7 +330,9 @@ cli-tools/
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) file for details.
+MIT License - See [LICENSE](LICENSE.md) file for details.
+
+[Link](https://naver.com)
 
 ## Author
 
