@@ -12,6 +12,7 @@ fn zzz_runs_command_silently_and_saves_stdout() {
         .arg("echo")
         .arg("hello")
         .env("HOME", &home)
+        .env("ZDOTDIR", &home)
         .env_remove("USERPROFILE")
         .output()
         .unwrap();
@@ -32,10 +33,56 @@ fn zzz_runs_command_silently_and_saves_stdout() {
     fs::remove_dir_all(home).unwrap();
 }
 
+#[test]
+#[cfg(unix)]
+fn zzz_runs_zsh_alias_from_user_rc_file() {
+    let Some(zsh) = zsh_path() else {
+        return;
+    };
+    let home = unique_temp_home();
+    fs::create_dir_all(&home).unwrap();
+    fs::write(
+        home.join(".zshrc"),
+        "printf \"%s\\n\" startup-output\nalias update-agents='printf \"%s\\n\" alias-output'\n",
+    )
+    .unwrap();
+
+    let output = Command::new(zzz_bin())
+        .arg("update-agents")
+        .env("HOME", &home)
+        .env("ZDOTDIR", &home)
+        .env("SHELL", zsh)
+        .env_remove("USERPROFILE")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "zzz failed: {output:?}");
+    assert_eq!(output.stdout, b"");
+    assert_eq!(output.stderr, b"");
+
+    let logs = command_logs(&home);
+    assert_eq!(logs.len(), 1);
+    let log_name = logs[0].file_name().unwrap().to_string_lossy();
+    assert!(
+        log_name.ends_with("-update-agents.log"),
+        "unexpected log name: {log_name}"
+    );
+    assert_eq!(fs::read_to_string(&logs[0]).unwrap(), "alias-output\n");
+
+    fs::remove_dir_all(home).unwrap();
+}
+
 fn zzz_bin() -> PathBuf {
     std::env::var_os("CARGO_BIN_EXE_zzz")
         .map(PathBuf::from)
         .expect("zzz binary target should be built")
+}
+
+#[cfg(unix)]
+fn zsh_path() -> Option<&'static str> {
+    ["/bin/zsh", "/usr/bin/zsh"]
+        .into_iter()
+        .find(|path| Path::new(path).exists())
 }
 
 fn command_logs(home: &Path) -> Vec<PathBuf> {

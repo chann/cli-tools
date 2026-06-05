@@ -289,6 +289,9 @@ dev-tools silent git status --short
 zzz git status --short
 dev-tools silent python script.py
 
+# Shell aliases/functions are supported through your interactive shell
+zzz update-agents
+
 # Logs are saved as:
 # ~/.commands/{yymmdd}/{hhmmss}-{command_name}.log
 # Example: ~/.commands/260605/224512-echo.log

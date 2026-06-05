@@ -3,7 +3,7 @@ use chrono::NaiveDateTime;
 use std::env;
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Command, ExitStatus, Stdio};
 
 pub fn command_name_from_command(command: &str) -> String {
     let name = Path::new(command)
@@ -60,13 +60,7 @@ pub fn run_with_home_and_timestamp(
     let stdout = File::create(&log_path)
         .with_context(|| format!("Failed to create command log '{}'", log_path.display()))?;
 
-    let status = Command::new(command)
-        .args(args)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::from(stdout))
-        .stderr(Stdio::null())
-        .status()
-        .with_context(|| format!("Failed to run command '{}'", command))?;
+    let status = command_status(command, args, &log_path, stdout)?;
 
     if !status.success() {
         bail!(
@@ -78,6 +72,105 @@ pub fn run_with_home_and_timestamp(
     }
 
     Ok(log_path)
+}
+
+#[cfg(unix)]
+fn command_status(
+    command: &str,
+    args: &[String],
+    log_path: &Path,
+    stdout: File,
+) -> Result<ExitStatus> {
+    let shell = user_shell();
+    let script = shell_script(command, args, log_path);
+
+    drop(stdout);
+
+    Command::new(&shell)
+        .arg("-i")
+        .arg("-c")
+        .arg(&script)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .with_context(|| {
+            format!(
+                "Failed to start shell '{}' for command '{}'",
+                shell, command
+            )
+        })
+}
+
+#[cfg(not(unix))]
+fn command_status(
+    command: &str,
+    args: &[String],
+    _log_path: &Path,
+    stdout: File,
+) -> Result<ExitStatus> {
+    Command::new(command)
+        .args(args)
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::from(stdout))
+        .stderr(Stdio::null())
+        .status()
+        .with_context(|| format!("Failed to run command '{}'", command))
+}
+
+#[cfg(unix)]
+fn shell_script(command: &str, args: &[String], log_path: &Path) -> String {
+    format!(
+        "exec > {}\n{}",
+        shell_quote(&log_path.to_string_lossy()),
+        shell_command_line(command, args)
+    )
+}
+
+#[cfg(unix)]
+fn user_shell() -> String {
+    env::var("SHELL")
+        .ok()
+        .filter(|shell| !shell.trim().is_empty())
+        .unwrap_or_else(|| "/bin/sh".to_string())
+}
+
+#[cfg(unix)]
+fn shell_command_line(command: &str, args: &[String]) -> String {
+    std::iter::once(shell_command_word(command))
+        .chain(args.iter().map(|arg| shell_quote(arg)))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[cfg(unix)]
+fn shell_command_word(command: &str) -> String {
+    if is_shell_bareword(command) {
+        command.to_string()
+    } else {
+        shell_quote(command)
+    }
+}
+
+#[cfg(unix)]
+fn is_shell_bareword(value: &str) -> bool {
+    !value.is_empty()
+        && value.chars().all(|ch| {
+            ch.is_ascii_alphanumeric()
+                || matches!(
+                    ch,
+                    '_' | '-' | '.' | '/' | ':' | '+' | '=' | '@' | '%' | '~'
+                )
+        })
+}
+
+#[cfg(unix)]
+fn shell_quote(value: &str) -> String {
+    if value.is_empty() {
+        return "''".to_string();
+    }
+
+    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 pub fn run(command: &str, args: Vec<String>) -> Result<()> {
@@ -129,6 +222,21 @@ mod tests {
         assert_eq!(
             command_name_from_command("../weird command"),
             "weird_command"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn shell_command_line_leaves_safe_command_unquoted_for_alias_expansion() {
+        let args = vec![
+            "hello world".to_string(),
+            "it's quoted".to_string(),
+            "--flag=value".to_string(),
+        ];
+
+        assert_eq!(
+            shell_command_line("update-agents", &args),
+            "update-agents 'hello world' 'it'\\''s quoted' '--flag=value'"
         );
     }
 

@@ -280,6 +280,9 @@ dev-tools silent git status --short
 zzz git status --short
 dev-tools silent python script.py
 
+# 대화형 셸을 통해 shell alias/function도 실행할 수 있습니다
+zzz update-agents
+
 # 로그 저장 위치:
 # ~/.commands/{yymmdd}/{hhmmss}-{command_name}.log
 # 예: ~/.commands/260605/224512-echo.log
