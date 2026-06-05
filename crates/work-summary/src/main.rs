@@ -26,7 +26,7 @@ struct ExportRow {
 }
 
 #[derive(Parser)]
-#[command(name = "work-summary")]
+#[command(name = "work-summary", version)]
 #[command(about = "Analyze git commit history and summarize work activity", long_about = None)]
 struct Cli {
     #[arg(value_name = "PATH", help = "Repository paths to analyze")]
