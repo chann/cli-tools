@@ -264,7 +264,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         path.push(format!(
-            "dev-tools-silent-test-{}-{}",
+            "cli-tools-command-log-test-{}-{}",
             std::process::id(),
             nanos
         ));

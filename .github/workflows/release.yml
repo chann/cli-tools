@@ -10,6 +10,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  RELEASE_BINS: code-cost dev-tools git-tools work-summary zzz
 
 jobs:
   validate-version:
@@ -85,12 +86,13 @@ jobs:
     env:
       VERSION: ${{ needs.validate-version.outputs.version }}
       TARGET_NAME: ${{ matrix.target_name }}
+      BINARY_DIR: target/${{ matrix.target_name }}/release
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Build binaries
-        run: cargo build --release --workspace --bins
+        run: cargo build --release --workspace --bins --target "${{ matrix.target_name }}"
 
       - name: Package Unix binaries
         if: runner.os != 'Windows'
@@ -98,11 +100,9 @@ jobs:
         run: |
           package="cli-tools-${VERSION}-${TARGET_NAME}"
           mkdir -p "dist/${package}"
-          cp target/release/code-cost "dist/${package}/"
-          cp target/release/dev-tools "dist/${package}/"
-          cp target/release/git-tools "dist/${package}/"
-          cp target/release/work-summary "dist/${package}/"
-          cp target/release/zzz "dist/${package}/"
+          for bin in ${RELEASE_BINS}; do
+            cp "${BINARY_DIR}/${bin}" "dist/${package}/"
+          done
           tar -C dist -czf "${package}.tar.gz" "${package}"
 
       - name: Package Windows binaries
@@ -111,11 +111,9 @@ jobs:
         run: |
           $package = "cli-tools-$env:VERSION-$env:TARGET_NAME"
           New-Item -ItemType Directory -Path "dist/$package" | Out-Null
-          Copy-Item target/release/code-cost.exe "dist/$package/"
-          Copy-Item target/release/dev-tools.exe "dist/$package/"
-          Copy-Item target/release/git-tools.exe "dist/$package/"
-          Copy-Item target/release/work-summary.exe "dist/$package/"
-          Copy-Item target/release/zzz.exe "dist/$package/"
+          foreach ($bin in $env:RELEASE_BINS.Split(" ")) {
+            Copy-Item "$env:BINARY_DIR/$bin.exe" "dist/$package/"
+          }
           Compress-Archive -Path "dist/$package/*" -DestinationPath "$package.zip"
 
       - name: Upload release artifact
@@ -147,6 +145,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" artifacts/* \
+            --repo "${GITHUB_REPOSITORY}" \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes \
             --verify-tag

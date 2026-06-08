@@ -113,10 +113,6 @@ fn unique_temp_home() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    path.push(format!(
-        "dev-tools-zzz-test-{}-{}",
-        std::process::id(),
-        nanos
-    ));
+    path.push(format!("zzz-test-{}-{}", std::process::id(), nanos));
     path
 }

@@ -11,5 +11,5 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    dev_tools::silent_runner::run(&command, args.collect())
+    cli_core::command_log::run(&command, args.collect())
 }

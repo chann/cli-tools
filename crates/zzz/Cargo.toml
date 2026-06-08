@@ -1,0 +1,15 @@
+[package]
+name = "zzz"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "zzz"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+cli-core = { path = "../cli-core" }

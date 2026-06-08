@@ -20,5 +20,8 @@ csv = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 
+# Utils
+chrono = { workspace = true }
+
 # Template engine for HTML export
 askama = "0.12"
