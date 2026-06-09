@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[test]
 fn zzz_runs_command_silently_and_saves_stdout() {
@@ -21,14 +21,13 @@ fn zzz_runs_command_silently_and_saves_stdout() {
     assert_eq!(output.stdout, b"");
     assert_eq!(output.stderr, b"");
 
-    let logs = command_logs(&home);
-    assert_eq!(logs.len(), 1);
-    let log_name = logs[0].file_name().unwrap().to_string_lossy();
+    // zzz returns immediately; the command finishes writing the log in the background.
+    let log = wait_for_single_log(&home, "hello\n");
+    let log_name = log.file_name().unwrap().to_string_lossy();
     assert!(
         log_name.ends_with("-echo.log"),
         "unexpected log name: {log_name}"
     );
-    assert_eq!(fs::read_to_string(&logs[0]).unwrap(), "hello\n");
 
     fs::remove_dir_all(home).unwrap();
 }
@@ -60,14 +59,12 @@ fn zzz_runs_zsh_alias_from_user_rc_file() {
     assert_eq!(output.stdout, b"");
     assert_eq!(output.stderr, b"");
 
-    let logs = command_logs(&home);
-    assert_eq!(logs.len(), 1);
-    let log_name = logs[0].file_name().unwrap().to_string_lossy();
+    let log = wait_for_single_log(&home, "alias-output\n");
+    let log_name = log.file_name().unwrap().to_string_lossy();
     assert!(
         log_name.ends_with("-update-agents.log"),
         "unexpected log name: {log_name}"
     );
-    assert_eq!(fs::read_to_string(&logs[0]).unwrap(), "alias-output\n");
 
     fs::remove_dir_all(home).unwrap();
 }
@@ -83,6 +80,27 @@ fn zsh_path() -> Option<&'static str> {
     ["/bin/zsh", "/usr/bin/zsh"]
         .into_iter()
         .find(|path| Path::new(path).exists())
+}
+
+/// Poll until exactly one log file exists with the expected content, since the
+/// command runs in the background after zzz returns. Panics on timeout.
+fn wait_for_single_log(home: &Path, expected_content: &str) -> PathBuf {
+    for _ in 0..400 {
+        let logs = command_logs(home);
+        if logs.len() == 1 {
+            if let Ok(content) = fs::read_to_string(&logs[0]) {
+                if content == expected_content {
+                    return logs[0].clone();
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_millis(25));
+    }
+
+    panic!(
+        "expected a single log with {expected_content:?}, found: {:?}",
+        command_logs(home)
+    );
 }
 
 fn command_logs(home: &Path) -> Vec<PathBuf> {

@@ -1,9 +1,19 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use std::env;
 use std::fs::{self, File};
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Child, Command, Stdio};
+
+/// A command launched in the background. The process keeps running after this
+/// handle is dropped; callers that need to wait for completion (e.g. tests)
+/// can do so through `child`.
+pub struct Spawned {
+    pub log_path: PathBuf,
+    pub child: Child,
+}
 
 pub fn command_name_from_command(command: &str) -> String {
     let name = Path::new(command)
@@ -46,7 +56,7 @@ pub fn run_with_home_and_timestamp(
     args: &[String],
     home_dir: &Path,
     timestamp: NaiveDateTime,
-) -> Result<PathBuf> {
+) -> Result<Spawned> {
     let log_path = command_log_path(home_dir, timestamp, command);
     if let Some(log_dir) = log_path.parent() {
         fs::create_dir_all(log_dir).with_context(|| {
@@ -60,27 +70,18 @@ pub fn run_with_home_and_timestamp(
     let stdout = File::create(&log_path)
         .with_context(|| format!("Failed to create command log '{}'", log_path.display()))?;
 
-    let status = command_status(command, args, &log_path, stdout)?;
+    let child = spawn_command(command, args, &log_path, stdout)?;
 
-    if !status.success() {
-        bail!(
-            "Command '{}' exited with status {}. stdout was saved to '{}'",
-            command,
-            status,
-            log_path.display()
-        );
-    }
-
-    Ok(log_path)
+    Ok(Spawned { log_path, child })
 }
 
 #[cfg(unix)]
-fn command_status(
+fn spawn_command(
     command: &str,
     args: &[String],
     log_path: &Path,
     stdout: File,
-) -> Result<ExitStatus> {
+) -> Result<Child> {
     let shell = user_shell();
     let script = shell_script(command, args, log_path);
 
@@ -90,10 +91,14 @@ fn command_status(
         .arg("-i")
         .arg("-c")
         .arg(&script)
-        .stdin(Stdio::inherit())
+        .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .status()
+        // Detach into a new process group so the command keeps running in the
+        // background and is unaffected by job-control signals (Ctrl+C/Ctrl+Z)
+        // sent to the shell that launched it.
+        .process_group(0)
+        .spawn()
         .with_context(|| {
             format!(
                 "Failed to start shell '{}' for command '{}'",
@@ -103,18 +108,18 @@ fn command_status(
 }
 
 #[cfg(not(unix))]
-fn command_status(
+fn spawn_command(
     command: &str,
     args: &[String],
     _log_path: &Path,
     stdout: File,
-) -> Result<ExitStatus> {
+) -> Result<Child> {
     Command::new(command)
         .args(args)
-        .stdin(Stdio::inherit())
+        .stdin(Stdio::null())
         .stdout(Stdio::from(stdout))
         .stderr(Stdio::null())
-        .status()
+        .spawn()
         .with_context(|| format!("Failed to run command '{}'", command))
 }
 
@@ -174,6 +179,9 @@ fn shell_quote(value: &str) -> String {
 }
 
 pub fn run(command: &str, args: Vec<String>) -> Result<()> {
+    // Launch the command in the background and return to the shell immediately.
+    // Output is still captured to the log file; dropping the handle leaves the
+    // detached process running.
     let _ = run_with_home_and_timestamp(
         command,
         &args,
@@ -249,10 +257,15 @@ mod tests {
             .unwrap();
         let args = vec!["captured output".to_string()];
 
-        let log_path = run_with_home_and_timestamp("echo", &args, &home, timestamp).unwrap();
+        let mut spawned = run_with_home_and_timestamp("echo", &args, &home, timestamp).unwrap();
+        // The command runs in the background, so wait for it before reading the log.
+        spawned.child.wait().unwrap();
 
-        assert_eq!(log_path, home.join(".commands/260605/142233-echo.log"));
-        assert_eq!(fs::read_to_string(log_path).unwrap(), "captured output\n");
+        assert_eq!(spawned.log_path, home.join(".commands/260605/142233-echo.log"));
+        assert_eq!(
+            fs::read_to_string(&spawned.log_path).unwrap(),
+            "captured output\n"
+        );
 
         fs::remove_dir_all(home).unwrap();
     }
