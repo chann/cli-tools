@@ -164,9 +164,11 @@ dev-tools silent python script.py
 
 ## zzz
 
-`zzz` is a standalone shortcut for silent foreground command logging. It runs the
-command through your interactive shell on Unix, so shell aliases and functions are
-available.
+`zzz` is a standalone shortcut for silent command logging. It runs the command
+through your interactive shell on Unix, so shell aliases and functions are
+available. The command is detached and runs in the background, returning to the
+prompt immediately (no trailing `&` needed); its output is captured to the log
+file.
 
 ```bash
 zzz echo "hello"
