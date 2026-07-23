@@ -135,7 +135,7 @@ fn display_results(
     use cli_core::output::{OutputFormat, TableFormatter};
     use comfy_table::{Cell, Color};
 
-    let format = OutputFormat::from_str(&cli.format)?;
+    let format: OutputFormat = cli.format.parse()?;
 
     match format {
         OutputFormat::Table => {
