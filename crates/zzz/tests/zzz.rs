@@ -70,9 +70,7 @@ fn zzz_runs_zsh_alias_from_user_rc_file() {
 }
 
 fn zzz_bin() -> PathBuf {
-    std::env::var_os("CARGO_BIN_EXE_zzz")
-        .map(PathBuf::from)
-        .expect("zzz binary target should be built")
+    PathBuf::from(env!("CARGO_BIN_EXE_zzz"))
 }
 
 #[cfg(unix)]
