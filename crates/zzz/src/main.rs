@@ -11,5 +11,5 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    cli_core::command_log::run(&command, args.collect())
+    cli_core::command_log::run_with_system_notification(&command, args.collect())
 }
