@@ -164,8 +164,10 @@ dev-tools silent python script.py
 
 ## zzz
 
-`zzz`는 무음 foreground 명령 로그 저장을 위한 독립 실행 명령입니다. Unix에서는
-대화형 셸을 통해 실행되므로 shell alias와 function도 사용할 수 있습니다.
+`zzz`는 명령 출력을 조용히 기록하는 독립 실행 명령입니다. Unix에서는 대화형
+셸을 통해 실행되므로 shell alias와 function도 사용할 수 있습니다. 명령은
+백그라운드에서 실행되어 프롬프트가 즉시 반환되며, macOS에서는 명령이 끝나면
+성공 또는 실패 여부를 시스템 알림으로 전송합니다.
 
 ```bash
 zzz echo "hello"

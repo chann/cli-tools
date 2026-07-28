@@ -168,7 +168,8 @@ dev-tools silent python script.py
 through your interactive shell on Unix, so shell aliases and functions are
 available. The command is detached and runs in the background, returning to the
 prompt immediately (no trailing `&` needed); its output is captured to the log
-file.
+file. On macOS, `zzz` sends a system notification when the background command
+finishes, reporting whether it succeeded or failed.
 
 ```bash
 zzz echo "hello"
