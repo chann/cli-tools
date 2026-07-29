@@ -134,8 +134,14 @@ dev-tools uuid --count 5 --v7
 dev-tools base64 "hello world"
 dev-tools base64 --decode "aGVsbG8gd29ybGQ="
 
-# JSON and model generation
-dev-tools json '{"a":1,"b":2}'
+# JSON syntax check, formatting, minification, and recursive key sorting
+dev-tools json '{"b":2,"a":1}' --check
+dev-tools json '{"b":2,"a":1}' --format
+dev-tools json '{"b":2,"a":1}' --minify
+dev-tools json '{"b":2,"a":1}' --sort asc
+dev-tools json '{"b":2,"a":1}' --sort desc --minify
+
+# Model generation
 dev-tools typescript '{"name":"test","age":20}'
 dev-tools rust '{"name":"test","age":20}'
 dev-tools go '{"name":"test","age":20}'
