@@ -86,9 +86,30 @@ enum Commands {
     Json {
         /// JSON text to process
         text: String,
+        /// Check JSON syntax without emitting the document
+        #[arg(
+            long,
+            conflicts_with_all = [
+                "format", "minify", "sort", "query", "yaml", "toml", "csv", "schema"
+            ]
+        )]
+        check: bool,
+        /// Pretty-print JSON explicitly
+        #[arg(
+            long,
+            conflicts_with_all = ["minify", "yaml", "toml", "csv", "schema"]
+        )]
+        format: bool,
         /// Minify instead of pretty-print
         #[arg(short, long)]
         minify: bool,
+        /// Sort object keys recursively (asc or desc)
+        #[arg(
+            long,
+            value_enum,
+            conflicts_with_all = ["yaml", "toml", "csv", "schema"]
+        )]
+        sort: Option<commands::json::SortOrder>,
         /// JSON Path query (e.g., "$.store.book[0].title")
         #[arg(short, long)]
         query: Option<String>,
@@ -1087,8 +1108,22 @@ async fn main() -> Result<()> {
                 commands::url::encode_url(&text)?;
             }
         }
-        Commands::Json { text, minify, query, yaml, toml, csv, schema } => {
-            if yaml {
+        Commands::Json {
+            text,
+            check,
+            format,
+            minify,
+            sort,
+            query,
+            yaml,
+            toml,
+            csv,
+            schema,
+        } => {
+            if check {
+                commands::json::validate(&text)?;
+                println!("Valid JSON");
+            } else if yaml {
                 commands::json::to_yaml(&text)?;
             } else if toml {
                 commands::json::to_toml(&text)?;
@@ -1097,7 +1132,10 @@ async fn main() -> Result<()> {
             } else if schema {
                 commands::json::to_schema(&text)?;
             } else {
-                commands::json::process(&text, !minify, query)?;
+                let pretty = format || !minify;
+                let output =
+                    commands::json::transform(&text, pretty, query.as_deref(), sort)?;
+                println!("{output}");
             }
         }
         Commands::Port { port, kill, wait, timeout, list } => {

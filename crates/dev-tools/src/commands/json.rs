@@ -1,26 +1,106 @@
-use serde_json::Value;
-use anyhow::{Result, anyhow};
-use jsonpath_rust::JsonPath;
+use anyhow::{anyhow, Result};
+use clap::ValueEnum;
 use cli_core::ui::Theme;
+use jsonpath_rust::JsonPath;
+use serde::ser::{SerializeMap, SerializeSeq};
+use serde::{Serialize, Serializer};
+use serde_json::Value;
 
-pub fn process(text: &str, pretty: bool, query: Option<String>) -> Result<()> {
-    let v: Value = serde_json::from_str(text)
-        .map_err(|e| anyhow!("Invalid JSON: {}", e))?;
-    
-    let result = if let Some(q) = query {
-        let matches = v.query(&q)
-            .map_err(|e| anyhow!("Invalid JSON Path: {}", e))?;
+fn parse_json(text: &str) -> Result<Value> {
+    serde_json::from_str(text).map_err(|error| anyhow!("Invalid JSON: {error}"))
+}
+
+pub fn validate(text: &str) -> Result<()> {
+    parse_json(text).map(|_| ())
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+pub enum SortOrder {
+    Asc,
+    Desc,
+}
+
+struct SortedValue<'a> {
+    value: &'a Value,
+    order: SortOrder,
+}
+
+impl Serialize for SortedValue<'_> {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self.value {
+            Value::Null => serializer.serialize_unit(),
+            Value::Bool(value) => serializer.serialize_bool(*value),
+            Value::Number(value) => value.serialize(serializer),
+            Value::String(value) => serializer.serialize_str(value),
+            Value::Array(values) => {
+                let mut sequence = serializer.serialize_seq(Some(values.len()))?;
+                for value in values {
+                    sequence.serialize_element(&SortedValue {
+                        value,
+                        order: self.order,
+                    })?;
+                }
+                sequence.end()
+            }
+            Value::Object(values) => {
+                let mut object = serializer.serialize_map(Some(values.len()))?;
+                let mut entries: Vec<_> = values.iter().collect();
+                entries.sort_unstable_by_key(|(key, _)| *key);
+                if self.order == SortOrder::Desc {
+                    entries.reverse();
+                }
+                for (key, value) in entries {
+                    object.serialize_entry(
+                        key,
+                        &SortedValue {
+                            value,
+                            order: self.order,
+                        },
+                    )?;
+                }
+                object.end()
+            }
+        }
+    }
+}
+
+fn serialize_json(value: &Value, pretty: bool, sort: Option<SortOrder>) -> Result<String> {
+    let output = match sort {
+        Some(order) => {
+            let sorted = SortedValue { value, order };
+            if pretty {
+                serde_json::to_string_pretty(&sorted)?
+            } else {
+                serde_json::to_string(&sorted)?
+            }
+        }
+        None if pretty => serde_json::to_string_pretty(value)?,
+        None => serde_json::to_string(value)?,
+    };
+    Ok(output)
+}
+
+pub fn transform(
+    text: &str,
+    pretty: bool,
+    query: Option<&str>,
+    sort: Option<SortOrder>,
+) -> Result<String> {
+    let value = parse_json(text)?;
+
+    let result = if let Some(query) = query {
+        let matches = value
+            .query(query)
+            .map_err(|error| anyhow!("Invalid JSON Path: {error}"))?;
         Value::Array(matches.into_iter().cloned().collect())
     } else {
-        v
+        value
     };
 
-    if pretty {
-        println!("{}", serde_json::to_string_pretty(&result)?);
-    } else {
-        println!("{}", serde_json::to_string(&result)?);
-    }
-    Ok(())
+    serialize_json(&result, pretty, sort)
 }
 
 pub fn to_yaml(text: &str) -> Result<()> {
@@ -130,5 +210,77 @@ fn generate_schema(value: &Value) -> Value {
             }
             Value::Object(schema_obj)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{serialize_json, transform, validate, SortOrder};
+    use serde_json::Value;
+
+    #[test]
+    fn validate_accepts_valid_json() {
+        assert!(validate(r#"{"a":[1,true,null]}"#).is_ok());
+    }
+
+    #[test]
+    fn validate_reports_invalid_json_location() {
+        let error = validate("{\n  \"a\":\n}")
+            .expect_err("input should be invalid")
+            .to_string();
+
+        assert!(error.starts_with("Invalid JSON:"));
+        assert!(error.contains("line 3 column 1"));
+    }
+
+    #[test]
+    fn serializer_pretty_prints_without_sorting() {
+        let value: Value = serde_json::from_str(r#"{"b":2,"a":1}"#).unwrap();
+
+        let output = serialize_json(&value, true, None).unwrap();
+
+        assert_eq!(output, "{\n  \"a\": 1,\n  \"b\": 2\n}");
+    }
+
+    #[test]
+    fn serializer_minifies_without_sorting() {
+        let value: Value = serde_json::from_str(r#"{ "b": 2, "a": 1 }"#).unwrap();
+
+        let output = serialize_json(&value, false, None).unwrap();
+
+        assert_eq!(output, r#"{"a":1,"b":2}"#);
+    }
+
+    #[test]
+    fn sorted_serializer_orders_every_object_ascending() {
+        let value: Value =
+            serde_json::from_str(r#"{"z":{"b":2,"a":1},"items":[{"d":4,"c":3},0]}"#).unwrap();
+
+        let output = serialize_json(&value, false, Some(SortOrder::Asc)).unwrap();
+
+        assert_eq!(output, r#"{"items":[{"c":3,"d":4},0],"z":{"a":1,"b":2}}"#);
+    }
+
+    #[test]
+    fn sorted_serializer_orders_every_object_descending() {
+        let value: Value =
+            serde_json::from_str(r#"{"a":{"x":1,"z":3},"m":[{"a":1,"b":2},0],"z":0}"#).unwrap();
+
+        let output = serialize_json(&value, false, Some(SortOrder::Desc)).unwrap();
+
+        assert_eq!(output, r#"{"z":0,"m":[{"b":2,"a":1},0],"a":{"z":3,"x":1}}"#);
+    }
+
+    #[test]
+    fn transform_sorts_jsonpath_matches() {
+        let output = transform(
+            r#"{"payload":{"a":1,"b":2}}"#,
+            false,
+            Some("$.payload"),
+            Some(SortOrder::Desc),
+        )
+        .unwrap();
+
+        assert_eq!(output, r#"[{"b":2,"a":1}]"#);
     }
 }
