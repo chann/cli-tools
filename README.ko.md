@@ -169,6 +169,21 @@ dev-tools silent python script.py
 백그라운드에서 실행되어 프롬프트가 즉시 반환되며, macOS에서는 명령이 끝나면
 성공 또는 실패 여부를 시스템 알림으로 전송합니다.
 
+macOS의 전체 상호작용을 사용하려면
+[`terminal-notifier`](https://github.com/julienXX/terminal-notifier)를
+설치합니다:
+
+```bash
+brew install terminal-notifier
+```
+
+알림에는 명령을 시작한 iTerm2 또는 Terminal.app 아이콘이 표시됩니다. 알림을
+누르면 Herdr를 실행 중인 iTerm2 세션을 포함해 명령을 시작한 정확한 세션이나
+탭으로 키보드 포커스가 돌아갑니다. 처음 사용할 때 macOS가 Automation 권한을
+요청할 수 있습니다. 대상이 닫혔다면 새 창을 만들지 않으며,
+`terminal-notifier`가 없으면 정확한 세션 포커스를 지원하지 않는 일반 완료
+알림으로 폴백합니다.
+
 ```bash
 zzz echo "hello"
 zzz git status --short

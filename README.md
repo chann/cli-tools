@@ -171,6 +171,20 @@ prompt immediately (no trailing `&` needed); its output is captured to the log
 file. On macOS, `zzz` sends a system notification when the background command
 finishes, reporting whether it succeeded or failed.
 
+Install [`terminal-notifier`](https://github.com/julienXX/terminal-notifier) for
+the full macOS interaction:
+
+```bash
+brew install terminal-notifier
+```
+
+The notification uses the launching iTerm2 or Terminal.app icon. Clicking it
+returns keyboard focus to the exact launching session or tab, including an
+iTerm2 session that hosts Herdr. macOS may ask for Automation permission the
+first time. If the target has closed, `zzz` does not create a replacement
+window; if `terminal-notifier` is unavailable, it falls back to a generic
+completion notification without exact-session focus.
+
 ```bash
 zzz echo "hello"
 zzz git status --short
