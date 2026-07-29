@@ -2,8 +2,6 @@ use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use std::env;
 use std::fs::{self, File};
-#[cfg(unix)]
-use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 
@@ -127,10 +125,9 @@ fn spawn_command(
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        // Detach into a new process group so the command keeps running in the
-        // background and is unaffected by job-control signals (Ctrl+C/Ctrl+Z)
-        // sent to the shell that launched it.
-        .process_group(0)
+        // Keep the interactive shell in the caller's foreground process group
+        // while it initializes. Moving it first makes terminal job control stop
+        // the shell before it can run the command.
         .spawn()
         .with_context(|| {
             format!(
@@ -322,7 +319,7 @@ mod tests {
     use chrono::NaiveDate;
     use std::fs;
     use std::sync::atomic::{AtomicU64, Ordering};
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
     static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -392,6 +389,68 @@ mod tests {
         );
 
         fs::remove_dir_all(home).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn interactive_shell_runs_from_a_real_terminal() {
+        const CHILD_ENV: &str = "ZZZ_INTERACTIVE_SHELL_PTY_TEST_CHILD";
+        if env::var_os(CHILD_ENV).is_some() {
+            let home = unique_temp_home();
+            let timestamp = NaiveDate::from_ymd_opt(2026, 7, 30)
+                .unwrap()
+                .and_hms_opt(3, 0, 0)
+                .unwrap();
+            let args = vec!["detached".to_string()];
+            let mut spawned =
+                run_with_home_and_timestamp("/usr/bin/printf", &args, &home, timestamp).unwrap();
+
+            for _ in 0..1_000 {
+                if let Some(status) = spawned.child.try_wait().unwrap() {
+                    assert!(status.success(), "shell exited with {status}");
+                    assert_eq!(fs::read_to_string(&spawned.log_path).unwrap(), "detached");
+                    fs::remove_dir_all(home).unwrap();
+                    return;
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+
+            let process = Command::new("/bin/ps")
+                .args([
+                    "-o",
+                    "pid=,ppid=,pgid=,tpgid=,stat=,command=",
+                    "-p",
+                    &spawned.child.id().to_string(),
+                ])
+                .output()
+                .unwrap();
+            spawned.child.kill().unwrap();
+            spawned.child.wait().unwrap();
+            fs::remove_dir_all(home).unwrap();
+            panic!(
+                "interactive shell stopped instead of running the command:\n{}",
+                String::from_utf8_lossy(&process.stdout)
+            );
+        }
+
+        let output = Command::new("/usr/bin/script")
+            .args(["-q", "/dev/null"])
+            .arg(env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "command_log::tests::interactive_shell_runs_from_a_real_terminal",
+                "--nocapture",
+            ])
+            .env(CHILD_ENV, "1")
+            .output()
+            .unwrap();
+
+        assert!(
+            output.status.success(),
+            "PTY child failed:\nstdout:\n{}\nstderr:\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 
     #[test]
