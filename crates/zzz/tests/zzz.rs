@@ -1,7 +1,10 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[test]
 fn zzz_runs_command_silently_and_saves_stdout() {
@@ -129,6 +132,12 @@ fn unique_temp_home() -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    path.push(format!("zzz-test-{}-{}", std::process::id(), nanos));
+    let counter = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    path.push(format!(
+        "zzz-test-{}-{}-{}",
+        std::process::id(),
+        nanos,
+        counter
+    ));
     path
 }

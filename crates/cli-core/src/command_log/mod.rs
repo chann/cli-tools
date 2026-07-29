@@ -7,6 +7,9 @@ use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 
+#[cfg(target_os = "macos")]
+mod macos_notification;
+
 /// A command launched in the background. The process keeps running after this
 /// handle is dropped; callers that need to wait for completion (e.g. tests)
 /// can do so through `child`.
@@ -20,6 +23,8 @@ enum CompletionNotification {
     Disabled,
     System,
 }
+
+pub const TERMINAL_FOCUS_FLAG: &str = "--__zzz-focus-terminal";
 
 pub fn command_name_from_command(command: &str) -> String {
     let name = Path::new(command)
@@ -106,11 +111,11 @@ fn spawn_command(
     completion_notification: CompletionNotification,
 ) -> Result<Child> {
     let shell = user_shell();
-    let script = match system_notification_program(completion_notification) {
-        Some(notification_program) => {
-            shell_script_with_notification_program(command, args, log_path, notification_program)
+    let script = match completion_notification {
+        CompletionNotification::Disabled => shell_script(command, args, log_path),
+        CompletionNotification::System => {
+            shell_script_with_system_notification(command, args, log_path)
         }
-        None => shell_script(command, args, log_path),
     };
 
     drop(stdout);
@@ -162,47 +167,48 @@ fn shell_script(command: &str, args: &[String], log_path: &Path) -> String {
 }
 
 #[cfg(target_os = "macos")]
-fn shell_script_with_notification_program(
+fn shell_script_with_system_notification(
     command: &str,
     args: &[String],
     log_path: &Path,
-    notification_program: &Path,
 ) -> String {
     let command_name = command_name_from_command(command);
-    let success_script = format!(
-        "display notification \"{command_name}\" with title \"zzz\" subtitle \"Succeeded\""
-    );
-    let failure_script =
-        format!("display notification \"{command_name}\" with title \"zzz\" subtitle \"Failed\"");
-
-    format!(
-        "set +e\n{}\nzzz_command_status=$?\n\
-         if [ \"$zzz_command_status\" -eq 0 ]; then\n  {} -e {} >/dev/null 2>&1\n\
-         else\n  {} -e {} >/dev/null 2>&1\n\
-         fi\nexit \"$zzz_command_status\"",
-        shell_script(command, args, log_path),
-        shell_quote(&notification_program.to_string_lossy()),
-        shell_quote(&success_script),
-        shell_quote(&notification_program.to_string_lossy()),
-        shell_quote(&failure_script),
+    let notifications = macos_notification::completion_commands(&command_name);
+    shell_script_with_notification_commands(
+        command,
+        args,
+        log_path,
+        &notifications.succeeded,
+        &notifications.failed,
     )
 }
 
 #[cfg(target_os = "macos")]
-fn system_notification_program(
-    completion_notification: CompletionNotification,
-) -> Option<&'static Path> {
-    match completion_notification {
-        CompletionNotification::Disabled => None,
-        CompletionNotification::System => Some(Path::new("/usr/bin/osascript")),
-    }
+fn shell_script_with_notification_commands(
+    command: &str,
+    args: &[String],
+    log_path: &Path,
+    success_command: &str,
+    failure_command: &str,
+) -> String {
+    format!(
+        "set +e\n{}\nzzz_command_status=$?\n\
+         if [ \"$zzz_command_status\" -eq 0 ]; then\n  ( {} )\n\
+         else\n  ( {} )\n\
+         fi\nexit \"$zzz_command_status\"",
+        shell_script(command, args, log_path),
+        success_command,
+        failure_command,
+    )
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]
-fn system_notification_program(
-    _completion_notification: CompletionNotification,
-) -> Option<&'static Path> {
-    None
+fn shell_script_with_system_notification(
+    command: &str,
+    args: &[String],
+    log_path: &Path,
+) -> String {
+    shell_script(command, args, log_path)
 }
 
 #[cfg(unix)]
@@ -259,6 +265,16 @@ pub fn run_with_system_notification(command: &str, args: Vec<String>) -> Result<
     run_with_completion_notification(command, args, CompletionNotification::System)
 }
 
+#[cfg(target_os = "macos")]
+pub fn focus_terminal(kind: &str, locator: &str) -> Result<()> {
+    macos_notification::focus_terminal(kind, locator)
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn focus_terminal(_kind: &str, _locator: &str) -> Result<()> {
+    anyhow::bail!("Terminal notification focus is only supported on macOS")
+}
+
 fn run_with_completion_notification(
     command: &str,
     args: Vec<String>,
@@ -289,7 +305,10 @@ mod tests {
     use super::*;
     use chrono::NaiveDate;
     use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
     #[test]
     fn command_log_path_uses_yymmdd_hhmmss_and_command_name() {
@@ -364,20 +383,21 @@ mod tests {
     fn completion_wrapper_notifies_when_command_succeeds() {
         let fixture = notification_fixture();
         let args = vec!["completed".to_string()];
-        let script = shell_script_with_notification_program(
+        let script = shell_script_with_notification_commands(
             "printf",
             &args,
             &fixture.log_path,
-            &fixture.notifier_path,
+            &notification_test_command(&fixture.notification_path, "Succeeded"),
+            &notification_test_command(&fixture.notification_path, "Failed"),
         );
 
-        let status = run_test_shell(&script, &fixture.notification_path, "0");
+        let status = run_test_shell(&script);
 
         assert!(status.success());
         assert_eq!(fs::read_to_string(&fixture.log_path).unwrap(), "completed");
         assert_eq!(
             fs::read_to_string(&fixture.notification_path).unwrap(),
-            "display notification \"printf\" with title \"zzz\" subtitle \"Succeeded\"\n"
+            "Succeeded\n"
         );
 
         fs::remove_dir_all(fixture.home).unwrap();
@@ -388,21 +408,41 @@ mod tests {
     fn completion_wrapper_notifies_and_preserves_command_failure() {
         let fixture = notification_fixture();
         let args = vec!["-c".to_string(), "exit 7".to_string()];
-        let script = shell_script_with_notification_program(
+        let script = shell_script_with_notification_commands(
             "sh",
             &args,
             &fixture.log_path,
-            &fixture.notifier_path,
+            &notification_test_command(&fixture.notification_path, "Succeeded"),
+            &notification_test_command(&fixture.notification_path, "Failed"),
         );
 
-        let status = run_test_shell(&script, &fixture.notification_path, "9");
+        let status = run_test_shell(&script);
 
         assert_eq!(status.code(), Some(7));
         assert_eq!(
             fs::read_to_string(&fixture.notification_path).unwrap(),
-            "display notification \"sh\" with title \"zzz\" subtitle \"Failed\"\n"
+            "Failed\n"
         );
 
+        fs::remove_dir_all(fixture.home).unwrap();
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn completion_wrapper_preserves_status_when_notification_fails() {
+        let fixture = notification_fixture();
+        let args = vec!["-c".to_string(), "exit 7".to_string()];
+        let script = shell_script_with_notification_commands(
+            "sh",
+            &args,
+            &fixture.log_path,
+            "exit 9",
+            "exit 9",
+        );
+
+        let status = run_test_shell(&script);
+
+        assert_eq!(status.code(), Some(7));
         fs::remove_dir_all(fixture.home).unwrap();
     }
 
@@ -411,48 +451,37 @@ mod tests {
         home: PathBuf,
         log_path: PathBuf,
         notification_path: PathBuf,
-        notifier_path: PathBuf,
     }
 
     #[cfg(target_os = "macos")]
     fn notification_fixture() -> NotificationFixture {
-        use std::os::unix::fs::PermissionsExt;
-
         let home = unique_temp_home();
         fs::create_dir_all(&home).unwrap();
 
         let log_path = home.join("command.log");
         let notification_path = home.join("notification.log");
-        let notifier_path = home.join("fake-osascript");
-        fs::write(
-            &notifier_path,
-            "#!/bin/sh\nprintf '%s\\n' \"$2\" > \"$ZZZ_TEST_NOTIFICATION_PATH\"\nexit \"$ZZZ_TEST_NOTIFIER_STATUS\"\n",
-        )
-        .unwrap();
-
-        let mut permissions = fs::metadata(&notifier_path).unwrap().permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&notifier_path, permissions).unwrap();
 
         NotificationFixture {
             home,
             log_path,
             notification_path,
-            notifier_path,
         }
     }
 
     #[cfg(target_os = "macos")]
-    fn run_test_shell(
-        script: &str,
-        notification_path: &Path,
-        notifier_status: &str,
-    ) -> std::process::ExitStatus {
+    fn notification_test_command(path: &Path, outcome: &str) -> String {
+        format!(
+            "printf '%s\\n' {} > {}",
+            shell_quote(outcome),
+            shell_quote(&path.to_string_lossy())
+        )
+    }
+
+    #[cfg(target_os = "macos")]
+    fn run_test_shell(script: &str) -> std::process::ExitStatus {
         Command::new("/bin/sh")
             .arg("-c")
             .arg(script)
-            .env("ZZZ_TEST_NOTIFICATION_PATH", notification_path)
-            .env("ZZZ_TEST_NOTIFIER_STATUS", notifier_status)
             .status()
             .unwrap()
     }
@@ -463,10 +492,12 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
+        let counter = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
         path.push(format!(
-            "cli-tools-command-log-test-{}-{}",
+            "cli-tools-command-log-test-{}-{}-{}",
             std::process::id(),
-            nanos
+            nanos,
+            counter
         ));
         path
     }
