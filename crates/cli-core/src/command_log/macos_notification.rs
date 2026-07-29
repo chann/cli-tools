@@ -5,7 +5,7 @@ use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use super::{shell_quote, TERMINAL_FOCUS_FLAG};
 
@@ -58,7 +58,6 @@ end run
 struct TerminalEnvironment {
     term_program: Option<String>,
     bundle_identifier: Option<String>,
-    iterm_session_id: Option<String>,
 }
 
 impl TerminalEnvironment {
@@ -66,14 +65,13 @@ impl TerminalEnvironment {
         Self {
             term_program: env::var("TERM_PROGRAM").ok(),
             bundle_identifier: env::var("__CFBundleIdentifier").ok(),
-            iterm_session_id: env::var("ITERM_SESSION_ID").ok(),
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum DetectedTerminal {
-    ITerm2 { session_uuid: String },
+    ITerm2,
     TerminalApp,
 }
 
@@ -126,7 +124,15 @@ pub(super) fn completion_commands(command_name: &str) -> NotificationCommands {
     };
 
     let target = match detect_terminal(&TerminalEnvironment::current()) {
-        Some(DetectedTerminal::ITerm2 { session_uuid }) => FocusTarget::ITerm2 { session_uuid },
+        Some(DetectedTerminal::ITerm2) => {
+            let Some(tty) = current_tty() else {
+                return fallback();
+            };
+            return NotificationCommands {
+                succeeded: iterm_notification_command(&tty, Outcome::Succeeded, command_name),
+                failed: iterm_notification_command(&tty, Outcome::Failed, command_name),
+            };
+        }
         Some(DetectedTerminal::TerminalApp) => {
             let Some(tty) = current_tty() else {
                 return fallback();
@@ -189,11 +195,7 @@ fn detect_terminal(environment: &TerminalEnvironment) -> Option<DetectedTerminal
     let is_iterm = environment.term_program.as_deref() == Some("iTerm.app")
         || environment.bundle_identifier.as_deref() == Some(ITERM_BUNDLE_ID);
     if is_iterm {
-        let session_id = environment.iterm_session_id.as_deref()?;
-        let session_uuid = session_id.rsplit(':').next()?;
-        return valid_uuid(session_uuid).then(|| DetectedTerminal::ITerm2 {
-            session_uuid: session_uuid.to_string(),
-        });
+        return Some(DetectedTerminal::ITerm2);
     }
 
     let is_terminal = environment.term_program.as_deref() == Some("Apple_Terminal")
@@ -238,7 +240,10 @@ fn parse_tty_output(success: bool, stdout: &[u8]) -> Option<PathBuf> {
 }
 
 fn current_tty() -> Option<PathBuf> {
-    let output = Command::new("/usr/bin/tty").output().ok()?;
+    let output = Command::new("/usr/bin/tty")
+        .stdin(Stdio::inherit())
+        .output()
+        .ok()?;
     parse_tty_output(output.status.success(), &output.stdout)
 }
 
@@ -337,6 +342,18 @@ fn terminal_notification_command(
     format!("{} >/dev/null 2>&1", shell_command(notifier, &arguments))
 }
 
+fn iterm_notification_command(tty: &Path, outcome: Outcome, command_name: &str) -> String {
+    let sequence = format!("\u{1b}]9;zzz {}: {command_name}\u{1b}\\", outcome.label());
+    format!(
+        "{} > {} 2>/dev/null",
+        shell_command(
+            Path::new("/usr/bin/printf"),
+            &[OsString::from("%s"), OsString::from(sequence)]
+        ),
+        shell_quote(&tty.to_string_lossy()),
+    )
+}
+
 fn system_notification_command(outcome: Outcome, command_name: &str) -> String {
     let source = format!(
         "display notification \"{command_name}\" with title \"zzz\" subtitle \"{}\"",
@@ -382,11 +399,10 @@ mod tests {
     use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
 
-    fn iterm_environment(session_id: &str) -> TerminalEnvironment {
+    fn iterm_environment() -> TerminalEnvironment {
         TerminalEnvironment {
             term_program: Some("iTerm.app".into()),
             bundle_identifier: Some("com.googlecode.iterm2".into()),
-            iterm_session_id: Some(session_id.into()),
         }
     }
 
@@ -397,22 +413,23 @@ mod tests {
     }
 
     #[test]
-    fn detects_iterm2_and_extracts_the_session_uuid() {
+    fn detects_iterm2_without_session_metadata_for_terminal_delivery() {
         assert_eq!(
-            detect_terminal(&iterm_environment(
-                "w0t2p2:F8176E01-630A-4505-9B2B-0DE870BF4706"
-            )),
-            Some(DetectedTerminal::ITerm2 {
-                session_uuid: "F8176E01-630A-4505-9B2B-0DE870BF4706".into(),
-            })
+            detect_terminal(&iterm_environment()),
+            Some(DetectedTerminal::ITerm2)
         );
     }
 
     #[test]
-    fn rejects_malformed_iterm2_session_ids() {
+    fn terminal_delivery_detects_iterm2_by_bundle_identifier() {
+        let environment = TerminalEnvironment {
+            term_program: None,
+            bundle_identifier: Some("com.googlecode.iterm2".into()),
+        };
+
         assert_eq!(
-            detect_terminal(&iterm_environment("w0t2p2:not-a-uuid")),
-            None
+            detect_terminal(&environment),
+            Some(DetectedTerminal::ITerm2)
         );
     }
 
@@ -421,7 +438,6 @@ mod tests {
         let environment = TerminalEnvironment {
             term_program: Some("Apple_Terminal".into()),
             bundle_identifier: Some("com.apple.Terminal".into()),
-            iterm_session_id: None,
         };
 
         assert_eq!(
@@ -452,6 +468,36 @@ mod tests {
     }
 
     #[test]
+    fn current_tty_reads_the_callers_terminal() {
+        const CHILD_ENV: &str = "ZZZ_CURRENT_TTY_TEST_CHILD";
+        if env::var_os(CHILD_ENV).is_some() {
+            let tty = current_tty()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "NONE".into());
+            println!("ZZZ_CURRENT_TTY={tty}");
+            return;
+        }
+
+        let output = Command::new("/usr/bin/script")
+            .args(["-q", "/dev/null"])
+            .arg(env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "command_log::macos_notification::tests::current_tty_reads_the_callers_terminal",
+                "--nocapture",
+            ])
+            .env(CHILD_ENV, "1")
+            .output()
+            .unwrap();
+        let transcript = String::from_utf8_lossy(&output.stdout);
+
+        assert!(
+            transcript.contains("ZZZ_CURRENT_TTY=/dev/tty"),
+            "child did not observe its pseudo-terminal:\n{transcript}"
+        );
+    }
+
+    #[test]
     fn notifier_candidates_prefer_path_then_homebrew_locations() {
         assert_eq!(
             notifier_candidates(Some(OsStr::new("/custom/bin:/next/bin"))),
@@ -476,28 +522,14 @@ mod tests {
     }
 
     #[test]
-    fn notifier_uses_iterm_icon_and_exact_session_focus_target() {
-        let command = terminal_notification_command(
-            Path::new("/opt/homebrew/bin/terminal-notifier"),
-            Some(Path::new(
-                "/Applications/iTerm.app/Contents/Resources/iTerm2 App Icon for Release.icns",
-            )),
-            Path::new("/Applications/CLI Tools/zzz"),
-            &iterm_target(),
-            Outcome::Failed,
-            "cargo",
-        );
+    fn iterm_notification_uses_the_originating_terminal_channel() {
+        let command =
+            iterm_notification_command(Path::new("/dev/ttys014"), Outcome::Failed, "cargo");
 
-        assert!(command.contains("'-title' 'zzz'"));
-        assert!(command.contains("'-subtitle' 'Failed'"));
-        assert!(command.contains("'-message' 'cargo'"));
-        assert!(command.contains("'-appIcon'"));
-        assert!(command.contains("iTerm2 App Icon for Release.icns"));
-        assert!(command.contains("'-execute'"));
-        assert!(command.contains("--__zzz-focus-terminal"));
-        assert!(command.contains("'iterm2'"));
-        assert!(command.contains("F8176E01-630A-4505-9B2B-0DE870BF4706"));
-        assert!(command.contains("Applications/CLI Tools/zzz"));
+        assert!(command.contains("\u{1b}]9;zzz Failed: cargo\u{1b}\\"));
+        assert!(command.contains("'/dev/ttys014'"));
+        assert!(!command.contains("terminal-notifier"));
+        assert!(!command.contains("'-execute'"));
     }
 
     #[test]
