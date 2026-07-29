@@ -178,18 +178,24 @@ file. On macOS, `zzz` sends a system notification when the background command
 finishes, reporting whether it succeeded or failed.
 
 Install [`terminal-notifier`](https://github.com/julienXX/terminal-notifier) for
-the full macOS interaction:
+clickable iTerm2 and Terminal.app notifications:
 
 ```bash
 brew install terminal-notifier
 ```
 
-The notification uses the launching iTerm2 or Terminal.app icon. Clicking it
-returns keyboard focus to the exact launching session or tab, including an
-iTerm2 session that hosts Herdr. macOS may ask for Automation permission the
-first time. If the target has closed, `zzz` does not create a replacement
-window; if `terminal-notifier` is unavailable, it falls back to a generic
-completion notification without exact-session focus.
+In iTerm2 and Terminal.app, the notification uses the launching terminal's icon.
+Clicking it returns keyboard focus to the exact launching session or tab,
+including an iTerm2 session that hosts Herdr. macOS may ask for Automation
+permission the first time. If `terminal-notifier` is unavailable, these
+terminals fall back to a generic completion notification without exact-session
+focus.
+
+Ghostty uses its built-in native macOS notification channel, so it does not
+require `terminal-notifier`. The notification carries Ghostty's app icon, and
+clicking it returns to the exact originating Ghostty surface. macOS may ask for
+notification permission the first time. If an originating target has closed,
+`zzz` does not create a replacement window.
 
 ```bash
 zzz echo "hello"
