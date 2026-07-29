@@ -42,3 +42,4 @@ tokio = { version = "1.40", features = ["full"] }
 
 # Utils
 chrono = { version = "0.4", features = ["serde"] }
+libc = "0.2"

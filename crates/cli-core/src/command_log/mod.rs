@@ -2,6 +2,8 @@ use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use std::env;
 use std::fs::{self, File};
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 
@@ -118,23 +120,35 @@ fn spawn_command(
 
     drop(stdout);
 
-    Command::new(&shell)
+    let mut process = Command::new(&shell);
+    process
         .arg("-i")
         .arg("-c")
         .arg(&script)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        // Keep the interactive shell in the caller's foreground process group
-        // while it initializes. Moving it first makes terminal job control stop
-        // the shell before it can run the command.
-        .spawn()
-        .with_context(|| {
-            format!(
-                "Failed to start shell '{}' for command '{}'",
-                shell, command
-            )
-        })
+        .stderr(Stdio::null());
+
+    // Start a new session instead of only a new process group. An interactive
+    // shell in a background process group can be stopped by terminal job
+    // control before it runs the command; a session without a controlling
+    // terminal remains independent after zzz exits.
+    unsafe {
+        process.pre_exec(|| {
+            if libc::setsid() == -1 {
+                Err(std::io::Error::last_os_error())
+            } else {
+                Ok(())
+            }
+        });
+    }
+
+    process.spawn().with_context(|| {
+        format!(
+            "Failed to start shell '{}' for command '{}'",
+            shell, command
+        )
+    })
 }
 
 #[cfg(not(unix))]
@@ -393,7 +407,7 @@ mod tests {
 
     #[test]
     #[cfg(target_os = "macos")]
-    fn interactive_shell_runs_from_a_real_terminal() {
+    fn interactive_shell_runs_in_a_detached_session_from_a_real_terminal() {
         const CHILD_ENV: &str = "ZZZ_INTERACTIVE_SHELL_PTY_TEST_CHILD";
         if env::var_os(CHILD_ENV).is_some() {
             let home = unique_temp_home();
@@ -401,9 +415,17 @@ mod tests {
                 .unwrap()
                 .and_hms_opt(3, 0, 0)
                 .unwrap();
-            let args = vec!["detached".to_string()];
+            let args = vec!["-c".to_string(), "sleep 0.25; printf detached".to_string()];
             let mut spawned =
-                run_with_home_and_timestamp("/usr/bin/printf", &args, &home, timestamp).unwrap();
+                run_with_home_and_timestamp("/bin/sh", &args, &home, timestamp).unwrap();
+
+            let session_id = unsafe { libc::getsid(spawned.child.id() as libc::pid_t) };
+            assert_ne!(session_id, -1, "could not read command shell session");
+            assert_eq!(
+                session_id as u32,
+                spawned.child.id(),
+                "command shell did not start in its own session"
+            );
 
             for _ in 0..1_000 {
                 if let Some(status) = spawned.child.try_wait().unwrap() {
@@ -438,7 +460,7 @@ mod tests {
             .arg(env::current_exe().unwrap())
             .args([
                 "--exact",
-                "command_log::tests::interactive_shell_runs_from_a_real_terminal",
+                "command_log::tests::interactive_shell_runs_in_a_detached_session_from_a_real_terminal",
                 "--nocapture",
             ])
             .env(CHILD_ENV, "1")
