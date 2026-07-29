@@ -100,8 +100,8 @@ UUID or Terminal.app TTY. Follow Herdr's macOS system-notification path with
    ```
 
 3. Implement constant AppleScript adapters. Locators are positional arguments.
-4. Before addressing an app, use System Events to confirm it is already
-   running so a click never relaunches a quit terminal.
+4. Before addressing an app, use AppleScript's non-launching `is running`
+   check so a click never relaunches a quit terminal.
 5. For iTerm2:
    - activate first;
    - locate the UUID;
