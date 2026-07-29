@@ -64,10 +64,14 @@ struct TerminalEnvironment {
 
 impl TerminalEnvironment {
     fn current() -> Self {
+        Self::read(|key| env::var(key).ok())
+    }
+
+    fn read(mut get: impl FnMut(&str) -> Option<String>) -> Self {
         Self {
-            term_program: env::var("TERM_PROGRAM").ok(),
-            bundle_identifier: env::var("__CFBundleIdentifier").ok(),
-            iterm_session_id: env::var("ITERM_SESSION_ID").ok(),
+            term_program: get("TERM_PROGRAM"),
+            bundle_identifier: get("__CFBundleIdentifier"),
+            iterm_session_id: get("TERM_SESSION_ID"),
         }
     }
 }
@@ -434,6 +438,29 @@ mod tests {
             bundle_identifier: Some("com.googlecode.iterm2".into()),
             iterm_session_id: Some(session_id.into()),
         }
+    }
+
+    #[test]
+    fn reads_iterm_session_from_the_standard_environment_key() {
+        let mut requested = Vec::new();
+        let environment = TerminalEnvironment::read(|key| {
+            requested.push(key.to_string());
+            match key {
+                "TERM_PROGRAM" => Some("iTerm.app".into()),
+                "__CFBundleIdentifier" => Some("com.googlecode.iterm2".into()),
+                "TERM_SESSION_ID" => Some("w0t2p2:F8176E01-630A-4505-9B2B-0DE870BF4706".into()),
+                _ => None,
+            }
+        });
+
+        assert_eq!(
+            detect_terminal(&environment),
+            Some(DetectedTerminal::ITerm2 {
+                session_uuid: "F8176E01-630A-4505-9B2B-0DE870BF4706".into(),
+            })
+        );
+        assert!(requested.iter().any(|key| key == "TERM_SESSION_ID"));
+        assert!(!requested.iter().any(|key| key == "ITERM_SESSION_ID"));
     }
 
     fn iterm_target() -> FocusTarget {
