@@ -19,7 +19,7 @@ Examples:
   zzz --wait cargo test          Wait and return cargo's exit status
   zzz --print-log make build     Print the background log path
   zzz --no-notify long-task      Skip the completion notification
-  zzz -- rg --files -g '*.rs'    Use -- before a command that starts with a dash";
+  zzz -- rg --files -g '*.rs'    Explicitly end zzz options before the command";
 
 #[derive(Debug, Parser)]
 #[command(

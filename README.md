@@ -201,12 +201,28 @@ notification permission the first time. If an originating target has closed,
 zzz echo "hello"
 zzz git status --short
 zzz update-agents
+zzz --wait cargo test
+zzz --print-log make build
 ```
 
 Logs are saved to:
 
 ```text
 ~/.commands/{yymmdd}/{hhmmss}-{command_name}.log
+```
+
+Run `zzz --help` for the styled command reference. Useful options include:
+
+- `--no-notify` — skip the completion notification.
+- `-w, --wait` — wait for completion and return the command's exit status.
+- `-p, --print-log` — print the log path immediately after launch.
+- `--color auto|always|never` — control help and error colors.
+
+Options placed after the command are passed through unchanged. Use an explicit
+`--` to make the boundary between `zzz` options and the command unmistakable:
+
+```bash
+zzz -- rg --files -g '*.rs'
 ```
 
 Example:
