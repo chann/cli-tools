@@ -10,6 +10,7 @@ use std::process::{Command, Stdio};
 use super::{shell_quote, TERMINAL_FOCUS_FLAG};
 
 const ITERM_BUNDLE_ID: &str = "com.googlecode.iterm2";
+const GHOSTTY_BUNDLE_ID: &str = "com.mitchellh.ghostty";
 const TERMINAL_BUNDLE_ID: &str = "com.apple.Terminal";
 const OSASCRIPT: &str = "/usr/bin/osascript";
 
@@ -58,6 +59,7 @@ end run
 struct TerminalEnvironment {
     term_program: Option<String>,
     bundle_identifier: Option<String>,
+    iterm_session_id: Option<String>,
 }
 
 impl TerminalEnvironment {
@@ -65,13 +67,15 @@ impl TerminalEnvironment {
         Self {
             term_program: env::var("TERM_PROGRAM").ok(),
             bundle_identifier: env::var("__CFBundleIdentifier").ok(),
+            iterm_session_id: env::var("ITERM_SESSION_ID").ok(),
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum DetectedTerminal {
-    ITerm2,
+    ITerm2 { session_uuid: String },
+    Ghostty,
     TerminalApp,
 }
 
@@ -124,13 +128,18 @@ pub(super) fn completion_commands(command_name: &str) -> NotificationCommands {
     };
 
     let target = match detect_terminal(&TerminalEnvironment::current()) {
-        Some(DetectedTerminal::ITerm2) => {
+        Some(DetectedTerminal::ITerm2 { session_uuid }) => FocusTarget::ITerm2 { session_uuid },
+        Some(DetectedTerminal::Ghostty) => {
             let Some(tty) = current_tty() else {
                 return fallback();
             };
             return NotificationCommands {
-                succeeded: iterm_notification_command(&tty, Outcome::Succeeded, command_name),
-                failed: iterm_notification_command(&tty, Outcome::Failed, command_name),
+                succeeded: terminal_osc_notification_command(
+                    &tty,
+                    Outcome::Succeeded,
+                    command_name,
+                ),
+                failed: terminal_osc_notification_command(&tty, Outcome::Failed, command_name),
             };
         }
         Some(DetectedTerminal::TerminalApp) => {
@@ -195,7 +204,17 @@ fn detect_terminal(environment: &TerminalEnvironment) -> Option<DetectedTerminal
     let is_iterm = environment.term_program.as_deref() == Some("iTerm.app")
         || environment.bundle_identifier.as_deref() == Some(ITERM_BUNDLE_ID);
     if is_iterm {
-        return Some(DetectedTerminal::ITerm2);
+        let session_id = environment.iterm_session_id.as_deref()?;
+        let session_uuid = session_id.rsplit(':').next()?;
+        return valid_uuid(session_uuid).then(|| DetectedTerminal::ITerm2 {
+            session_uuid: session_uuid.to_string(),
+        });
+    }
+
+    let is_ghostty = environment.term_program.as_deref() == Some("ghostty")
+        || environment.bundle_identifier.as_deref() == Some(GHOSTTY_BUNDLE_ID);
+    if is_ghostty {
+        return Some(DetectedTerminal::Ghostty);
     }
 
     let is_terminal = environment.term_program.as_deref() == Some("Apple_Terminal")
@@ -342,7 +361,17 @@ fn terminal_notification_command(
     format!("{} >/dev/null 2>&1", shell_command(notifier, &arguments))
 }
 
-fn iterm_notification_command(tty: &Path, outcome: Outcome, command_name: &str) -> String {
+fn terminal_osc_notification_command(tty: &Path, outcome: Outcome, command_name: &str) -> String {
+    let command_name: String = command_name
+        .chars()
+        .map(|character| {
+            if character.is_control() {
+                ' '
+            } else {
+                character
+            }
+        })
+        .collect();
     let sequence = format!("\u{1b}]9;zzz {}: {command_name}\u{1b}\\", outcome.label());
     format!(
         "{} > {} 2>/dev/null",
@@ -399,10 +428,11 @@ mod tests {
     use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
 
-    fn iterm_environment() -> TerminalEnvironment {
+    fn iterm_environment(session_id: &str) -> TerminalEnvironment {
         TerminalEnvironment {
             term_program: Some("iTerm.app".into()),
             bundle_identifier: Some("com.googlecode.iterm2".into()),
+            iterm_session_id: Some(session_id.into()),
         }
     }
 
@@ -413,23 +443,22 @@ mod tests {
     }
 
     #[test]
-    fn detects_iterm2_without_session_metadata_for_terminal_delivery() {
+    fn detects_iterm2_and_extracts_the_session_uuid() {
         assert_eq!(
-            detect_terminal(&iterm_environment()),
-            Some(DetectedTerminal::ITerm2)
+            detect_terminal(&iterm_environment(
+                "w0t2p2:F8176E01-630A-4505-9B2B-0DE870BF4706"
+            )),
+            Some(DetectedTerminal::ITerm2 {
+                session_uuid: "F8176E01-630A-4505-9B2B-0DE870BF4706".into(),
+            })
         );
     }
 
     #[test]
-    fn terminal_delivery_detects_iterm2_by_bundle_identifier() {
-        let environment = TerminalEnvironment {
-            term_program: None,
-            bundle_identifier: Some("com.googlecode.iterm2".into()),
-        };
-
+    fn rejects_malformed_iterm2_session_ids() {
         assert_eq!(
-            detect_terminal(&environment),
-            Some(DetectedTerminal::ITerm2)
+            detect_terminal(&iterm_environment("w0t2p2:not-a-uuid")),
+            None
         );
     }
 
@@ -438,12 +467,33 @@ mod tests {
         let environment = TerminalEnvironment {
             term_program: Some("Apple_Terminal".into()),
             bundle_identifier: Some("com.apple.Terminal".into()),
+            iterm_session_id: None,
         };
 
         assert_eq!(
             detect_terminal(&environment),
             Some(DetectedTerminal::TerminalApp)
         );
+    }
+
+    #[test]
+    fn detects_ghostty_by_term_program_or_bundle_identifier() {
+        let by_program = TerminalEnvironment {
+            term_program: Some("ghostty".into()),
+            bundle_identifier: None,
+            iterm_session_id: None,
+        };
+        let by_bundle = TerminalEnvironment {
+            term_program: None,
+            bundle_identifier: Some("com.mitchellh.ghostty".into()),
+            iterm_session_id: None,
+        };
+
+        assert_eq!(
+            detect_terminal(&by_program),
+            Some(DetectedTerminal::Ghostty)
+        );
+        assert_eq!(detect_terminal(&by_bundle), Some(DetectedTerminal::Ghostty));
     }
 
     #[test]
@@ -522,14 +572,51 @@ mod tests {
     }
 
     #[test]
-    fn iterm_notification_uses_the_originating_terminal_channel() {
+    fn ghostty_notification_uses_its_native_originating_surface_channel() {
         let command =
-            iterm_notification_command(Path::new("/dev/ttys014"), Outcome::Failed, "cargo");
+            terminal_osc_notification_command(Path::new("/dev/ttys014"), Outcome::Failed, "cargo");
 
         assert!(command.contains("\u{1b}]9;zzz Failed: cargo\u{1b}\\"));
         assert!(command.contains("'/dev/ttys014'"));
         assert!(!command.contains("terminal-notifier"));
         assert!(!command.contains("'-execute'"));
+    }
+
+    #[test]
+    fn ghostty_notification_strips_control_characters_from_the_message() {
+        let command = terminal_osc_notification_command(
+            Path::new("/dev/ttys014"),
+            Outcome::Succeeded,
+            "cargo\u{1b}]9;forged\nmessage",
+        );
+
+        assert!(!command.contains("forged\nmessage"));
+        assert_eq!(command.matches('\u{1b}').count(), 2);
+    }
+
+    #[test]
+    fn notifier_uses_iterm_icon_and_exact_session_focus_target() {
+        let command = terminal_notification_command(
+            Path::new("/opt/homebrew/bin/terminal-notifier"),
+            Some(Path::new(
+                "/Applications/iTerm.app/Contents/Resources/iTerm2 App Icon for Release.icns",
+            )),
+            Path::new("/Applications/CLI Tools/zzz"),
+            &iterm_target(),
+            Outcome::Failed,
+            "cargo",
+        );
+
+        assert!(command.contains("'-title' 'zzz'"));
+        assert!(command.contains("'-subtitle' 'Failed'"));
+        assert!(command.contains("'-message' 'cargo'"));
+        assert!(command.contains("'-appIcon'"));
+        assert!(command.contains("iTerm2 App Icon for Release.icns"));
+        assert!(command.contains("'-execute'"));
+        assert!(command.contains("--__zzz-focus-terminal"));
+        assert!(command.contains("'iterm2'"));
+        assert!(command.contains("F8176E01-630A-4505-9B2B-0DE870BF4706"));
+        assert!(command.contains("Applications/CLI Tools/zzz"));
     }
 
     #[test]
