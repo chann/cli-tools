@@ -7,6 +7,119 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[test]
+fn help_is_readable_and_documents_convenience_options() {
+    let output = Command::new(zzz_bin())
+        .args(["--color", "never", "--help"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "zzz failed: {output:?}");
+    assert_eq!(output.stderr, b"");
+
+    let help = String::from_utf8(output.stdout).unwrap();
+    assert!(help.contains("Run a command quietly in the background"));
+    assert!(help.contains("Usage: zzz [OPTIONS] <COMMAND>..."));
+    assert!(help.contains("Options:"));
+    assert!(help.contains("--no-notify"));
+    assert!(help.contains("--wait"));
+    assert!(help.contains("--print-log"));
+    assert!(help.contains("--color <COLOR>"));
+    assert!(help.contains("Examples:"));
+    assert!(help.contains("zzz --wait cargo test"));
+    assert!(!help.contains("\u{1b}["));
+}
+
+#[test]
+fn help_can_force_color_for_non_interactive_output() {
+    let output = Command::new(zzz_bin())
+        .args(["--color", "always", "--help"])
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "zzz failed: {output:?}");
+    assert!(
+        String::from_utf8(output.stdout)
+            .unwrap()
+            .contains("\u{1b}["),
+        "forced-color help did not contain ANSI styling"
+    );
+}
+
+#[test]
+#[cfg(unix)]
+fn wait_returns_the_background_command_exit_status() {
+    let home = unique_temp_home();
+    fs::create_dir_all(&home).unwrap();
+
+    let output = Command::new(zzz_bin())
+        .args(["--no-notify", "--wait", "sh", "-c", "exit 7"])
+        .env("HOME", &home)
+        .env("ZDOTDIR", &home)
+        .env_remove("USERPROFILE")
+        .output()
+        .unwrap();
+
+    assert_eq!(
+        output.status.code(),
+        Some(7),
+        "unexpected result: {output:?}"
+    );
+    fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
+#[cfg(unix)]
+fn print_log_reports_the_completed_commands_log_path() {
+    let home = unique_temp_home();
+    fs::create_dir_all(&home).unwrap();
+
+    let output = Command::new(zzz_bin())
+        .args([
+            "--no-notify",
+            "--wait",
+            "--print-log",
+            "printf",
+            "%s",
+            "captured",
+        ])
+        .env("HOME", &home)
+        .env("ZDOTDIR", &home)
+        .env_remove("USERPROFILE")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "zzz failed: {output:?}");
+    assert_eq!(output.stderr, b"");
+
+    let log_path = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
+    assert!(log_path.starts_with(home.join(".commands")));
+    assert_eq!(fs::read_to_string(log_path).unwrap(), "captured");
+
+    fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
+#[cfg(unix)]
+fn command_arguments_that_look_like_zzz_options_are_forwarded() {
+    let home = unique_temp_home();
+    fs::create_dir_all(&home).unwrap();
+
+    let output = Command::new(zzz_bin())
+        .args(["--no-notify", "--wait", "printf", "%s", "--print-log"])
+        .env("HOME", &home)
+        .env("ZDOTDIR", &home)
+        .env_remove("USERPROFILE")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "zzz failed: {output:?}");
+    let log = wait_for_single_log(&home, "--print-log");
+    assert_eq!(fs::read_to_string(log).unwrap(), "--print-log");
+
+    fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
 fn zzz_runs_command_silently_and_saves_stdout() {
     let home = unique_temp_home();
     fs::create_dir_all(&home).unwrap();

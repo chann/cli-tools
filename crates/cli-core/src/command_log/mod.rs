@@ -265,6 +265,14 @@ pub fn run_with_system_notification(command: &str, args: Vec<String>) -> Result<
     run_with_completion_notification(command, args, CompletionNotification::System)
 }
 
+pub fn spawn(command: &str, args: Vec<String>) -> Result<Spawned> {
+    spawn_with_completion_notification(command, args, CompletionNotification::Disabled)
+}
+
+pub fn spawn_with_system_notification(command: &str, args: Vec<String>) -> Result<Spawned> {
+    spawn_with_completion_notification(command, args, CompletionNotification::System)
+}
+
 #[cfg(target_os = "macos")]
 pub fn focus_terminal(kind: &str, locator: &str) -> Result<()> {
     macos_notification::focus_terminal(kind, locator)
@@ -280,17 +288,25 @@ fn run_with_completion_notification(
     args: Vec<String>,
     completion_notification: CompletionNotification,
 ) -> Result<()> {
+    let _ = spawn_with_completion_notification(command, args, completion_notification)?;
+    Ok(())
+}
+
+fn spawn_with_completion_notification(
+    command: &str,
+    args: Vec<String>,
+    completion_notification: CompletionNotification,
+) -> Result<Spawned> {
     // Launch the command in the background and return to the shell immediately.
     // Output is still captured to the log file; dropping the handle leaves the
     // detached process running.
-    let _ = run_with_home_timestamp_and_notification(
+    run_with_home_timestamp_and_notification(
         command,
         &args,
         &home_dir()?,
         chrono::Local::now().naive_local(),
         completion_notification,
-    )?;
-    Ok(())
+    )
 }
 
 fn home_dir() -> Result<PathBuf> {
