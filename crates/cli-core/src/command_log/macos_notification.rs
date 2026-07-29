@@ -19,14 +19,14 @@ on run argv
     set targetId to item 1 of argv
     if application id "com.googlecode.iterm2" is not running then return
     tell application id "com.googlecode.iterm2"
-        activate
         repeat with terminalWindow in windows
             repeat with terminalTab in tabs of terminalWindow
                 repeat with terminalSession in sessions of terminalTab
                     if unique ID of terminalSession is targetId then
                         select terminalWindow
                         select terminalTab
-                        select terminalSession
+                        tell terminalSession to select
+                        activate
                         return
                     end if
                 end repeat
@@ -675,10 +675,13 @@ mod tests {
         assert!(ITERM_FOCUS_SCRIPT.contains("item 1 of argv"));
         assert!(ITERM_FOCUS_SCRIPT.contains("unique ID of terminalSession"));
         assert!(ITERM_FOCUS_SCRIPT.contains("is not running then return"));
+        assert!(ITERM_FOCUS_SCRIPT.contains("tell terminalSession to select"));
         assert!(!ITERM_FOCUS_SCRIPT.contains("F8176E01"));
         assert!(
-            ITERM_FOCUS_SCRIPT.find("activate").unwrap()
-                < ITERM_FOCUS_SCRIPT.find("select terminalWindow").unwrap()
+            ITERM_FOCUS_SCRIPT
+                .find("tell terminalSession to select")
+                .unwrap()
+                < ITERM_FOCUS_SCRIPT.rfind("activate").unwrap()
         );
 
         assert!(TERMINAL_FOCUS_SCRIPT.contains("item 1 of argv"));
