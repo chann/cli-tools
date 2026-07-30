@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="저장소 분석, Git 관리, 개발자용 변환, 백그라운드 실행을 위한 다섯 개의 Rust CLI 도구와 사용법."
+    />
+    <meta name="theme-color" content="#f1f2ed" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#12140f" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:title" content="cli-tools | 터미널 일을 더 짧게" />
+    <meta
+      property="og:description"
+      content="분석, 정리, 변환, 백그라운드 실행을 위한 Rust CLI 도구 모음."
+    />
+    <meta
+      property="og:image"
+      content="https://channprj.github.io/cli-tools/images/og-cli-tools.jpg"
+    />
+    <link rel="canonical" href="https://channprj.github.io/cli-tools/" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preload"
+      as="image"
+      href="./images/hero-toolkit.avif"
+      type="image/avif"
+      fetchpriority="high"
+    />
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem("cli-tools-theme") || "system";
+          const dark =
+            stored === "dark" ||
+            (stored === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.dataset.themeMode = stored;
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+    <title>cli-tools | 터미널 일을 더 짧게</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>이 안내 사이트의 도구 탐색기와 복사 기능을 사용하려면 JavaScript가 필요합니다.</noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,555 @@
+import {
+  ArrowUpRight,
+  Check,
+  ClipboardText,
+  Desktop,
+  Moon,
+  Sun,
+} from "@phosphor-icons/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  installAll,
+  repositoryUrl,
+  tools,
+  utilityGroups,
+} from "./data/tools";
+
+const themeOrder = ["system", "light", "dark"];
+const themeLabels = {
+  system: "시스템",
+  light: "라이트",
+  dark: "다크",
+};
+
+function useTheme() {
+  const [mode, setMode] = useState(() => {
+    try {
+      return localStorage.getItem("cli-tools-theme") || "system";
+    } catch {
+      return "system";
+    }
+  });
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const applyTheme = () => {
+      const resolved = mode === "system" ? (media.matches ? "dark" : "light") : mode;
+      document.documentElement.dataset.theme = resolved;
+      document.documentElement.dataset.themeMode = mode;
+    };
+
+    applyTheme();
+    if (mode === "system") {
+      media.addEventListener("change", applyTheme);
+    }
+
+    try {
+      localStorage.setItem("cli-tools-theme", mode);
+    } catch {
+      // The selected theme still applies for this visit.
+    }
+
+    return () => media.removeEventListener("change", applyTheme);
+  }, [mode]);
+
+  const cycleTheme = () => {
+    setMode((current) => {
+      const currentIndex = themeOrder.indexOf(current);
+      return themeOrder[(currentIndex + 1) % themeOrder.length];
+    });
+  };
+
+  return { mode, cycleTheme };
+}
+
+function ThemeIcon({ mode }) {
+  if (mode === "light") {
+    return <Sun aria-hidden="true" weight="bold" />;
+  }
+  if (mode === "dark") {
+    return <Moon aria-hidden="true" weight="bold" />;
+  }
+  return <Desktop aria-hidden="true" weight="bold" />;
+}
+
+function CodeBlock({ code, label = "명령어" }) {
+  const [copyState, setCopyState] = useState("idle");
+  const resetTimer = useRef();
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(resetTimer.current);
+    },
+    [],
+  );
+
+  const copyCode = async () => {
+    setCopyState("copying");
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+    window.clearTimeout(resetTimer.current);
+    resetTimer.current = window.setTimeout(() => setCopyState("idle"), 1800);
+  };
+
+  const buttonLabel = {
+    idle: "복사",
+    copying: "복사 중",
+    copied: "복사됨",
+    error: "복사 실패",
+  }[copyState];
+
+  return (
+    <div className="code-block">
+      <div className="code-block__header">
+        <span>{label}</span>
+        <button
+          className="copy-button"
+          type="button"
+          onClick={copyCode}
+          aria-label={`${label} 복사`}
+          data-state={copyState}
+        >
+          {copyState === "copied" ? (
+            <Check aria-hidden="true" weight="bold" />
+          ) : (
+            <ClipboardText aria-hidden="true" weight="bold" />
+          )}
+          <span>{buttonLabel}</span>
+        </button>
+      </div>
+      <pre>
+        <code>{code}</code>
+      </pre>
+      <span className="copy-status" role="status" aria-live="polite">
+        {copyState === "error"
+          ? "브라우저의 클립보드 권한을 확인해 주세요."
+          : copyState === "copied"
+            ? "클립보드에 복사했습니다."
+            : ""}
+      </span>
+    </div>
+  );
+}
+
+function RevealSection({ children, className = "", ...props }) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <motion.section
+      className={className}
+      initial={reduceMotion ? false : { opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.14 }}
+      transition={{ duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
+      {...props}
+    >
+      {children}
+    </motion.section>
+  );
+}
+
+function Navigation({ mode, cycleTheme }) {
+  return (
+    <header className="site-header">
+      <div className="nav-shell">
+        <a className="brand" href="#top" aria-label="cli-tools 홈">
+          <span className="brand-mark" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>cli-tools</span>
+        </a>
+        <nav className="nav-links" aria-label="주요 메뉴">
+          <a href="#tools">도구</a>
+          <a href="#install">설치 보기</a>
+          <a href="#zzz">zzz</a>
+          <a href={repositoryUrl}>GitHub</a>
+        </nav>
+        <button
+          className="theme-button"
+          type="button"
+          onClick={cycleTheme}
+          aria-label={`테마: ${themeLabels[mode]}. 다음 테마로 변경`}
+        >
+          <ThemeIcon mode={mode} />
+          <span>{themeLabels[mode]}</span>
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function Hero() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <section className="hero" id="top">
+      <div className="hero__inner">
+        <motion.div
+          className="hero__copy"
+          initial={reduceMotion ? false : { opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <p className="eyebrow">RUST CLI COLLECTION</p>
+          <h1>
+            터미널 일을,
+            <br />
+            더 짧게.
+          </h1>
+          <p className="hero__summary">
+            분석, 정리, 변환, 백그라운드 실행을 다섯 개의 빠른 Rust 도구로 끝냅니다.
+          </p>
+          <div className="hero__actions">
+            <a className="button button--primary" href="#install">
+              설치 보기
+            </a>
+            <a className="button button--secondary" href={repositoryUrl}>
+              GitHub
+              <ArrowUpRight aria-hidden="true" weight="bold" />
+            </a>
+          </div>
+        </motion.div>
+
+        <motion.picture
+          className="hero__visual"
+          initial={reduceMotion ? false : { opacity: 0, x: 26, scale: 0.985 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          transition={{ duration: 0.82, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <source srcSet="./images/hero-toolkit.avif" type="image/avif" />
+          <img
+            src="./images/hero-toolkit.webp"
+            alt="차가운 금속 작업대 위에 쌓인 다섯 개의 알루미늄 도구 모듈"
+            width="1536"
+            height="1024"
+            fetchPriority="high"
+          />
+        </motion.picture>
+      </div>
+    </section>
+  );
+}
+
+function InstallSection() {
+  return (
+    <RevealSection className="install section-shell" id="install">
+      <div className="section-heading">
+        <h2>필요한 도구만 설치하세요.</h2>
+        <p>저장소를 복제한 뒤 원하는 바이너리만 골라 설치합니다.</p>
+      </div>
+      <CodeBlock code={installAll} label="로컬 경로에서 설치" />
+      <div className="install__checks">
+        <p>
+          전체 빌드
+          <code>cargo build --release --workspace --bins</code>
+        </p>
+        <p>
+          전체 테스트
+          <code>cargo test --workspace --all-targets</code>
+        </p>
+      </div>
+    </RevealSection>
+  );
+}
+
+function ToolExplorer() {
+  const reduceMotion = useReducedMotion();
+  const [activeId, setActiveId] = useState(tools[0].id);
+  const activeTool = tools.find((tool) => tool.id === activeId) || tools[0];
+
+  const handleTabKey = (event, index) => {
+    if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"].includes(event.key)) {
+      return;
+    }
+    event.preventDefault();
+    const isNext = event.key === "ArrowDown" || event.key === "ArrowRight";
+    const nextIndex = (index + (isNext ? 1 : -1) + tools.length) % tools.length;
+    setActiveId(tools[nextIndex].id);
+    document.getElementById(`tool-tab-${tools[nextIndex].id}`)?.focus();
+  };
+
+  return (
+    <RevealSection className="tool-explorer section-shell" id="tools">
+      <div className="section-heading">
+        <h2>다섯 도구, 한 작업 흐름.</h2>
+        <p>도구를 선택하면 실제 옵션과 바로 실행할 수 있는 예시를 확인할 수 있습니다.</p>
+      </div>
+      <div className="tool-explorer__layout">
+        <div className="tool-tabs" role="tablist" aria-label="CLI 도구 선택">
+          {tools.map((tool, index) => (
+            <button
+              id={`tool-tab-${tool.id}`}
+              key={tool.id}
+              type="button"
+              role="tab"
+              aria-selected={activeId === tool.id}
+              aria-controls={`tool-panel-${tool.id}`}
+              tabIndex={activeId === tool.id ? 0 : -1}
+              onClick={() => setActiveId(tool.id)}
+              onKeyDown={(event) => handleTabKey(event, index)}
+            >
+              <span>{tool.name}</span>
+              <small>{tool.label}</small>
+            </button>
+          ))}
+        </div>
+
+        <div className="tool-panel-frame">
+          <AnimatePresence mode="wait">
+            <motion.div
+              className="tool-panel"
+              id={`tool-panel-${activeTool.id}`}
+              key={activeTool.id}
+              role="tabpanel"
+              aria-labelledby={`tool-tab-${activeTool.id}`}
+              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -8 }}
+              transition={{ duration: reduceMotion ? 0 : 0.22 }}
+            >
+              <div className="tool-panel__title">
+                <h3>{activeTool.name}</h3>
+                <span>{activeTool.label}</span>
+              </div>
+              <p className="tool-panel__summary">{activeTool.summary}</p>
+              <p className="tool-panel__detail">{activeTool.detail}</p>
+              <CodeBlock code={activeTool.examples} label={`${activeTool.name} 예시`} />
+              <p className="tool-panel__output">
+                출력
+                <code>{activeTool.output}</code>
+              </p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </RevealSection>
+  );
+}
+
+function ZzzSection() {
+  return (
+    <RevealSection className="zzz-feature section-shell" id="zzz">
+      <picture className="zzz-feature__visual">
+        <source srcSet="./images/zzz-workspace.avif" type="image/avif" />
+        <img
+          src="./images/zzz-workspace.webp"
+          alt="어두운 작업대의 노트북과 완료 알림을 떠올리게 하는 작은 금속 벨"
+          width="1448"
+          height="1086"
+          loading="lazy"
+        />
+      </picture>
+      <div className="zzz-feature__content">
+        <div className="section-heading">
+          <h2>명령은 백그라운드로. 결과는 로그로.</h2>
+          <p>
+            <code>zzz</code>는 프롬프트를 바로 돌려주고 완료 여부를 알림으로 알려줍니다.
+          </p>
+        </div>
+        <div className="behavior-list">
+          <div>
+            <strong>즉시 복귀</strong>
+            <span>대화형 셸의 alias와 function을 그대로 사용합니다.</span>
+          </div>
+          <div>
+            <strong>로그 저장</strong>
+            <span>출력을 날짜와 시간 기준 경로에 자동으로 남깁니다.</span>
+          </div>
+          <div>
+            <strong>macOS 알림</strong>
+            <span>alerter를 설치하면 원래 iTerm2 세션이나 Terminal 탭으로 돌아갑니다.</span>
+          </div>
+        </div>
+        <CodeBlock
+          code={`brew install vjeantet/tap/alerter
+
+zzz cargo test
+zzz --wait cargo test
+zzz --print-log make build`}
+          label="zzz 시작하기"
+        />
+        <p className="zzz-feature__note">
+          alerter가 없으면 terminal-notifier 또는 일반 완료 알림으로 폴백합니다.
+        </p>
+      </div>
+    </RevealSection>
+  );
+}
+
+function UtilityExplorer() {
+  const reduceMotion = useReducedMotion();
+  const [groupId, setGroupId] = useState(utilityGroups[0].id);
+  const activeGroup = utilityGroups.find((group) => group.id === groupId) || utilityGroups[0];
+  const [commandName, setCommandName] = useState(activeGroup.commands[0].name);
+
+  const activeCommand = useMemo(
+    () =>
+      activeGroup.commands.find((command) => command.name === commandName) ||
+      activeGroup.commands[0],
+    [activeGroup, commandName],
+  );
+
+  const selectGroup = (nextGroup) => {
+    setGroupId(nextGroup.id);
+    setCommandName(nextGroup.commands[0].name);
+  };
+
+  return (
+    <RevealSection className="utility-explorer section-shell" id="utilities">
+      <div className="section-heading">
+        <h2>반복 작업을 한 명령으로.</h2>
+        <p>
+          <code>dev-tools</code>는 데이터, 네트워크, 코드, 파일 작업을 주제별 하위
+          명령으로 묶습니다.
+        </p>
+      </div>
+      <div className="group-tabs" role="tablist" aria-label="dev-tools 주제">
+        {utilityGroups.map((group) => (
+          <button
+            key={group.id}
+            type="button"
+            role="tab"
+            aria-selected={group.id === activeGroup.id}
+            onClick={() => selectGroup(group)}
+          >
+            {group.name}
+          </button>
+        ))}
+      </div>
+      <div className="utility-stage">
+        <div className="utility-stage__intro">
+          <h3>{activeGroup.name}</h3>
+          <p>{activeGroup.description}</p>
+        </div>
+        <div className="command-picker" aria-label={`${activeGroup.name} 명령 선택`}>
+          {activeGroup.commands.map((command) => (
+            <button
+              key={command.name}
+              type="button"
+              aria-pressed={command.name === activeCommand.name}
+              onClick={() => setCommandName(command.name)}
+            >
+              dev-tools {command.name}
+            </button>
+          ))}
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            className="utility-stage__code"
+            key={`${activeGroup.id}-${activeCommand.name}`}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+            transition={{ duration: reduceMotion ? 0 : 0.2 }}
+          >
+            <CodeBlock code={activeCommand.code} label={`${activeCommand.name} 예시`} />
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </RevealSection>
+  );
+}
+
+function AnalysisSection() {
+  return (
+    <RevealSection className="analysis section-shell" id="analysis">
+      <div className="analysis__content">
+        <div className="section-heading">
+          <h2>저장소를 읽고, 숫자로 남기세요.</h2>
+          <p>코드와 Git 이력을 같은 기준으로 읽어 규모와 작업 흐름을 설명합니다.</p>
+        </div>
+        <div className="analysis__tools">
+          <article>
+            <h3>code-cost</h3>
+            <p>언어별 코드량, 난이도, 복잡도, 성숙도를 분석해 비용과 가치를 추정합니다.</p>
+            <code>code-cost --export report.html</code>
+          </article>
+          <article>
+            <h3>work-summary</h3>
+            <p>커밋 간격과 변경량을 바탕으로 기간별 활동과 예상 작업 시간을 요약합니다.</p>
+            <code>work-summary --month</code>
+          </article>
+          <article className="analysis__git">
+            <h3>git-tools</h3>
+            <p>분석 뒤에는 health, scan, changelog로 저장소 상태를 바로 정리합니다.</p>
+            <code>git-tools pulse</code>
+          </article>
+        </div>
+      </div>
+      <picture className="analysis__visual">
+        <source srcSet="./images/analysis-bench.avif" type="image/avif" />
+        <img
+          src="./images/analysis-bench.webp"
+          alt="금속 자, 기계식 연필, 소스 코드 인쇄물을 놓은 회색 분석 작업대"
+          width="1402"
+          height="1122"
+          loading="lazy"
+        />
+      </picture>
+    </RevealSection>
+  );
+}
+
+function FinalSection() {
+  return (
+    <RevealSection className="final-cta section-shell">
+      <div>
+        <h2>Rust workspace 그대로 시작하세요.</h2>
+        <p>필요한 바이너리만 설치하고, 전체 workspace 테스트로 한 번에 검증할 수 있습니다.</p>
+      </div>
+      <a className="button button--primary" href={repositoryUrl}>
+        GitHub
+        <ArrowUpRight aria-hidden="true" weight="bold" />
+      </a>
+    </RevealSection>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="site-footer">
+      <div className="section-shell site-footer__inner">
+        <a className="brand" href="#top">
+          <span className="brand-mark" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>cli-tools</span>
+        </a>
+        <p>CHANN의 Rust CLI 모음. MIT License.</p>
+        <a href={repositoryUrl}>GitHub</a>
+      </div>
+    </footer>
+  );
+}
+
+export default function App() {
+  const { mode, cycleTheme } = useTheme();
+
+  return (
+    <>
+      <a className="skip-link" href="#main">
+        본문으로 건너뛰기
+      </a>
+      <Navigation mode={mode} cycleTheme={cycleTheme} />
+      <main id="main">
+        <Hero />
+        <InstallSection />
+        <ToolExplorer />
+        <ZzzSection />
+        <UtilityExplorer />
+        <AnalysisSection />
+        <FinalSection />
+      </main>
+      <Footer />
+    </>
+  );
+}
