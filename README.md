@@ -177,22 +177,29 @@ prompt immediately (no trailing `&` needed); its output is captured to the log
 file. On macOS, `zzz` sends a system notification when the background command
 finishes, reporting whether it succeeded or failed.
 
-Install [`terminal-notifier`](https://github.com/julienXX/terminal-notifier) for
-clickable iTerm2 and Terminal.app notifications:
+Install [`alerter`](https://github.com/vjeantet/alerter) for clickable iTerm2
+and Terminal.app notifications on current macOS releases:
 
 ```bash
-brew install terminal-notifier
+brew install vjeantet/tap/alerter
 ```
 
 In iTerm2 and Terminal.app, the notification uses the launching terminal's icon.
 Clicking it returns keyboard focus to the exact launching session or tab,
 including an iTerm2 session that hosts Herdr. macOS may ask for Automation
-permission the first time. If `terminal-notifier` is unavailable, these
+and notification permission the first time. `zzz` keeps the click listener in a
+detached worker, so `--wait` still returns as soon as the command and notification
+launch finish. Unread alerts and their click workers expire after 10 minutes
+instead of leaving helper processes behind indefinitely.
+
+The legacy
+[`terminal-notifier`](https://github.com/julienXX/terminal-notifier) remains a
+fallback when `alerter` is unavailable. If neither tool is installed, these
 terminals fall back to a generic completion notification without exact-session
 focus.
 
 Ghostty uses its built-in native macOS notification channel, so it does not
-require `terminal-notifier`. The notification carries Ghostty's app icon, and
+require either notification tool. The notification carries Ghostty's app icon, and
 clicking it returns to the exact originating Ghostty surface. macOS may ask for
 notification permission the first time. If an originating target has closed,
 `zzz` does not create a replacement window.
