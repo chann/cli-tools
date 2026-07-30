@@ -4,15 +4,19 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
+use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use super::{shell_quote, TERMINAL_FOCUS_FLAG};
+use super::{
+    shell_quote, TERMINAL_FOCUS_FLAG, TERMINAL_NOTIFICATION_FLAG, TERMINAL_NOTIFICATION_WORKER_FLAG,
+};
 
 const ITERM_BUNDLE_ID: &str = "com.googlecode.iterm2";
 const GHOSTTY_BUNDLE_ID: &str = "com.mitchellh.ghostty";
 const TERMINAL_BUNDLE_ID: &str = "com.apple.Terminal";
 const OSASCRIPT: &str = "/usr/bin/osascript";
+const ALERTER_TIMEOUT_SECONDS: &str = "600";
 
 const ITERM_FOCUS_SCRIPT: &str = r#"
 on run argv
@@ -118,6 +122,14 @@ impl Outcome {
             Self::Failed => "Failed",
         }
     }
+
+    fn parse(value: &str) -> Result<Self> {
+        match value {
+            "Succeeded" => Ok(Self::Succeeded),
+            "Failed" => Ok(Self::Failed),
+            _ => bail!("Unsupported notification outcome '{value}'"),
+        }
+    }
 }
 
 pub(super) struct NotificationCommands {
@@ -155,13 +167,31 @@ pub(super) fn completion_commands(command_name: &str) -> NotificationCommands {
         None => return fallback(),
     };
 
-    let Some(notifier) = resolve_notifier() else {
-        return fallback();
-    };
     let Ok(executable) = env::current_exe() else {
         return fallback();
     };
     let icon = terminal_icon(&target);
+
+    if resolve_alerter().is_some() {
+        return NotificationCommands {
+            succeeded: alerter_notification_command(
+                &executable,
+                &target,
+                Outcome::Succeeded,
+                command_name,
+            ),
+            failed: alerter_notification_command(
+                &executable,
+                &target,
+                Outcome::Failed,
+                command_name,
+            ),
+        };
+    }
+
+    let Some(notifier) = resolve_notifier() else {
+        return fallback();
+    };
 
     NotificationCommands {
         succeeded: terminal_notification_command(
@@ -185,6 +215,10 @@ pub(super) fn completion_commands(command_name: &str) -> NotificationCommands {
 
 pub(super) fn focus_terminal(kind: &str, locator: &str) -> Result<()> {
     let target = parse_focus_target(kind, locator)?;
+    focus_target(&target)
+}
+
+fn focus_target(target: &FocusTarget) -> Result<()> {
     let script = match target {
         FocusTarget::ITerm2 { .. } => ITERM_FOCUS_SCRIPT,
         FocusTarget::TerminalApp { .. } => TERMINAL_FOCUS_SCRIPT,
@@ -202,6 +236,74 @@ pub(super) fn focus_terminal(kind: &str, locator: &str) -> Result<()> {
     } else {
         bail!("Terminal focus handler exited with status {status}")
     }
+}
+
+pub(super) fn launch_notification_worker(
+    kind: &str,
+    locator: &str,
+    outcome: &str,
+    command_name: &str,
+) -> Result<()> {
+    parse_focus_target(kind, locator)?;
+    Outcome::parse(outcome)?;
+    resolve_alerter().context("Could not find alerter")?;
+    let executable = env::current_exe().context("Could not locate the zzz executable")?;
+    let mut worker = Command::new(executable);
+    worker
+        .arg(TERMINAL_NOTIFICATION_WORKER_FLAG)
+        .args([kind, locator, outcome, command_name])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+
+    // The worker must outlive both the short-lived completion shell and the
+    // zzz process that launches it while it waits for a notification click.
+    unsafe {
+        worker.pre_exec(|| {
+            if libc::setsid() == -1 {
+                Err(std::io::Error::last_os_error())
+            } else {
+                Ok(())
+            }
+        });
+    }
+
+    worker
+        .spawn()
+        .context("Failed to start the detached notification worker")?;
+    Ok(())
+}
+
+pub(super) fn run_notification_worker(
+    kind: &str,
+    locator: &str,
+    outcome: &str,
+    command_name: &str,
+) -> Result<()> {
+    let target = parse_focus_target(kind, locator)?;
+    let outcome = Outcome::parse(outcome)?;
+    let alerter = resolve_alerter().context("Could not find alerter")?;
+    let icon = terminal_icon(&target);
+    let output = Command::new(&alerter)
+        .args(alerter_arguments(
+            icon.as_deref(),
+            &target,
+            outcome,
+            command_name,
+        ))
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .output()
+        .with_context(|| format!("Failed to start alerter '{}'", alerter.display()))?;
+
+    if !output.status.success() {
+        bail!("alerter exited with status {}", output.status);
+    }
+
+    if String::from_utf8_lossy(&output.stdout).trim() == "@CONTENTCLICKED" {
+        focus_target(&target)?;
+    }
+    Ok(())
 }
 
 fn detect_terminal(environment: &TerminalEnvironment) -> Option<DetectedTerminal> {
@@ -300,6 +402,36 @@ fn resolve_notifier_with(
         .find(|candidate| is_executable(candidate))
 }
 
+fn alerter_candidates(path: Option<&OsStr>) -> Vec<PathBuf> {
+    let mut candidates: Vec<PathBuf> = path
+        .map(env::split_paths)
+        .into_iter()
+        .flatten()
+        .map(|directory| directory.join("alerter"))
+        .collect();
+    candidates.extend([
+        PathBuf::from("/opt/homebrew/bin/alerter"),
+        PathBuf::from("/usr/local/bin/alerter"),
+    ]);
+
+    let mut seen = HashSet::new();
+    candidates.retain(|candidate| seen.insert(candidate.clone()));
+    candidates
+}
+
+fn resolve_alerter() -> Option<PathBuf> {
+    resolve_alerter_with(env::var_os("PATH").as_deref(), is_executable)
+}
+
+fn resolve_alerter_with(
+    path: Option<&OsStr>,
+    is_executable: impl Fn(&Path) -> bool,
+) -> Option<PathBuf> {
+    alerter_candidates(path)
+        .into_iter()
+        .find(|candidate| is_executable(candidate))
+}
+
 fn is_executable(path: &Path) -> bool {
     fs::metadata(path)
         .map(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
@@ -363,6 +495,66 @@ fn terminal_notification_command(
     arguments.push(OsString::from(click_command));
 
     format!("{} >/dev/null 2>&1", shell_command(notifier, &arguments))
+}
+
+fn alerter_notification_command(
+    executable: &Path,
+    target: &FocusTarget,
+    outcome: Outcome,
+    command_name: &str,
+) -> String {
+    format!(
+        "{} >/dev/null 2>&1",
+        shell_command(
+            executable,
+            &[
+                OsString::from(TERMINAL_NOTIFICATION_FLAG),
+                OsString::from(target.kind()),
+                target.locator(),
+                OsString::from(outcome.label()),
+                OsString::from(command_name),
+            ],
+        )
+    )
+}
+
+fn alerter_arguments(
+    icon: Option<&Path>,
+    target: &FocusTarget,
+    outcome: Outcome,
+    command_name: &str,
+) -> Vec<OsString> {
+    let locator = target.locator();
+    let group_locator: String = locator
+        .to_string_lossy()
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.') {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let mut arguments = vec![
+        OsString::from("--title"),
+        OsString::from("zzz"),
+        OsString::from("--subtitle"),
+        OsString::from(outcome.label()),
+        OsString::from("--message"),
+        OsString::from(command_name),
+        OsString::from("--group"),
+        OsString::from(format!("zzz-{}-{group_locator}", target.kind())),
+        OsString::from("--timeout"),
+        OsString::from(ALERTER_TIMEOUT_SECONDS),
+    ];
+
+    if let Some(icon) = icon {
+        arguments.push(OsString::from("--app-icon"));
+        arguments.push(icon.as_os_str().to_owned());
+    }
+
+    arguments
 }
 
 fn terminal_osc_notification_command(tty: &Path, outcome: Outcome, command_name: &str) -> String {
@@ -596,6 +788,82 @@ mod tests {
             });
 
         assert_eq!(resolved, Some(PathBuf::from("/next/bin/terminal-notifier")));
+    }
+
+    #[test]
+    fn alerter_candidates_prefer_path_then_homebrew_locations() {
+        assert_eq!(
+            alerter_candidates(Some(OsStr::new("/custom/bin:/next/bin"))),
+            vec![
+                PathBuf::from("/custom/bin/alerter"),
+                PathBuf::from("/next/bin/alerter"),
+                PathBuf::from("/opt/homebrew/bin/alerter"),
+                PathBuf::from("/usr/local/bin/alerter"),
+            ]
+        );
+    }
+
+    #[test]
+    fn alerter_resolution_selects_the_first_executable_candidate() {
+        let resolved =
+            resolve_alerter_with(Some(OsStr::new("/custom/bin:/next/bin")), |candidate| {
+                candidate == Path::new("/next/bin/alerter")
+                    || candidate == Path::new("/opt/homebrew/bin/alerter")
+            });
+
+        assert_eq!(resolved, Some(PathBuf::from("/next/bin/alerter")));
+    }
+
+    #[test]
+    fn alerter_launcher_preserves_the_exact_terminal_target() {
+        let command = alerter_notification_command(
+            Path::new("/Applications/CLI Tools/zzz"),
+            &iterm_target(),
+            Outcome::Failed,
+            "cargo",
+        );
+
+        assert!(command.contains("--__zzz-notify-terminal"));
+        assert!(command.contains("'iterm2'"));
+        assert!(command.contains("F8176E01-630A-4505-9B2B-0DE870BF4706"));
+        assert!(command.contains("'Failed'"));
+        assert!(command.contains("'cargo'"));
+        assert!(command.ends_with(" >/dev/null 2>&1"));
+    }
+
+    #[test]
+    fn alerter_worker_uses_the_terminal_icon_and_a_target_scoped_group() {
+        let arguments = alerter_arguments(
+            Some(Path::new(
+                "/Applications/iTerm.app/Contents/Resources/iTerm2 App Icon for Release.icns",
+            )),
+            &iterm_target(),
+            Outcome::Succeeded,
+            "echo",
+        );
+        let arguments: Vec<String> = arguments
+            .iter()
+            .map(|argument| argument.to_string_lossy().into_owned())
+            .collect();
+
+        assert_eq!(
+            arguments,
+            vec![
+                "--title",
+                "zzz",
+                "--subtitle",
+                "Succeeded",
+                "--message",
+                "echo",
+                "--group",
+                "zzz-iterm2-F8176E01-630A-4505-9B2B-0DE870BF4706",
+                "--timeout",
+                "600",
+                "--app-icon",
+                "/Applications/iTerm.app/Contents/Resources/iTerm2 App Icon for Release.icns",
+            ]
+        );
+        assert!(!arguments.iter().any(|argument| argument == "--sender"));
     }
 
     #[test]

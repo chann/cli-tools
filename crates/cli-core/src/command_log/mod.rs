@@ -25,6 +25,8 @@ enum CompletionNotification {
 }
 
 pub const TERMINAL_FOCUS_FLAG: &str = "--__zzz-focus-terminal";
+pub const TERMINAL_NOTIFICATION_FLAG: &str = "--__zzz-notify-terminal";
+pub const TERMINAL_NOTIFICATION_WORKER_FLAG: &str = "--__zzz-notification-worker";
 
 pub fn command_name_from_command(command: &str) -> String {
     let name = Path::new(command)
@@ -289,9 +291,49 @@ pub fn focus_terminal(kind: &str, locator: &str) -> Result<()> {
     macos_notification::focus_terminal(kind, locator)
 }
 
+#[cfg(target_os = "macos")]
+pub fn launch_terminal_notification(
+    kind: &str,
+    locator: &str,
+    outcome: &str,
+    command_name: &str,
+) -> Result<()> {
+    macos_notification::launch_notification_worker(kind, locator, outcome, command_name)
+}
+
+#[cfg(target_os = "macos")]
+pub fn run_terminal_notification_worker(
+    kind: &str,
+    locator: &str,
+    outcome: &str,
+    command_name: &str,
+) -> Result<()> {
+    macos_notification::run_notification_worker(kind, locator, outcome, command_name)
+}
+
 #[cfg(not(target_os = "macos"))]
 pub fn focus_terminal(_kind: &str, _locator: &str) -> Result<()> {
     anyhow::bail!("Terminal notification focus is only supported on macOS")
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn launch_terminal_notification(
+    _kind: &str,
+    _locator: &str,
+    _outcome: &str,
+    _command_name: &str,
+) -> Result<()> {
+    anyhow::bail!("Terminal notifications are only supported on macOS")
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn run_terminal_notification_worker(
+    _kind: &str,
+    _locator: &str,
+    _outcome: &str,
+    _command_name: &str,
+) -> Result<()> {
+    anyhow::bail!("Terminal notifications are only supported on macOS")
 }
 
 fn run_with_completion_notification(
@@ -427,7 +469,7 @@ mod tests {
                 "command shell did not start in its own session"
             );
 
-            for _ in 0..1_000 {
+            for _ in 0..3_000 {
                 if let Some(status) = spawned.child.try_wait().unwrap() {
                     assert!(status.success(), "shell exited with {status}");
                     assert_eq!(fs::read_to_string(&spawned.log_path).unwrap(), "detached");
@@ -450,7 +492,7 @@ mod tests {
             spawned.child.wait().unwrap();
             fs::remove_dir_all(home).unwrap();
             panic!(
-                "interactive shell stopped instead of running the command:\n{}",
+                "interactive shell did not finish before the timeout:\n{}",
                 String::from_utf8_lossy(&process.stdout)
             );
         }

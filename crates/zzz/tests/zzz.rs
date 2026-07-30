@@ -1,4 +1,6 @@
 use std::fs;
+#[cfg(target_os = "macos")]
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -181,6 +183,68 @@ fn zzz_runs_zsh_alias_from_user_rc_file() {
         log_name.ends_with("-update-agents.log"),
         "unexpected log name: {log_name}"
     );
+
+    fs::remove_dir_all(home).unwrap();
+}
+
+#[test]
+#[cfg(target_os = "macos")]
+fn completion_notification_launches_alerter_in_a_detached_worker() {
+    let home = unique_temp_home();
+    let bin_dir = home.join("bin");
+    let capture_path = home.join("alerter-arguments");
+    fs::create_dir_all(&bin_dir).unwrap();
+
+    let alerter_path = bin_dir.join("alerter");
+    fs::write(
+        &alerter_path,
+        "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$ZZZ_ALERTER_CAPTURE\"\nprintf '@TIMEOUT\\n'\n",
+    )
+    .unwrap();
+    let mut permissions = fs::metadata(&alerter_path).unwrap().permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&alerter_path, permissions).unwrap();
+
+    let output = Command::new(zzz_bin())
+        .args([
+            "--__zzz-notify-terminal",
+            "iterm2",
+            "F8176E01-630A-4505-9B2B-0DE870BF4706",
+            "Succeeded",
+            "echo",
+        ])
+        .env("PATH", &bin_dir)
+        .env("ZZZ_ALERTER_CAPTURE", &capture_path)
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "zzz failed: {output:?}");
+    assert_eq!(output.stdout, b"");
+    assert_eq!(output.stderr, b"");
+
+    let captured = (0..200)
+        .find_map(|_| {
+            if let Ok(captured) = fs::read_to_string(&capture_path) {
+                if !captured.is_empty() {
+                    return Some(captured);
+                }
+            }
+            std::thread::sleep(Duration::from_millis(10));
+            None
+        })
+        .unwrap_or_else(|| {
+            panic!(
+                "detached alerter worker did not write '{}'",
+                capture_path.display()
+            )
+        });
+
+    assert!(captured.contains("--title\nzzz\n"));
+    assert!(captured.contains("--subtitle\nSucceeded\n"));
+    assert!(captured.contains("--message\necho\n"));
+    assert!(captured.contains("--group\nzzz-iterm2-F8176E01-630A-4505-9B2B-0DE870BF4706\n"));
+    assert!(captured.contains("--app-icon\n"));
+    assert!(!captured.contains("--sender\n"));
 
     fs::remove_dir_all(home).unwrap();
 }

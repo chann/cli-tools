@@ -83,6 +83,43 @@ fn run() -> Result<ExitCode> {
         return Ok(ExitCode::SUCCESS);
     }
 
+    if args.get(1).map(String::as_str) == Some(cli_core::command_log::TERMINAL_NOTIFICATION_FLAG) {
+        let kind = args.get(2).context("Missing terminal notification kind")?;
+        let locator = args
+            .get(3)
+            .context("Missing terminal notification locator")?;
+        let outcome = args
+            .get(4)
+            .context("Missing terminal notification outcome")?;
+        let command_name = args
+            .get(5)
+            .context("Missing terminal notification command")?;
+        if args.len() != 6 {
+            anyhow::bail!("Unexpected terminal notification arguments");
+        }
+        cli_core::command_log::launch_terminal_notification(kind, locator, outcome, command_name)?;
+        return Ok(ExitCode::SUCCESS);
+    }
+
+    if args.get(1).map(String::as_str)
+        == Some(cli_core::command_log::TERMINAL_NOTIFICATION_WORKER_FLAG)
+    {
+        let kind = args.get(2).context("Missing notification worker kind")?;
+        let locator = args.get(3).context("Missing notification worker locator")?;
+        let outcome = args.get(4).context("Missing notification worker outcome")?;
+        let command_name = args.get(5).context("Missing notification worker command")?;
+        if args.len() != 6 {
+            anyhow::bail!("Unexpected notification worker arguments");
+        }
+        cli_core::command_log::run_terminal_notification_worker(
+            kind,
+            locator,
+            outcome,
+            command_name,
+        )?;
+        return Ok(ExitCode::SUCCESS);
+    }
+
     let color = requested_color(&args);
     let matches = Cli::command().color(color).get_matches_from(args);
     let cli = Cli::from_arg_matches(&matches)?;
