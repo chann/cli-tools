@@ -2,9 +2,6 @@ import {
   ArrowUpRight,
   Check,
   ClipboardText,
-  Desktop,
-  Moon,
-  Sun,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,64 +11,6 @@ import {
   tools,
   utilityGroups,
 } from "./data/tools";
-
-const themeOrder = ["system", "light", "dark"];
-const themeLabels = {
-  system: "시스템",
-  light: "라이트",
-  dark: "다크",
-};
-
-function useTheme() {
-  const [mode, setMode] = useState(() => {
-    try {
-      return localStorage.getItem("cli-tools-theme") || "system";
-    } catch {
-      return "system";
-    }
-  });
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const applyTheme = () => {
-      const resolved = mode === "system" ? (media.matches ? "dark" : "light") : mode;
-      document.documentElement.dataset.theme = resolved;
-      document.documentElement.dataset.themeMode = mode;
-    };
-
-    applyTheme();
-    if (mode === "system") {
-      media.addEventListener("change", applyTheme);
-    }
-
-    try {
-      localStorage.setItem("cli-tools-theme", mode);
-    } catch {
-      // The selected theme still applies for this visit.
-    }
-
-    return () => media.removeEventListener("change", applyTheme);
-  }, [mode]);
-
-  const cycleTheme = () => {
-    setMode((current) => {
-      const currentIndex = themeOrder.indexOf(current);
-      return themeOrder[(currentIndex + 1) % themeOrder.length];
-    });
-  };
-
-  return { mode, cycleTheme };
-}
-
-function ThemeIcon({ mode }) {
-  if (mode === "light") {
-    return <Sun aria-hidden="true" weight="bold" />;
-  }
-  if (mode === "dark") {
-    return <Moon aria-hidden="true" weight="bold" />;
-  }
-  return <Desktop aria-hidden="true" weight="bold" />;
-}
 
 function CodeBlock({ code, label = "명령어" }) {
   const [copyState, setCopyState] = useState("idle");
@@ -150,90 +89,6 @@ function RevealSection({ children, className = "", ...props }) {
     >
       {children}
     </motion.section>
-  );
-}
-
-function Navigation({ mode, cycleTheme }) {
-  return (
-    <header className="site-header">
-      <div className="nav-shell">
-        <a className="brand" href="#top" aria-label="cli-tools 홈">
-          <span className="brand-mark" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
-          <span>cli-tools</span>
-        </a>
-        <nav className="nav-links" aria-label="주요 메뉴">
-          <a href="#tools">도구</a>
-          <a href="#install">설치 보기</a>
-          <a href="#zzz">zzz</a>
-          <a href={repositoryUrl}>GitHub</a>
-        </nav>
-        <button
-          className="theme-button"
-          type="button"
-          onClick={cycleTheme}
-          aria-label={`테마: ${themeLabels[mode]}. 다음 테마로 변경`}
-        >
-          <ThemeIcon mode={mode} />
-          <span>{themeLabels[mode]}</span>
-        </button>
-      </div>
-    </header>
-  );
-}
-
-function Hero() {
-  const reduceMotion = useReducedMotion();
-
-  return (
-    <section className="hero" id="top">
-      <div className="hero__inner">
-        <motion.div
-          className="hero__copy"
-          initial={reduceMotion ? false : { opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <p className="eyebrow">RUST CLI COLLECTION</p>
-          <h1>
-            터미널 일을,
-            <br />
-            더 짧게.
-          </h1>
-          <p className="hero__summary">
-            분석, 정리, 변환, 백그라운드 실행을 다섯 개의 빠른 Rust 도구로 끝냅니다.
-          </p>
-          <div className="hero__actions">
-            <a className="button button--primary" href="#install">
-              설치 보기
-            </a>
-            <a className="button button--secondary" href={repositoryUrl}>
-              GitHub
-              <ArrowUpRight aria-hidden="true" weight="bold" />
-            </a>
-          </div>
-        </motion.div>
-
-        <motion.picture
-          className="hero__visual"
-          initial={reduceMotion ? false : { opacity: 0, x: 26, scale: 0.985 }}
-          animate={{ opacity: 1, x: 0, scale: 1 }}
-          transition={{ duration: 0.82, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <source srcSet="./images/hero-toolkit.avif" type="image/avif" />
-          <img
-            src="./images/hero-toolkit.webp"
-            alt="차가운 금속 작업대 위에 쌓인 다섯 개의 알루미늄 도구 모듈"
-            width="1536"
-            height="1024"
-            fetchPriority="high"
-          />
-        </motion.picture>
-      </div>
-    </section>
   );
 }
 
@@ -401,6 +256,25 @@ function UtilityExplorer() {
     setCommandName(nextGroup.commands[0].name);
   };
 
+  const handleGroupKey = (event, index) => {
+    if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) {
+      return;
+    }
+    event.preventDefault();
+    let nextIndex = index;
+    if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = utilityGroups.length - 1;
+    } else {
+      const direction = event.key === "ArrowRight" ? 1 : -1;
+      nextIndex = (index + direction + utilityGroups.length) % utilityGroups.length;
+    }
+    const nextGroup = utilityGroups[nextIndex];
+    selectGroup(nextGroup);
+    document.getElementById(`utility-tab-${nextGroup.id}`)?.focus();
+  };
+
   return (
     <RevealSection className="utility-explorer section-shell" id="utilities">
       <div className="section-heading">
@@ -411,19 +285,28 @@ function UtilityExplorer() {
         </p>
       </div>
       <div className="group-tabs" role="tablist" aria-label="dev-tools 주제">
-        {utilityGroups.map((group) => (
+        {utilityGroups.map((group, index) => (
           <button
             key={group.id}
+            id={`utility-tab-${group.id}`}
             type="button"
             role="tab"
             aria-selected={group.id === activeGroup.id}
+            aria-controls={`utility-panel-${group.id}`}
+            tabIndex={group.id === activeGroup.id ? 0 : -1}
             onClick={() => selectGroup(group)}
+            onKeyDown={(event) => handleGroupKey(event, index)}
           >
             {group.name}
           </button>
         ))}
       </div>
-      <div className="utility-stage">
+      <div
+        className="utility-stage"
+        id={`utility-panel-${activeGroup.id}`}
+        role="tabpanel"
+        aria-labelledby={`utility-tab-${activeGroup.id}`}
+      >
         <div className="utility-stage__intro">
           <h3>{activeGroup.name}</h3>
           <p>{activeGroup.description}</p>
@@ -512,44 +395,15 @@ function FinalSection() {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="site-footer">
-      <div className="section-shell site-footer__inner">
-        <a className="brand" href="#top">
-          <span className="brand-mark" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-          </span>
-          <span>cli-tools</span>
-        </a>
-        <p>CHANN의 Rust CLI 모음. MIT License.</p>
-        <a href={repositoryUrl}>GitHub</a>
-      </div>
-    </footer>
-  );
-}
-
 export default function App() {
-  const { mode, cycleTheme } = useTheme();
-
   return (
     <>
-      <a className="skip-link" href="#main">
-        본문으로 건너뛰기
-      </a>
-      <Navigation mode={mode} cycleTheme={cycleTheme} />
-      <main id="main">
-        <Hero />
-        <InstallSection />
-        <ToolExplorer />
-        <ZzzSection />
-        <UtilityExplorer />
-        <AnalysisSection />
-        <FinalSection />
-      </main>
-      <Footer />
+      <InstallSection />
+      <ToolExplorer />
+      <ZzzSection />
+      <UtilityExplorer />
+      <AnalysisSection />
+      <FinalSection />
     </>
   );
 }
