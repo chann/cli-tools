@@ -1,6 +1,6 @@
-export const repositoryUrl = "https://github.com/channprj/cli-tools";
+export const repositoryUrl = "https://github.com/chann/cli-tools";
 
-export const installAll = `git clone https://github.com/channprj/cli-tools.git
+export const installAll = `git clone https://github.com/chann/cli-tools.git
 cd cli-tools
 
 cargo install --path crates/code-cost --force

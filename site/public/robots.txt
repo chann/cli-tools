@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://channprj.github.io/cli-tools/sitemap.xml
+Sitemap: https://chann.github.io/cli-tools/sitemap.xml

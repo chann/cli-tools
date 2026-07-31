@@ -11,6 +11,8 @@ describe("cli-tools website", () => {
     expect(html).toContain("<h1>터미널 일을,");
     expect(html).toContain('id="theme-toggle"');
     expect(html).toContain("hero-toolkit-mobile.avif");
+    expect(html).toContain("https://chann.github.io/cli-tools/");
+    expect(html).not.toContain("channprj.github.io");
     expect(html).not.toMatch(/[—–]/);
   });
 
