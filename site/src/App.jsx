@@ -81,10 +81,14 @@ function RevealSection({ children, className = "", ...props }) {
   return (
     <motion.section
       className={className}
-      initial={reduceMotion ? false : { opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.14 }}
-      transition={{ duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
+      initial={false}
+      whileInView={
+        reduceMotion
+          ? undefined
+          : { opacity: [0.94, 1], y: [10, 0] }
+      }
+      viewport={{ once: true, amount: 0.12 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       {...props}
     >
       {children}
@@ -192,10 +196,10 @@ function ZzzSection() {
   return (
     <RevealSection className="zzz-feature section-shell" id="zzz">
       <picture className="zzz-feature__visual">
-        <source srcSet="./images/zzz-workspace.avif" type="image/avif" />
+        <source srcSet="./images/zzz-workspace-editorial.avif" type="image/avif" />
         <img
-          src="./images/zzz-workspace.webp"
-          alt="어두운 작업대의 노트북과 완료 알림을 떠올리게 하는 작은 금속 벨"
+          src="./images/zzz-workspace-editorial.webp"
+          alt="따뜻한 새벽 작업대 위 닫힌 노트북과 작은 금속 벨"
           width="1448"
           height="1086"
           loading="lazy"
@@ -367,10 +371,10 @@ function AnalysisSection() {
         </div>
       </div>
       <picture className="analysis__visual">
-        <source srcSet="./images/analysis-bench.avif" type="image/avif" />
+        <source srcSet="./images/analysis-bench-editorial.avif" type="image/avif" />
         <img
-          src="./images/analysis-bench.webp"
-          alt="금속 자, 기계식 연필, 소스 코드 인쇄물을 놓은 회색 분석 작업대"
+          src="./images/analysis-bench-editorial.webp"
+          alt="종이 위에 놓인 금속 자, 연필, 계산기와 줄자"
           width="1402"
           height="1122"
           loading="lazy"
