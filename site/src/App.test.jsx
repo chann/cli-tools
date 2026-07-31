@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, test, vi } from "vitest";
 import App from "./App";
 
@@ -10,21 +10,23 @@ describe("cli-tools website", () => {
 
     expect(html).toContain("<h1>터미널 일을,");
     expect(html).toContain('id="theme-toggle"');
-    expect(html).toContain("hero-toolkit-editorial-mobile.avif");
-    expect(html).toContain("og-cli-tools-editorial.jpg");
+    expect(html).toContain('class="hero__signal"');
+    expect(html).toContain("og-cli-tools-signal.jpg");
     expect(html).toContain("https://chann.github.io/cli-tools/");
     expect(html).not.toContain("channprj.github.io");
     expect(html).not.toMatch(/[—–]/);
   });
 
-  test("keeps the editorial visual system flat and locally available", () => {
+  test("keeps the signal visual system original and locally available", () => {
     const css = readFileSync("src/styles.css", "utf8");
     const main = readFileSync("src/main.jsx", "utf8");
 
-    expect(css).toContain('"AppleMyungjo"');
+    expect(css).toContain(".signal-lane");
+    expect(css).toContain("linear-gradient");
+    expect(existsSync("public/images/og-cli-tools-signal.jpg")).toBe(true);
     expect(main).not.toContain("fonts.googleapis.com");
     expect(main).not.toContain("@fontsource-variable");
-    expect(css).not.toMatch(/(?:linear|radial|conic)-gradient/);
+    expect(css).not.toContain("paperclip");
   });
 
   test("introduces every binary and switches to its real usage examples", async () => {

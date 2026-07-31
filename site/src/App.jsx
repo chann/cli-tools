@@ -100,6 +100,7 @@ function InstallSection() {
   return (
     <RevealSection className="install section-shell" id="install">
       <div className="section-heading">
+        <p className="section-label">01 / 설치</p>
         <h2>필요한 도구만 설치하세요.</h2>
         <p>저장소를 복제한 뒤 원하는 바이너리만 골라 설치합니다.</p>
       </div>
@@ -137,6 +138,7 @@ function ToolExplorer() {
   return (
     <RevealSection className="tool-explorer section-shell" id="tools">
       <div className="section-heading">
+        <p className="section-label">02 / 도구 모음</p>
         <h2>다섯 도구, 한 작업 흐름.</h2>
         <p>도구를 선택하면 실제 옵션과 바로 실행할 수 있는 예시를 확인할 수 있습니다.</p>
       </div>
@@ -207,6 +209,7 @@ function ZzzSection() {
       </picture>
       <div className="zzz-feature__content">
         <div className="section-heading">
+          <p className="section-label">03 / 백그라운드</p>
           <h2>명령은 백그라운드로. 결과는 로그로.</h2>
           <p>
             <code>zzz</code>는 프롬프트를 바로 돌려주고 완료 여부를 알림으로 알려줍니다.
@@ -282,6 +285,7 @@ function UtilityExplorer() {
   return (
     <RevealSection className="utility-explorer section-shell" id="utilities">
       <div className="section-heading">
+        <p className="section-label">04 / 유틸리티</p>
         <h2>반복 작업을 한 명령으로.</h2>
         <p>
           <code>dev-tools</code>는 데이터, 네트워크, 코드, 파일 작업을 주제별 하위
@@ -349,6 +353,7 @@ function AnalysisSection() {
     <RevealSection className="analysis section-shell" id="analysis">
       <div className="analysis__content">
         <div className="section-heading">
+          <p className="section-label">05 / 분석</p>
           <h2>저장소를 읽고, 숫자로 남기세요.</h2>
           <p>코드와 Git 이력을 같은 기준으로 읽어 규모와 작업 흐름을 설명합니다.</p>
         </div>
@@ -388,6 +393,7 @@ function FinalSection() {
   return (
     <RevealSection className="final-cta section-shell">
       <div>
+        <p className="section-label">OPEN SOURCE / MIT</p>
         <h2>Rust workspace 그대로 시작하세요.</h2>
         <p>필요한 바이너리만 설치하고, 전체 workspace 테스트로 한 번에 검증할 수 있습니다.</p>
       </div>
