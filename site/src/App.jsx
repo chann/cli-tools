@@ -61,7 +61,7 @@ function CodeBlock({ code, label = "명령어" }) {
           <span>{buttonLabel}</span>
         </button>
       </div>
-      <pre>
+      <pre role="region" tabIndex={0} aria-label={`${label} 코드`}>
         <code>{code}</code>
       </pre>
       <span className="copy-status" role="status" aria-live="polite">
@@ -197,16 +197,6 @@ function ToolExplorer() {
 function ZzzSection() {
   return (
     <RevealSection className="zzz-feature section-shell" id="zzz">
-      <picture className="zzz-feature__visual">
-        <source srcSet="./images/zzz-workspace-editorial.avif" type="image/avif" />
-        <img
-          src="./images/zzz-workspace-editorial.webp"
-          alt="따뜻한 새벽 작업대 위 닫힌 노트북과 작은 금속 벨"
-          width="1448"
-          height="1086"
-          loading="lazy"
-        />
-      </picture>
       <div className="zzz-feature__content">
         <div className="section-heading">
           <p className="section-label">03 / 백그라운드</p>
@@ -240,6 +230,20 @@ zzz --print-log make build`}
         <p className="zzz-feature__note">
           alerter가 없으면 terminal-notifier 또는 일반 완료 알림으로 폴백합니다.
         </p>
+      </div>
+      <div className="terminal-preview" role="group" aria-label="zzz 실행 흐름 예시">
+        <div className="terminal-preview__bar">
+          <span aria-hidden="true"><i></i><i></i><i></i></span>
+          <small>zzz · background task</small>
+        </div>
+        <div className="terminal-preview__body">
+          <p><span>$</span> zzz cargo test</p>
+          <p className="terminal-preview__muted">started · pid 82417</p>
+          <p className="terminal-preview__spacer" aria-hidden="true"></p>
+          <p><span>✓</span> cargo test</p>
+          <p className="terminal-preview__muted">finished in 12.4s · exit 0</p>
+          <p className="terminal-preview__path">~/.commands/260801/032451-cargo.log</p>
+        </div>
       </div>
     </RevealSection>
   );
@@ -319,7 +323,11 @@ function UtilityExplorer() {
           <h3>{activeGroup.name}</h3>
           <p>{activeGroup.description}</p>
         </div>
-        <div className="command-picker" aria-label={`${activeGroup.name} 명령 선택`}>
+        <div
+          className="command-picker"
+          role="group"
+          aria-label={`${activeGroup.name} 명령 선택`}
+        >
           {activeGroup.commands.map((command) => (
             <button
               key={command.name}
@@ -375,16 +383,6 @@ function AnalysisSection() {
           </article>
         </div>
       </div>
-      <picture className="analysis__visual">
-        <source srcSet="./images/analysis-bench-editorial.avif" type="image/avif" />
-        <img
-          src="./images/analysis-bench-editorial.webp"
-          alt="종이 위에 놓인 금속 자, 연필, 계산기와 줄자"
-          width="1402"
-          height="1122"
-          loading="lazy"
-        />
-      </picture>
     </RevealSection>
   );
 }

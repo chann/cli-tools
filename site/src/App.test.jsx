@@ -10,20 +10,21 @@ describe("cli-tools website", () => {
 
     expect(html).toContain("<h1>터미널 일을,");
     expect(html).toContain('id="theme-toggle"');
-    expect(html).toContain('class="hero__signal"');
-    expect(html).toContain("og-cli-tools-signal.jpg");
+    expect(html).toContain('class="hero__app-icon"');
+    expect(html).toContain("og-cli-tools-minimal.jpg");
     expect(html).toContain("https://chann.github.io/cli-tools/");
     expect(html).not.toContain("channprj.github.io");
     expect(html).not.toMatch(/[—–]/);
   });
 
-  test("keeps the signal visual system original and locally available", () => {
+  test("keeps the minimalist product visual system original and local", () => {
     const css = readFileSync("src/styles.css", "utf8");
     const main = readFileSync("src/main.jsx", "utf8");
 
-    expect(css).toContain(".signal-lane");
-    expect(css).toContain("linear-gradient");
-    expect(existsSync("public/images/og-cli-tools-signal.jpg")).toBe(true);
+    expect(css).toContain(".hero__app-icon");
+    expect(css).toContain(".terminal-preview");
+    expect(css).not.toContain("linear-gradient");
+    expect(existsSync("public/images/og-cli-tools-minimal.jpg")).toBe(true);
     expect(main).not.toContain("fonts.googleapis.com");
     expect(main).not.toContain("@fontsource-variable");
     expect(css).not.toContain("paperclip");
@@ -102,6 +103,18 @@ describe("cli-tools website", () => {
       "true",
     );
     expect(document.activeElement.textContent).toBe("ID와 보안");
+  });
+
+  test("makes horizontally scrollable command examples keyboard accessible", () => {
+    const { container } = render(<App />);
+    const examples = [...container.querySelectorAll("pre")];
+
+    expect(examples.length).toBeGreaterThan(0);
+    expect(examples.every((example) => example.tabIndex === 0)).toBe(true);
+    expect(examples.every((example) => example.getAttribute("role") === "region")).toBe(
+      true,
+    );
+    expect(examples.every((example) => example.getAttribute("aria-label"))).toBe(true);
   });
 
   test("keeps visible copy free of banned dash characters", () => {

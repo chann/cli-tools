@@ -7,8 +7,8 @@
       name="description"
       content="저장소 분석, Git 관리, 개발자용 변환, 백그라운드 실행을 위한 다섯 개의 Rust CLI 도구와 사용법."
     />
-    <meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#080908" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0c0b" media="(prefers-color-scheme: dark)" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:title" content="cli-tools | 터미널 일을 더 짧게" />
@@ -18,7 +18,7 @@
     />
     <meta
       property="og:image"
-      content="https://chann.github.io/cli-tools/images/og-cli-tools-signal.jpg"
+      content="https://chann.github.io/cli-tools/images/og-cli-tools-minimal.jpg"
     />
     <link rel="canonical" href="https://chann.github.io/cli-tools/" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
@@ -40,10 +40,6 @@
   </head>
   <body>
     <a class="skip-link" href="#main">본문으로 건너뛰기</a>
-    <aside class="project-strip" aria-label="프로젝트 안내">
-      <p>Rust로 만든 다섯 개의 CLI</p>
-      <a href="#install">설치 명령 보기</a>
-    </aside>
     <header class="site-header">
       <div class="nav-shell">
         <a class="brand" href="#top" aria-label="cli-tools 홈">
@@ -53,7 +49,6 @@
         <nav class="nav-links" aria-label="주요 메뉴">
           <a href="#tools">도구</a>
           <a href="#install">설치</a>
-          <a href="#zzz">zzz</a>
           <a href="https://github.com/chann/cli-tools">GitHub</a>
         </nav>
         <button
@@ -69,16 +64,13 @@
     <main id="main">
       <section class="hero" id="top">
         <div class="hero__inner">
-          <div class="hero__signal" aria-hidden="true">
-            <i class="signal-lane signal-lane--cost"><span></span><span></span></i>
-            <i class="signal-lane signal-lane--summary"><span></span><span></span></i>
-            <i class="signal-lane signal-lane--git"><span></span><span></span></i>
-            <i class="signal-lane signal-lane--dev"><span></span><span></span></i>
-            <i class="signal-lane signal-lane--zzz"><span></span><span></span></i>
+          <div class="hero__app-icon" aria-hidden="true">
+            <span class="hero__glyph">&gt;_</span>
+            <span class="hero__badge">5 CLI</span>
           </div>
+          <p class="hero__product-name">cli-tools</p>
           <div class="hero__copy">
-            <p class="eyebrow">5 TOOLS / ONE WORKSPACE</p>
-            <h1>터미널 일을,<br />더 짧게.</h1>
+            <h1>터미널 일을,<br /><span>더 짧게.</span></h1>
             <p class="hero__summary">
               분석, 정리, 변환, 백그라운드 실행을 다섯 개의 빠른 Rust 도구로 끝냅니다.
             </p>
@@ -88,8 +80,8 @@
                 GitHub에서 코드 보기
               </a>
             </div>
-            <div class="hero__meta" aria-label="프로젝트 정보">
-              <span>5 binaries</span>
+            <div class="hero__meta" role="group" aria-label="프로젝트 정보">
+              <span>5 tools</span>
               <span>1 workspace</span>
               <span>MIT License</span>
             </div>
