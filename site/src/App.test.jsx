@@ -59,6 +59,23 @@ describe("cli-tools website", () => {
     expect(panel.textContent).toContain("~/.commands/{yymmdd}");
   });
 
+  test("completes the landing argument from benefits through FAQ", () => {
+    const { container } = render(<App />);
+
+    expect(
+      screen.getByRole("heading", {
+        name: "하루에 몇 번씩 하던 일을, 한 번의 명령으로.",
+      }),
+    ).toBeTruthy();
+    expect(container.querySelectorAll(".benefit-grid article")).toHaveLength(4);
+    expect(container.querySelectorAll(".tagline__word")).toHaveLength(7);
+    expect(container.querySelectorAll(".workflow-list li")).toHaveLength(3);
+    expect(container.querySelectorAll(".faq-list dt")).toHaveLength(6);
+
+    const finalAction = screen.getByRole("link", { name: /설치 명령 보기/ });
+    expect(finalAction.getAttribute("href")).toBe("#install");
+  });
+
   test("copies commands and exposes success feedback", async () => {
     render(<App />);
     const copyButton = screen.getAllByRole("button", { name: /복사/ })[0];

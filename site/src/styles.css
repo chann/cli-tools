@@ -551,25 +551,40 @@ kbd {
 }
 
 .install,
+.benefits,
 .tool-explorer,
 .zzz-feature,
 .utility-explorer,
-.analysis {
+.analysis,
+.workflow,
+.faq {
   border-top: 1px solid var(--line);
   scroll-margin-top: 92px;
 }
 
 .install,
+.benefits,
 .tool-explorer,
 .utility-explorer,
-.analysis {
-  padding-block: 142px 164px;
+.analysis,
+.workflow,
+.faq {
+  padding-block: 96px;
 }
 
 .section-heading {
   max-width: 700px;
   margin-inline: auto;
   text-align: center;
+}
+
+.section-heading--left {
+  margin-inline: 0;
+  text-align: left;
+}
+
+.section-heading--left > p:last-child {
+  margin-inline: 0;
 }
 
 .section-label {
@@ -611,6 +626,101 @@ kbd {
   background: var(--surface-muted);
   color: var(--text);
   font-size: 0.82em;
+}
+
+.benefit-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 48px;
+}
+
+.benefit-grid article {
+  display: flex;
+  min-height: 320px;
+  grid-column: span 7;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px;
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.benefit-grid article:nth-child(2),
+.benefit-grid article:nth-child(3) {
+  grid-column: span 5;
+}
+
+.benefit-grid article:nth-child(3),
+.benefit-grid article:nth-child(4) {
+  min-height: 280px;
+}
+
+.benefit-grid svg {
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
+}
+
+.benefit-grid article > div {
+  margin-top: auto;
+}
+
+.benefit-grid h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 2rem;
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+.benefit-grid p {
+  max-width: 34rem;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  text-wrap: pretty;
+  word-break: keep-all;
+}
+
+.benefit-grid code {
+  width: fit-content;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.tagline {
+  display: flex;
+  min-height: 560px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding-block: 96px;
+}
+
+.tagline p {
+  max-width: 680px;
+  margin: 0;
+  font-size: 3.75rem;
+  font-weight: 600;
+  line-height: 1;
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+.tagline__line {
+  display: block;
+}
+
+.tagline__word {
+  display: inline-block;
+  margin-right: 12px;
+}
+
+.tagline__word:last-child {
+  margin-right: 0;
 }
 
 .install > .code-block {
@@ -1215,6 +1325,80 @@ kbd {
   white-space: nowrap;
 }
 
+.workflow-list {
+  margin: 48px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.workflow-list li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+  padding-block: 32px;
+  border-bottom: 1px solid var(--line);
+}
+
+.workflow-list li > span {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+
+.workflow-list h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 2rem;
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+.workflow-list p {
+  max-width: 42rem;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  text-wrap: pretty;
+  word-break: keep-all;
+}
+
+.faq-list {
+  margin: 48px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.faq-list > div {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(0, 1.28fr);
+  gap: 48px;
+  padding-block: 32px;
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-list dt {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.75rem;
+  text-wrap: pretty;
+  word-break: keep-all;
+}
+
+.faq-list dd {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  text-wrap: pretty;
+  word-break: keep-all;
+}
+
 .final-cta {
   display: flex;
   min-height: 560px;
@@ -1231,6 +1415,14 @@ kbd {
 
 .final-cta .button {
   margin-top: 33px;
+}
+
+.final-cta__risk {
+  margin-top: 16px !important;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
 }
 
 .site-footer {
@@ -1393,14 +1585,37 @@ noscript {
   }
 
   .install,
+  .benefits,
   .tool-explorer,
   .utility-explorer,
-  .analysis {
-    padding-block: 96px 112px;
+  .analysis,
+  .workflow,
+  .faq {
+    padding-block: 96px;
   }
 
   .zzz-feature {
-    padding-block: 96px 112px;
+    padding-block: 96px;
+  }
+
+  .benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .benefit-grid article,
+  .benefit-grid article:nth-child(2),
+  .benefit-grid article:nth-child(3),
+  .benefit-grid article:nth-child(4) {
+    min-height: 0;
+    grid-column: 1;
+  }
+
+  .tagline {
+    min-height: 480px;
+  }
+
+  .tagline p {
+    font-size: 3rem;
   }
 
   .section-heading h2,
@@ -1506,6 +1721,16 @@ noscript {
     grid-column: 1;
   }
 
+  .workflow-list li {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .faq-list > div {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
   .final-cta {
     min-height: 500px;
     padding-block: 105px 120px;
@@ -1538,6 +1763,15 @@ noscript {
   }
 
   .hero h1 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+
+  .tagline {
+    min-height: 400px;
+  }
+
+  .tagline p {
     font-size: 2.25rem;
     line-height: 2.5rem;
   }
