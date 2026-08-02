@@ -8,25 +8,31 @@ describe("cli-tools website", () => {
   test("renders the core message and responsive hero without JavaScript", () => {
     const html = readFileSync("index.html", "utf8");
 
-    expect(html).toContain("<h1>터미널 일을,");
+    expect(html).toContain("<h1>반복 명령은 줄이고,");
     expect(html).toContain('id="theme-toggle"');
-    expect(html).toContain('class="hero__app-icon"');
+    expect(html).toContain('id="menu-toggle"');
+    expect(html).toContain('class="hero-terminal"');
+    expect(html).toContain("설치 명령 보기");
+    expect(html).toContain("로그인 없음");
     expect(html).toContain("og-cli-tools-minimal.jpg");
     expect(html).toContain("https://chann.github.io/cli-tools/");
     expect(html).not.toContain("channprj.github.io");
     expect(html).not.toMatch(/[—–]/);
   });
 
-  test("keeps the minimalist product visual system original and local", () => {
+  test("keeps the focused product visual system original and local", () => {
     const css = readFileSync("src/styles.css", "utf8");
     const main = readFileSync("src/main.jsx", "utf8");
 
-    expect(css).toContain(".hero__app-icon");
+    expect(css).toContain(".hero-terminal");
     expect(css).toContain(".terminal-preview");
-    expect(css).not.toContain("linear-gradient");
+    expect(css.match(/linear-gradient/g)).toHaveLength(2);
+    expect(css).toContain(".hero h1");
     expect(existsSync("public/images/og-cli-tools-minimal.jpg")).toBe(true);
     expect(main).not.toContain("fonts.googleapis.com");
     expect(main).not.toContain("@fontsource-variable");
+    expect(main).toContain("@fontsource/geist");
+    expect(main).toContain("@fontsource/geist-mono");
     expect(css).not.toContain("paperclip");
   });
 

@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="저장소 분석, Git 관리, 개발자용 변환, 백그라운드 실행을 위한 다섯 개의 Rust CLI 도구와 사용법."
+      content="저장소 분석, Git 관리, 데이터 변환, 백그라운드 실행을 하나의 Rust workspace에서 다루는 다섯 개의 CLI 도구."
     />
-    <meta name="theme-color" content="#f7f6f3" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b0c0b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f4f2ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#131209" media="(prefers-color-scheme: dark)" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="ko_KR" />
-    <meta property="og:title" content="cli-tools | 터미널 일을 더 짧게" />
+    <meta property="og:title" content="cli-tools | 반복 명령을 줄이는 Rust 도구 모음" />
     <meta
       property="og:description"
-      content="분석, 정리, 변환, 백그라운드 실행을 위한 Rust CLI 도구 모음."
+      content="분석, 정리, 변환, 백그라운드 실행을 필요한 도구만 설치해 바로 처리하세요."
     />
     <meta
       property="og:image"
@@ -36,13 +36,13 @@
         }
       })();
     </script>
-    <title>cli-tools | 터미널 일을 더 짧게</title>
+    <title>cli-tools | 반복 명령을 줄이는 Rust 도구 모음</title>
   </head>
   <body>
     <a class="skip-link" href="#main">본문으로 건너뛰기</a>
     <header class="site-header">
       <div class="nav-shell">
-        <a class="brand" href="#top" aria-label="cli-tools 홈">
+        <a class="brand" href="#top" aria-label="cli-tools 홈" aria-current="page">
           <span class="brand-mark" aria-hidden="true">&gt;_</span>
           <span>cli-tools</span>
         </a>
@@ -59,31 +59,70 @@
         >
           <span id="theme-label">시스템</span>
         </button>
+        <button
+          class="menu-button"
+          id="menu-toggle"
+          type="button"
+          aria-label="메뉴 열기"
+          aria-controls="mobile-menu"
+          aria-expanded="false"
+        >
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </button>
       </div>
     </header>
+    <div class="mobile-menu" id="mobile-menu" aria-hidden="true" inert>
+      <nav aria-label="모바일 메뉴">
+        <a href="#tools">도구 살펴보기</a>
+        <a href="#install">설치 명령 보기</a>
+        <a href="https://github.com/chann/cli-tools">GitHub에서 코드 보기</a>
+      </nav>
+    </div>
     <main id="main">
       <section class="hero" id="top">
         <div class="hero__inner">
-          <div class="hero__app-icon" aria-hidden="true">
-            <span class="hero__glyph">&gt;_</span>
-            <span class="hero__badge">5 CLI</span>
-          </div>
-          <p class="hero__product-name">cli-tools</p>
           <div class="hero__copy">
-            <h1>터미널 일을,<br /><span>더 짧게.</span></h1>
+            <p class="hero__eyebrow">5개의 Rust CLI</p>
+            <h1>반복 명령은 줄이고,<br /><span>만드는 일에 집중하세요.</span></h1>
             <p class="hero__summary">
-              분석, 정리, 변환, 백그라운드 실행을 다섯 개의 빠른 Rust 도구로 끝냅니다.
+              저장소 분석부터 Git 정리, 데이터 변환, 백그라운드 실행까지.
+              필요한 도구만 설치해 터미널에서 바로 씁니다.
             </p>
             <div class="hero__actions">
-              <a class="button button--primary" href="#install">설치 보기</a>
-              <a class="text-link" href="https://github.com/chann/cli-tools">
-                GitHub에서 코드 보기
-              </a>
+              <a class="button button--primary" href="#install">설치 명령 보기</a>
             </div>
             <div class="hero__meta" role="group" aria-label="프로젝트 정보">
-              <span>5 tools</span>
-              <span>1 workspace</span>
+              <span>5개 바이너리</span>
+              <span>로그인 없음</span>
               <span>MIT License</span>
+            </div>
+          </div>
+          <div class="hero-terminal" role="img" aria-label="cli-tools의 실제 명령 실행 예시">
+            <div class="hero-terminal__bar">
+              <span>~/workspace/product</span>
+              <span>zsh</span>
+            </div>
+            <div class="hero-terminal__body">
+              <div class="terminal-command">
+                <span class="terminal-prompt">$</span>
+                <code>zzz cargo test</code>
+              </div>
+              <p class="terminal-result">started · pid 82417 · prompt returned</p>
+              <div class="terminal-command">
+                <span class="terminal-prompt">$</span>
+                <code>dev-tools json '{"b":2,"a":1}' --sort asc</code>
+              </div>
+              <p class="terminal-output">{"a":1,"b":2}</p>
+              <div class="terminal-command terminal-command--last">
+                <span class="terminal-prompt">$</span>
+                <code>work-summary --month</code>
+              </div>
+              <div class="terminal-stats" aria-hidden="true">
+                <span>commits grouped</span>
+                <span>active days mapped</span>
+                <span>estimate ready</span>
+              </div>
             </div>
           </div>
         </div>
@@ -136,6 +175,40 @@
           if (mode === "system") apply();
         });
         apply();
+
+        const menuButton = document.getElementById("menu-toggle");
+        const mobileMenu = document.getElementById("mobile-menu");
+        const closeMenu = () => {
+          document.documentElement.classList.remove("menu-open");
+          menuButton.setAttribute("aria-expanded", "false");
+          menuButton.setAttribute("aria-label", "메뉴 열기");
+          mobileMenu.setAttribute("aria-hidden", "true");
+          mobileMenu.setAttribute("inert", "");
+        };
+        const openMenu = () => {
+          document.documentElement.classList.add("menu-open");
+          menuButton.setAttribute("aria-expanded", "true");
+          menuButton.setAttribute("aria-label", "메뉴 닫기");
+          mobileMenu.setAttribute("aria-hidden", "false");
+          mobileMenu.removeAttribute("inert");
+        };
+
+        menuButton.addEventListener("click", () => {
+          if (menuButton.getAttribute("aria-expanded") === "true") {
+            closeMenu();
+          } else {
+            openMenu();
+          }
+        });
+        mobileMenu.querySelectorAll("a").forEach((link) => {
+          link.addEventListener("click", closeMenu);
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && menuButton.getAttribute("aria-expanded") === "true") {
+            closeMenu();
+            menuButton.focus();
+          }
+        });
       })();
     </script>
     <script type="module" src="/src/main.jsx"></script>
