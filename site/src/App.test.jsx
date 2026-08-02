@@ -14,7 +14,9 @@ describe("cli-tools website", () => {
     expect(html).toContain('class="hero-terminal"');
     expect(html).toContain("설치 명령 보기");
     expect(html).toContain("로그인 없음");
-    expect(html).toContain("og-cli-tools-minimal.jpg");
+    expect(html).toContain("og-cli-tools-landing.png");
+    expect(html).toContain('type="application/ld+json"');
+    expect(html).toContain("twitter:card");
     expect(html).toContain("https://chann.github.io/cli-tools/");
     expect(html).not.toContain("channprj.github.io");
     expect(html).not.toMatch(/[—–]/);
@@ -28,12 +30,24 @@ describe("cli-tools website", () => {
     expect(css).toContain(".terminal-preview");
     expect(css.match(/linear-gradient/g)).toHaveLength(2);
     expect(css).toContain(".hero h1");
-    expect(existsSync("public/images/og-cli-tools-minimal.jpg")).toBe(true);
+    expect(existsSync("public/images/og-cli-tools-landing.png")).toBe(true);
     expect(main).not.toContain("fonts.googleapis.com");
     expect(main).not.toContain("@fontsource-variable");
     expect(main).toContain("@fontsource/geist");
     expect(main).toContain("@fontsource/geist-mono");
     expect(css).not.toContain("paperclip");
+  });
+
+  test("ships legal routes and a branded route home from 404", () => {
+    const privacy = readFileSync("public/privacy.html", "utf8");
+    const terms = readFileSync("public/terms.html", "utf8");
+    const notFound = readFileSync("public/404.html", "utf8");
+
+    expect(privacy).toContain("개인정보 처리 안내");
+    expect(privacy).toContain('content="noindex,follow"');
+    expect(terms).toContain("MIT License");
+    expect(notFound).toContain('href="/cli-tools/"');
+    expect(notFound).toContain("페이지를 찾을 수 없습니다");
   });
 
   test("introduces every binary and switches to its real usage examples", async () => {

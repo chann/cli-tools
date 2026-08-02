@@ -167,8 +167,8 @@ function TaglineReveal() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <section className="tagline section-shell" aria-label="cli-tools 핵심 가치">
-      <p>
+    <section className="tagline section-shell" aria-labelledby="tagline-heading">
+      <h2 className="tagline__copy" id="tagline-heading">
         {taglineLines.map((line, lineIndex) => {
           const offset = taglineLines
             .slice(0, lineIndex)
@@ -180,8 +180,8 @@ function TaglineReveal() {
                 <motion.span
                   className="tagline__word"
                   key={word}
-                  initial={reduceMotion ? false : { opacity: 0.3 }}
-                  whileInView={{ opacity: 1 }}
+                  initial={reduceMotion ? false : { color: "var(--tagline-muted)" }}
+                  whileInView={{ color: "var(--text)" }}
                   viewport={{ once: true, amount: 0.8 }}
                   transition={{
                     duration: reduceMotion ? 0 : 0.8,
@@ -195,7 +195,7 @@ function TaglineReveal() {
             </span>
           );
         })}
-      </p>
+      </h2>
     </section>
   );
 }
@@ -595,9 +595,11 @@ function FinalSection() {
   return (
     <RevealSection className="final-cta section-shell">
       <div>
-        <p className="section-label">OPEN SOURCE / MIT</p>
+        <p className="section-label">오픈 소스 / MIT</p>
         <h2>필요한 도구부터 설치하세요.</h2>
-        <p>무료로 공개된 Rust workspace입니다. 로그인 없이 원하는 바이너리만 고르면 됩니다.</p>
+        <p className="final-cta__description">
+          무료로 공개된 Rust workspace입니다. 로그인 없이 원하는 바이너리만 고르면 됩니다.
+        </p>
         <p className="final-cta__risk">무료 · 로그인 없음 · MIT License</p>
       </div>
       <a className="button button--primary" href="#install">

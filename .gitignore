@@ -22,3 +22,6 @@ Thumbs.db
 *.json
 !package.json
 !**/fixtures/**/*.json
+!site/public/privacy.html
+!site/public/terms.html
+!site/public/404.html
