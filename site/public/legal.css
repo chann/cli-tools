@@ -37,10 +37,10 @@
   --text: #171712;
   --muted: #66655f;
   --line: #dad6c9;
-  --accent: #4d6b50;
-  --button: #171712;
-  --button-text: #ffffff;
-  --focus: #4d6b50;
+  --primary: #4AF626;
+  --primary-ink: #0d1a09;
+  --accent: #1f7410;
+  --focus: #1f7410;
   --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
@@ -52,10 +52,10 @@
     --text: #f1f2ee;
     --muted: #a5a69f;
     --line: #313131;
-    --accent: #9cbea1;
-    --button: #f1f2ee;
-    --button-text: #181818;
-    --focus: #a7c5aa;
+    --primary: #4AF626;
+    --primary-ink: #0d1a09;
+    --accent: #4AF626;
+    --focus: #4AF626;
   }
 }
 
@@ -94,8 +94,8 @@ a {
   padding: 8px 12px;
   transform: translateY(-200%);
   border-radius: 8px;
-  background: var(--button);
-  color: var(--button-text);
+  background: var(--primary);
+  color: var(--primary-ink);
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.25rem;
@@ -138,8 +138,8 @@ a {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  background: var(--button);
-  color: var(--button-text);
+  background: var(--primary);
+  color: var(--primary-ink);
   font-family: "Geist Mono", ui-monospace, monospace;
   font-size: 0.75rem;
   line-height: 1rem;
@@ -266,10 +266,10 @@ h2 {
   width: fit-content;
   margin-top: 32px;
   padding: 8px 12px;
-  border: 1px solid var(--button);
+  border: 1px solid var(--primary);
   border-radius: 8px;
-  background: var(--button);
-  color: var(--button-text);
+  background: var(--primary);
+  color: var(--primary-ink);
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.5rem;

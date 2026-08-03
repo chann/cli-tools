@@ -11,16 +11,17 @@
   --muted: #66655f;
   --line: #dad6c9;
   --line-strong: #bdb8aa;
-  --accent: #4d6b50;
-  --accent-soft: #e0e8df;
-  --accent-ink: #2e4d32;
-  --primary: #171712;
-  --primary-ink: #ffffff;
+  --primary: #4AF626;
+  --primary-ink: #0d1a09;
+  --accent: #1f7410;
+  --accent-solid: var(--primary);
+  --accent-soft: #d7fdcf;
+  --accent-ink: #1f7410;
   --terminal-bg: #181818;
   --terminal-surface: #1f1f1f;
   --terminal-line: #313131;
   --terminal-text: #f4f4ef;
-  --focus: #4d6b50;
+  --focus: #1f7410;
   --tagline-muted: #66655f;
   --radius: 16px;
   --radius-small: 8px;
@@ -40,12 +41,13 @@
   --muted: #a5a69f;
   --line: #313131;
   --line-strong: #4b4b49;
-  --accent: #9cbea1;
-  --accent-soft: #272727;
-  --accent-ink: #b7d2ba;
-  --primary: #f1f2ee;
-  --primary-ink: #181818;
-  --focus: #a7c5aa;
+  --primary: #4AF626;
+  --primary-ink: #0d1a09;
+  --accent: #4AF626;
+  --accent-solid: var(--primary);
+  --accent-soft: #193d11;
+  --accent-ink: #4AF626;
+  --focus: #4AF626;
   --tagline-muted: #a5a69f;
 }
 
@@ -296,17 +298,13 @@ kbd {
   display: none;
   align-items: center;
   justify-content: center;
-  background: rgb(255 255 255 / 0.8);
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
   backdrop-filter: blur(48px);
   -webkit-backdrop-filter: blur(48px);
   transition: all 700ms var(--ease-fluid);
-}
-
-:root[data-theme="dark"] .mobile-menu {
-  background: rgb(0 0 0 / 0.8);
 }
 
 .mobile-menu nav {
@@ -522,7 +520,7 @@ kbd {
 }
 
 .terminal-prompt {
-  color: #9cbea1;
+  color: var(--primary);
 }
 
 .terminal-result,
@@ -759,7 +757,7 @@ kbd {
   height: 8px;
   margin-right: 12px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-solid);
   content: "";
   vertical-align: 1px;
 }
@@ -917,7 +915,7 @@ kbd {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-solid);
   content: "";
 }
 
@@ -1124,7 +1122,7 @@ kbd {
 }
 
 .terminal-preview__body p > span {
-  color: #9ec4a3;
+  color: var(--primary);
 }
 
 .terminal-preview__muted {
@@ -1268,7 +1266,7 @@ kbd {
   height: 4px;
   transform: translateY(-50%);
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-solid);
   content: "";
 }
 

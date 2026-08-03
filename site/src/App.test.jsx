@@ -38,6 +38,19 @@ describe("cli-tools website", () => {
     expect(css).not.toContain("paperclip");
   });
 
+  test("uses the #4AF626 primary across themes and branded surfaces", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    const legalCss = readFileSync("public/legal.css", "utf8");
+    const favicon = readFileSync("public/favicon.svg", "utf8");
+
+    expect(css.match(/--primary: #4AF626;/g)).toHaveLength(2);
+    expect(css).toContain("--accent-solid: var(--primary);");
+    expect(css).toContain("color: var(--primary);");
+    expect(legalCss.match(/--primary: #4AF626;/g)).toHaveLength(2);
+    expect(legalCss).not.toContain("--button:");
+    expect(favicon).toContain('fill="#4AF626"');
+  });
+
   test("ships legal routes and a branded route home from 404", () => {
     const privacy = readFileSync("public/privacy.html", "utf8");
     const terms = readFileSync("public/terms.html", "utf8");
