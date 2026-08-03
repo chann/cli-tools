@@ -21,15 +21,29 @@ function createMedia(initialMatches = false) {
 
 function renderChrome() {
   document.body.innerHTML = `
-    <div data-theme-control>
-      <button type="button" data-theme-option="system" aria-pressed="true">시스템</button>
-      <button type="button" data-theme-option="light" aria-pressed="false">라이트</button>
-      <button type="button" data-theme-option="dark" aria-pressed="false">다크</button>
+    <div data-theme-menu>
+      <button type="button" data-theme-trigger aria-haspopup="menu" aria-expanded="false">
+        <span data-theme-current>시스템</span>
+      </button>
+      <div role="menu" hidden>
+        <div role="group">
+          <button type="button" role="menuitemradio" data-theme-option="system" aria-checked="true">시스템</button>
+          <button type="button" role="menuitemradio" data-theme-option="light" aria-checked="false">라이트</button>
+          <button type="button" role="menuitemradio" data-theme-option="dark" aria-checked="false">다크</button>
+        </div>
+      </div>
     </div>
-    <div data-theme-control>
-      <button type="button" data-theme-option="system" aria-pressed="true">시스템</button>
-      <button type="button" data-theme-option="light" aria-pressed="false">라이트</button>
-      <button type="button" data-theme-option="dark" aria-pressed="false">다크</button>
+    <div data-theme-menu>
+      <button type="button" data-theme-trigger aria-haspopup="menu" aria-expanded="false">
+        <span data-theme-current>시스템</span>
+      </button>
+      <div role="menu" hidden>
+        <div role="group">
+          <button type="button" role="menuitemradio" data-theme-option="system" aria-checked="true">시스템</button>
+          <button type="button" role="menuitemradio" data-theme-option="light" aria-checked="false">라이트</button>
+          <button type="button" role="menuitemradio" data-theme-option="dark" aria-checked="false">다크</button>
+        </div>
+      </div>
     </div>
     <button
       id="menu-toggle"
@@ -70,14 +84,43 @@ describe("site chrome", () => {
     expect(localStorage.getItem("cli-tools-theme")).toBe("dark");
     expect(
       [...document.querySelectorAll('[data-theme-option="dark"]')].every(
-        (button) => button.getAttribute("aria-pressed") === "true",
+        (button) => button.getAttribute("aria-checked") === "true",
       ),
     ).toBe(true);
     expect(
       [...document.querySelectorAll('[data-theme-option="system"]')].every(
-        (button) => button.getAttribute("aria-pressed") === "false",
+        (button) => button.getAttribute("aria-checked") === "false",
       ),
     ).toBe(true);
+
+    cleanup();
+  });
+
+  test("uses an accessible dropdown with radio choices and keyboard selection", () => {
+    renderChrome();
+    const cleanup = initChrome({
+      document,
+      storage: localStorage,
+      media: createMedia(false),
+    });
+    const trigger = document.querySelector("[data-theme-trigger]");
+    const menu = trigger.nextElementSibling;
+
+    trigger.click();
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect(menu.hidden).toBe(false);
+    expect(document.activeElement.dataset.themeOption).toBe("system");
+
+    document.activeElement.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "End", bubbles: true }),
+    );
+    expect(document.activeElement.dataset.themeOption).toBe("dark");
+    document.activeElement.click();
+
+    expect(document.documentElement.dataset.themeMode).toBe("dark");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    expect(menu.hidden).toBe(true);
+    expect(trigger.querySelector("[data-theme-current]").textContent).toBe("다크");
 
     cleanup();
   });

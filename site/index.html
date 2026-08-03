@@ -105,16 +105,31 @@
           <a href="https://github.com/chann/cli-tools">GitHub</a>
         </nav>
         <div class="preference-cluster">
-          <div class="theme-control" data-theme-control role="group" aria-label="테마 선택">
-            <button type="button" data-theme-option="system" aria-pressed="true">
-              시스템
+          <div class="theme-dropdown" data-theme-menu>
+            <button
+              class="theme-dropdown__trigger"
+              type="button"
+              data-theme-trigger
+              aria-haspopup="menu"
+              aria-expanded="false"
+            >
+              <span class="theme-dropdown__icon" aria-hidden="true"></span>
+              <span data-theme-current>시스템</span>
+              <span class="theme-dropdown__chevron" aria-hidden="true"></span>
             </button>
-            <button type="button" data-theme-option="light" aria-pressed="false">
-              라이트
-            </button>
-            <button type="button" data-theme-option="dark" aria-pressed="false">
-              다크
-            </button>
+            <div
+              class="theme-dropdown__content"
+              id="theme-menu-desktop"
+              role="menu"
+              aria-label="테마 선택"
+              hidden
+            >
+              <div role="group" aria-label="테마 선택">
+                <button type="button" role="menuitemradio" data-theme-option="system" aria-checked="true">시스템</button>
+                <button type="button" role="menuitemradio" data-theme-option="light" aria-checked="false">라이트</button>
+                <button type="button" role="menuitemradio" data-theme-option="dark" aria-checked="false">다크</button>
+              </div>
+            </div>
           </div>
         </div>
         <button
@@ -140,22 +155,32 @@
           <a href="https://github.com/chann/cli-tools">GitHub에서 코드 보기</a>
         </div>
         <div class="mobile-preferences">
-          <p id="mobile-theme-label">테마</p>
-          <div
-            class="theme-control theme-control--mobile"
-            data-theme-control
-            role="group"
-            aria-labelledby="mobile-theme-label"
-          >
-            <button type="button" data-theme-option="system" aria-pressed="true">
-              시스템
+          <p>테마</p>
+          <div class="theme-dropdown theme-dropdown--mobile" data-theme-menu>
+            <button
+              class="theme-dropdown__trigger"
+              type="button"
+              data-theme-trigger
+              aria-haspopup="menu"
+              aria-expanded="false"
+            >
+              <span class="theme-dropdown__icon" aria-hidden="true"></span>
+              <span data-theme-current>시스템</span>
+              <span class="theme-dropdown__chevron" aria-hidden="true"></span>
             </button>
-            <button type="button" data-theme-option="light" aria-pressed="false">
-              라이트
-            </button>
-            <button type="button" data-theme-option="dark" aria-pressed="false">
-              다크
-            </button>
+            <div
+              class="theme-dropdown__content"
+              id="theme-menu-mobile"
+              role="menu"
+              aria-label="테마 선택"
+              hidden
+            >
+              <div role="group" aria-label="테마 선택">
+                <button type="button" role="menuitemradio" data-theme-option="system" aria-checked="true">시스템</button>
+                <button type="button" role="menuitemradio" data-theme-option="light" aria-checked="false">라이트</button>
+                <button type="button" role="menuitemradio" data-theme-option="dark" aria-checked="false">다크</button>
+              </div>
+            </div>
           </div>
         </div>
       </nav>
