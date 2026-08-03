@@ -24,6 +24,17 @@ describe("shadcn Select foundation", () => {
     expect(source).toContain("<ChevronDownIcon");
   });
 
+  test("uses a neutral border instead of a focus ring on preference dropdowns", () => {
+    const source = readFileSync("src/components/ui/select.jsx", "utf8");
+    const css = readFileSync("src/styles.css", "utf8");
+
+    expect(source).not.toContain("focus-visible:border-ring");
+    expect(source).not.toContain("focus-visible:ring-");
+    expect(css).toMatch(
+      /\.preference-select:focus-visible,\s*\.preference-fallback select:focus-visible\s*{[^}]*border-color:\s*color-mix\(in srgb, var\(--text\) 50%, var\(--line\)\);[^}]*outline:\s*none;[^}]*box-shadow:\s*none;/s,
+    );
+  });
+
   test("bridges shadcn colors to existing semantic tokens", () => {
     const css = readFileSync("src/styles.css", "utf8");
     expect(css).toContain('@import "tailwindcss"');

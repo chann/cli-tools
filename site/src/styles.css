@@ -283,10 +283,17 @@ samp {
 
 .preference-select:hover,
 .preference-select[data-state="open"],
-.preference-fallback select:hover,
-.preference-fallback select:focus-visible {
+.preference-fallback select:hover {
   border-color: color-mix(in srgb, var(--text) 22%, var(--line));
   background: var(--surface);
+}
+
+.preference-select:focus-visible,
+.preference-fallback select:focus-visible {
+  border-color: color-mix(in srgb, var(--text) 50%, var(--line));
+  background: var(--surface);
+  outline: none;
+  box-shadow: none;
 }
 
 .preference-select:active {
