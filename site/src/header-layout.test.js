@@ -34,4 +34,18 @@ describe("header layout density", () => {
     expect(triggerStyle.minHeight).toBe("36px");
     expect(getComputedStyle(content).width).toBe("136px");
   });
+
+  test("styles the language selector as a compact header control", () => {
+    const style = document.createElement("style");
+    const select = document.createElement("select");
+    style.textContent = readFileSync("src/styles.css", "utf8");
+    select.className = "language-select language-select--compact";
+    document.head.append(style);
+    document.body.append(select);
+
+    const selectStyle = getComputedStyle(select);
+    expect(selectStyle.width).toBe("52px");
+    expect(selectStyle.minHeight).toBe("36px");
+    expect(selectStyle.borderRadius).toBe("9px");
+  });
 });

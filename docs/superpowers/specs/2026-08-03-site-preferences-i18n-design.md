@@ -17,7 +17,8 @@ Chinese. A selected language must remain active after reload.
 ## Goals
 
 - Remove the header's phantom space and give every control an intentional place.
-- Expose system, light, and dark as direct, mutually exclusive theme choices.
+- Expose system, light, and dark as mutually exclusive choices in a compact
+  dropdown.
 - Publish Korean at `/cli-tools/`, English at `/cli-tools/en/`, Japanese at
   `/cli-tools/ja/`, and Simplified Chinese at `/cli-tools/zh/`.
 - Preserve the active locale across navigation and reload without a language flash.
@@ -85,15 +86,17 @@ visitors to the unprefixed root receive Korean.
 Desktop layout:
 
 ```text
-[ cli-tools ]  [ Tools  Install  GitHub ]  [ KO v ]  [ Auto | Light | Dark ]
+[ cli-tools ]  [ Tools  Install  GitHub ]  [ KO v ]  [ Theme v ]
 ```
 
 The header uses content-sized tracks and compact gaps rather than a leftover
 flexible logo track. The brand remains a home link. Language and theme controls
 form one preference cluster with a shared surface treatment.
 
-Theme selection is an accessible three-option control. Each option has a visible
-localized label, `aria-pressed`, and a minimum pointer target. System mode follows
+Theme selection uses a compact dropdown following the shadcn/ui menu composition:
+a labelled trigger opens a menu with three localized radio items. Each item has
+`role="menuitemradio"` and `aria-checked`, and the menu supports arrow keys,
+Home/End, Escape, outside click, and focus restoration. System mode follows
 `prefers-color-scheme` changes; explicit light or dark modes do not. The selection
 is stored in `cli-tools-theme` and applied in an early head script to prevent a
 theme flash.
@@ -136,7 +139,7 @@ and menu button so it remains usable at 320px without shrinking touch targets.
   words. `pre`, `code`, `kbd`, and `samp` retain code-specific wrapping rules so
   literal commands and paths remain accurate and horizontally scrollable where
   necessary.
-- Theme options use a labelled group and explicit selected states.
+- Theme options use a labelled menu group and explicit radio-item selected states.
 - Language selection has a localized accessible name and native keyboard behavior.
 - Focus indicators, Escape-to-close behavior, reduced motion, and existing tablist
   keyboard behavior remain intact.

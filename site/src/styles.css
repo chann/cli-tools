@@ -71,6 +71,7 @@ body {
   font-size: 16px;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
+  overflow-wrap: anywhere;
   word-break: keep-all;
 }
 
@@ -103,6 +104,7 @@ kbd,
 samp {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  overflow-wrap: normal;
   word-break: normal;
 }
 
@@ -230,6 +232,31 @@ samp {
 .preference-cluster {
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+.language-select {
+  width: 136px;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.language-select:hover,
+.language-select:focus-visible {
+  border-color: color-mix(in srgb, var(--text) 22%, var(--line));
+  background: var(--surface);
+}
+
+.language-select--compact {
+  width: 52px;
 }
 
 .theme-dropdown {
@@ -1716,7 +1743,7 @@ noscript {
   }
 
   .nav-links,
-  .preference-cluster {
+  .preference-cluster > .theme-dropdown {
     display: none;
   }
 

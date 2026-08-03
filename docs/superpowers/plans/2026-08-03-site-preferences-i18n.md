@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Repair the logo-less header, expose direct theme choices, apply keep-all wrapping to prose, and publish Korean-first static routes for English, Japanese, and Simplified Chinese with refresh-safe language selection.
+**Goal:** Repair the logo-less header, expose theme choices in a compact dropdown, apply keep-all wrapping to prose, and publish Korean-first static routes for English, Japanese, and Simplified Chinese with refresh-safe language selection.
 
 **Architecture:** Keep Vite and React without adding dependencies. Move shared chrome behavior and locale state into focused modules, define one catalog contract for all four locales, and use a small Vite build plugin to render localized static shells and legal/error assets while React consumes the same catalog for interactive sections.
 
@@ -119,7 +119,7 @@ Expected parity: `0 0`.
 
 ---
 
-### Task 2: Replace the cycling theme button with direct choices
+### Task 2: Replace the cycling theme button with a compact dropdown
 
 **Files:**
 - Create: `site/src/runtime/chrome.js`
@@ -137,7 +137,7 @@ Expected parity: `0 0`.
 - [ ] **Step 1: Write failing theme-controller tests**
 
 Create `site/src/runtime/chrome.test.js` with fixtures containing
-`[data-theme-option]` buttons and assert:
+`[data-theme-option]` radio menu items and assert:
 
 ```js
 expect(resolveTheme("system", true)).toBe("dark");
@@ -148,7 +148,7 @@ document.querySelector('[data-theme-option="dark"]').click();
 expect(document.documentElement.dataset.themeMode).toBe("dark");
 expect(document.documentElement.dataset.theme).toBe("dark");
 expect(localStorage.getItem("cli-tools-theme")).toBe("dark");
-expect(document.querySelector('[data-theme-option="dark"]')?.getAttribute("aria-pressed")).toBe("true");
+expect(document.querySelector('[data-theme-option="dark"]')?.getAttribute("aria-checked")).toBe("true");
 ```
 
 Also assert that a media `change` updates only system mode and a throwing storage
@@ -185,7 +185,7 @@ export function initChrome({
     root.dataset.themeMode = mode;
     root.dataset.theme = resolveTheme(mode, media.matches);
     buttons.forEach((button) => {
-      button.setAttribute("aria-pressed", String(button.dataset.themeOption === mode));
+      button.setAttribute("aria-checked", String(button.dataset.themeOption === mode));
     });
   };
 
@@ -200,8 +200,8 @@ Use guarded storage writes and update every duplicated desktop/mobile theme opti
 
 In `site/index.html`:
 
-- replace `#theme-toggle` with labelled desktop and mobile groups containing
-  `button[data-theme-option="system|light|dark"]`;
+- replace `#theme-toggle` with labelled desktop and mobile dropdowns containing
+  `button[role="menuitemradio"][data-theme-option="system|light|dark"]`;
 - keep the early head script for flash-free theme resolution;
 - remove the inline cycling-theme and menu script;
 - keep `cli-tools` as the brand link and the existing navigation semantics.
@@ -214,8 +214,9 @@ In `site/src/styles.css`:
 
 - use content-sized desktop tracks and 8–12px gaps;
 - group preference controls on one quiet surface;
-- style pressed theme options without changing the semantic primary color;
-- move full theme choices into the mobile menu at the existing mobile breakpoint;
+- style the compact trigger and checked menu item without changing the semantic
+  primary color;
+- move the mobile dropdown into the menu at the existing mobile breakpoint;
 - keep brand, language control, and menu button within 296px at 320px viewport.
 
 - [ ] **Step 6: Verify GREEN and commit**

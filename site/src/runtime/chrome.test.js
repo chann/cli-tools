@@ -33,6 +33,18 @@ function renderChrome() {
         </div>
       </div>
     </div>
+    <select data-language-select aria-label="언어 선택">
+      <option value="/cli-tools/" data-locale="ko" selected>KO</option>
+      <option value="/cli-tools/en/" data-locale="en">EN</option>
+      <option value="/cli-tools/ja/" data-locale="ja">JA</option>
+      <option value="/cli-tools/zh/" data-locale="zh">中文</option>
+    </select>
+    <select data-language-select aria-label="언어 선택">
+      <option value="/cli-tools/" data-locale="ko" selected>한국어</option>
+      <option value="/cli-tools/en/" data-locale="en">English</option>
+      <option value="/cli-tools/ja/" data-locale="ja">日本語</option>
+      <option value="/cli-tools/zh/" data-locale="zh">简体中文</option>
+    </select>
     <div data-theme-menu>
       <button type="button" data-theme-trigger aria-haspopup="menu" aria-expanded="false">
         <span data-theme-current>시스템</span>
@@ -163,6 +175,51 @@ describe("site chrome", () => {
     expect(document.documentElement.dataset.themeMode).toBe("dark");
     expect(document.documentElement.dataset.theme).toBe("dark");
 
+    cleanup();
+  });
+
+  test("stores a language choice, synchronizes selectors, and navigates", () => {
+    renderChrome();
+    const navigate = vi.fn();
+    const cleanup = initChrome({
+      document,
+      storage: localStorage,
+      media: createMedia(false),
+      navigate,
+    });
+    const selectors = [...document.querySelectorAll("[data-language-select]")];
+
+    selectors[0].value = "/cli-tools/ja/";
+    selectors[0].dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(localStorage.getItem("cli-tools-locale")).toBe("ja");
+    expect(selectors.every((select) => select.value === "/cli-tools/ja/")).toBe(true);
+    expect(navigate).toHaveBeenCalledWith("/cli-tools/ja/");
+
+    cleanup();
+  });
+
+  test("navigates when language preference storage is unavailable", () => {
+    renderChrome();
+    const navigate = vi.fn();
+    const storage = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(() => {
+        throw new Error("blocked");
+      }),
+    };
+    const cleanup = initChrome({
+      document,
+      storage,
+      media: createMedia(false),
+      navigate,
+    });
+    const select = document.querySelector("[data-language-select]");
+
+    select.value = "/cli-tools/en/";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(navigate).toHaveBeenCalledWith("/cli-tools/en/");
     cleanup();
   });
 

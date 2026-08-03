@@ -27,10 +27,14 @@ export function initChrome({
   document = window.document,
   storage = window.localStorage,
   media = window.matchMedia("(prefers-color-scheme: dark)"),
+  navigate = (href) => window.location.assign(href),
 } = {}) {
   const root = document.documentElement;
   const themeButtons = [...document.querySelectorAll("[data-theme-option]")];
   const themeMenus = [...document.querySelectorAll("[data-theme-menu]")];
+  const languageSelectors = [
+    ...document.querySelectorAll("[data-language-select]"),
+  ];
   const initialMode = THEME_MODES.includes(root.dataset.themeMode)
     ? root.dataset.themeMode
     : readStoredTheme(storage) || "system";
@@ -142,6 +146,26 @@ export function initChrome({
   };
   document.addEventListener("click", handleOutsideThemeClick);
 
+  const languageListeners = languageSelectors.map((select) => {
+    const listener = () => {
+      const option = select.selectedOptions[0];
+      const href = option?.value;
+      const locale = option?.dataset.locale;
+      if (!href || !locale) return;
+      languageSelectors.forEach((otherSelect) => {
+        otherSelect.value = href;
+      });
+      try {
+        storage.setItem("cli-tools-locale", locale);
+      } catch {
+        // The locale URL remains sufficient for this navigation and refresh.
+      }
+      navigate(href);
+    };
+    select.addEventListener("change", listener);
+    return [select, listener];
+  });
+
   const handleMediaChange = () => {
     if (mode === "system") applyTheme(mode, false);
   };
@@ -156,10 +180,9 @@ export function initChrome({
     if (!menuButton || !mobileMenu) return;
     root.classList.remove("menu-open");
     menuButton.setAttribute("aria-expanded", "false");
-    menuButton.setAttribute(
-      "aria-label",
-      menuButton.dataset.openLabel || "메뉴 열기",
-    );
+    if (menuButton.dataset.openLabel) {
+      menuButton.setAttribute("aria-label", menuButton.dataset.openLabel);
+    }
     mobileMenu.setAttribute("aria-hidden", "true");
     mobileMenu.setAttribute("inert", "");
   };
@@ -168,10 +191,9 @@ export function initChrome({
     if (!menuButton || !mobileMenu) return;
     root.classList.add("menu-open");
     menuButton.setAttribute("aria-expanded", "true");
-    menuButton.setAttribute(
-      "aria-label",
-      menuButton.dataset.closeLabel || "메뉴 닫기",
-    );
+    if (menuButton.dataset.closeLabel) {
+      menuButton.setAttribute("aria-label", menuButton.dataset.closeLabel);
+    }
     mobileMenu.setAttribute("aria-hidden", "false");
     mobileMenu.removeAttribute("inert");
   };
@@ -206,6 +228,9 @@ export function initChrome({
       element.removeEventListener(eventName, listener);
     });
     document.removeEventListener("click", handleOutsideThemeClick);
+    languageListeners.forEach(([select, listener]) => {
+      select.removeEventListener("change", listener);
+    });
     media.removeEventListener("change", handleMediaChange);
     menuButton?.removeEventListener("click", handleMenuClick);
     mobileLinks.forEach((link) => link.removeEventListener("click", closeMenu));

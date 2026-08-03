@@ -3,10 +3,20 @@ import userEvent from "@testing-library/user-event";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, test, vi } from "vitest";
 import App from "./App";
+import { I18nProvider } from "./i18n/context";
+import { renderLanding, renderLegal, renderNotFound } from "./i18n/render";
+
+function renderApp(locale = "ko") {
+  return render(
+    <I18nProvider locale={locale}>
+      <App />
+    </I18nProvider>,
+  );
+}
 
 describe("cli-tools website", () => {
   test("renders the core message and responsive hero without JavaScript", () => {
-    const html = readFileSync("index.html", "utf8");
+    const html = renderLanding("ko");
     const page = new DOMParser().parseFromString(html, "text/html");
 
     expect(html).toContain("<h1>반복 명령은 줄이고,");
@@ -29,9 +39,12 @@ describe("cli-tools website", () => {
     expect(themeMenus).toHaveLength(2);
     const themeTriggers = [...page.querySelectorAll("[data-theme-trigger]")];
     expect(themeTriggers).toHaveLength(2);
-    expect(themeTriggers.every((trigger) => !trigger.hasAttribute("aria-controls"))).toBe(
-      true,
-    );
+    expect(
+      themeTriggers.every((trigger) => {
+        const controlledId = trigger.getAttribute("aria-controls");
+        return controlledId && page.getElementById(controlledId)?.getAttribute("role") === "menu";
+      }),
+    ).toBe(true);
     expect(page.querySelectorAll('[role="menu"]')).toHaveLength(2);
     expect(page.querySelectorAll('[data-theme-option="system"]')).toHaveLength(2);
     expect(page.querySelectorAll('[data-theme-option="light"]')).toHaveLength(2);
@@ -65,7 +78,9 @@ describe("cli-tools website", () => {
     document.body.append(code);
 
     expect(getComputedStyle(document.body).wordBreak).toBe("keep-all");
+    expect(getComputedStyle(document.body).overflowWrap).toBe("anywhere");
     expect(getComputedStyle(code).wordBreak).toBe("normal");
+    expect(getComputedStyle(code).overflowWrap).toBe("normal");
 
     code.remove();
     style.remove();
@@ -109,15 +124,19 @@ describe("cli-tools website", () => {
     expect(css.match(/--primary: #4AF626;/g)).toHaveLength(2);
     expect(css).toContain("--accent-solid: var(--primary);");
     expect(css).toContain("color: var(--primary);");
-    expect(legalCss.match(/--primary: #4AF626;/g)).toHaveLength(2);
+    const legalPrimaryValues = [
+      ...legalCss.matchAll(/--primary:\s*([^;]+);/g),
+    ].map((match) => match[1]);
+    expect(legalPrimaryValues.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(legalPrimaryValues)).toEqual(new Set(["#4AF626"]));
     expect(legalCss).not.toContain("--button:");
     expect(favicon).toContain('fill="#4AF626"');
   });
 
   test("ships legal routes and a branded route home from 404", () => {
-    const privacy = readFileSync("public/privacy.html", "utf8");
-    const terms = readFileSync("public/terms.html", "utf8");
-    const notFound = readFileSync("public/404.html", "utf8");
+    const privacy = renderLegal("ko", "privacy");
+    const terms = renderLegal("ko", "terms");
+    const notFound = renderNotFound();
 
     expect(privacy).toContain("개인정보 처리 안내");
     expect(privacy).toContain('content="noindex,follow"');
@@ -128,7 +147,7 @@ describe("cli-tools website", () => {
 
   test("introduces every binary and switches to its real usage examples", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     for (const name of [
       "code-cost",
@@ -150,7 +169,7 @@ describe("cli-tools website", () => {
   });
 
   test("completes the landing argument from benefits through FAQ", () => {
-    const { container } = render(<App />);
+    const { container } = renderApp();
 
     expect(
       screen.getByRole("heading", {
@@ -167,7 +186,7 @@ describe("cli-tools website", () => {
   });
 
   test("copies commands and exposes success feedback", async () => {
-    render(<App />);
+    renderApp();
     const copyButton = screen.getAllByRole("button", { name: /복사/ })[0];
 
     fireEvent.click(copyButton);
@@ -181,7 +200,7 @@ describe("cli-tools website", () => {
 
   test("shows a contextual clipboard error", async () => {
     navigator.clipboard.writeText = vi.fn().mockRejectedValueOnce(new Error("denied"));
-    render(<App />);
+    renderApp();
 
     fireEvent.click(screen.getAllByRole("button", { name: /복사/ })[0]);
 
@@ -194,7 +213,7 @@ describe("cli-tools website", () => {
 
   test("filters dev-tools examples by category and command", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     await user.click(screen.getByRole("tab", { name: "네트워크" }));
     await user.click(screen.getByRole("button", { name: "dev-tools cert" }));
@@ -206,7 +225,7 @@ describe("cli-tools website", () => {
 
   test("supports arrow-key navigation across dev-tools categories", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
 
     const dataTab = screen.getByRole("tab", { name: "데이터 형식" });
     dataTab.focus();
@@ -219,7 +238,7 @@ describe("cli-tools website", () => {
   });
 
   test("makes horizontally scrollable command examples keyboard accessible", () => {
-    const { container } = render(<App />);
+    const { container } = renderApp();
     const examples = [...container.querySelectorAll("pre")];
     const buildCommand = screen.getByRole("region", {
       name: "전체 빌드 명령 코드",
@@ -245,7 +264,33 @@ describe("cli-tools website", () => {
   });
 
   test("keeps visible copy free of banned dash characters", () => {
-    render(<App />);
+    renderApp();
     expect(document.body.textContent).not.toMatch(/[—–]/);
+  });
+
+  test("renders localized interactive content without translating commands", async () => {
+    const user = userEvent.setup();
+
+    const english = renderApp("en");
+    expect(screen.getByRole("heading", { name: "Five tools. One workflow." })).toBeTruthy();
+    expect(screen.getAllByText("Repository value estimate").length).toBeGreaterThan(0);
+    expect(screen.getByText("Questions before you install.")).toBeTruthy();
+    expect(document.body.textContent).toContain("code-cost --export report.html");
+    fireEvent.click(screen.getAllByRole("button", { name: /Copy/ })[0]);
+    await waitFor(() => {
+      expect(screen.getAllByRole("status")[0].textContent).toContain(
+        "Copied to the clipboard.",
+      );
+    });
+    english.unmount();
+
+    const japanese = renderApp("ja");
+    expect(screen.getByRole("heading", { name: "5つのツール、一つの作業フロー。" })).toBeTruthy();
+    japanese.unmount();
+
+    renderApp("zh");
+    expect(screen.getByRole("heading", { name: "五个工具，一套工作流。" })).toBeTruthy();
+    await user.click(screen.getByRole("tab", { name: /zzz/ }));
+    expect(document.body.textContent).toContain("zzz --wait cargo test");
   });
 });

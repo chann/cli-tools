@@ -30,7 +30,8 @@
   src: url("./fonts/geist-mono-latin-400.woff2") format("woff2");
 }
 
-:root {
+:root,
+:root[data-theme="light"] {
   color-scheme: light;
   --bg: #f4f2ea;
   --surface: #fbfaf6;
@@ -45,7 +46,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bg: #131209;
     --surface: #181818;
@@ -57,6 +58,19 @@
     --accent: #4AF626;
     --focus: #4AF626;
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #131209;
+  --surface: #181818;
+  --text: #f1f2ee;
+  --muted: #a5a69f;
+  --line: #313131;
+  --primary: #4AF626;
+  --primary-ink: #0d1a09;
+  --accent: #4AF626;
+  --focus: #4AF626;
 }
 
 * {
@@ -75,6 +89,16 @@ body {
   font-family: "Geist", system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5rem;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+code,
+pre,
+kbd,
+samp {
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 a {
@@ -131,18 +155,32 @@ a {
   text-decoration: none;
 }
 
-.brand span:first-child {
-  display: inline-flex;
-  width: 32px;
-  height: 32px;
+.legal-languages {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.legal-languages a {
+  padding: 5px 8px;
   border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  text-decoration: none;
+}
+
+.legal-languages a:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.legal-languages a[aria-current="page"] {
   background: var(--primary);
   color: var(--primary-ink);
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-size: 0.75rem;
-  line-height: 1rem;
 }
 
 .back-link {
@@ -293,6 +331,17 @@ h2 {
 
   .legal-main {
     padding-block: 48px 80px;
+  }
+
+  .legal-nav {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .legal-languages {
+    width: 100%;
+    order: 3;
+    margin-left: 0;
   }
 
   h1 {
