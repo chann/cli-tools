@@ -39,12 +39,9 @@ describe("cli-tools website", () => {
     expect(themeMenus).toHaveLength(2);
     const themeTriggers = [...page.querySelectorAll("[data-theme-trigger]")];
     expect(themeTriggers).toHaveLength(2);
-    expect(
-      themeTriggers.every((trigger) => {
-        const controlledId = trigger.getAttribute("aria-controls");
-        return controlledId && page.getElementById(controlledId)?.getAttribute("role") === "menu";
-      }),
-    ).toBe(true);
+    expect(themeTriggers.every((trigger) => !trigger.hasAttribute("aria-controls"))).toBe(
+      true,
+    );
     expect(page.querySelectorAll('[role="menu"]')).toHaveLength(2);
     expect(page.querySelectorAll('[data-theme-option="system"]')).toHaveLength(2);
     expect(page.querySelectorAll('[data-theme-option="light"]')).toHaveLength(2);

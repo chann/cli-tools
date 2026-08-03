@@ -55,7 +55,7 @@ function renderThemeDropdown(messages, id, modifier = "") {
     .join("");
 
   return `<div class="theme-dropdown${modifier}" data-theme-menu>
-            <button class="theme-dropdown__trigger" type="button" data-theme-trigger aria-haspopup="menu" aria-controls="${id}" aria-expanded="false">
+            <button class="theme-dropdown__trigger" type="button" data-theme-trigger aria-haspopup="menu" aria-expanded="false">
               <span class="theme-dropdown__icon" aria-hidden="true"></span>
               <span data-theme-current>${escapeHtml(messages.shell.themeSystem)}</span>
               <span class="theme-dropdown__chevron" aria-hidden="true"></span>
