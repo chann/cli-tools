@@ -7,9 +7,9 @@ import App from "./App";
 describe("cli-tools website", () => {
   test("renders the core message and responsive hero without JavaScript", () => {
     const html = readFileSync("index.html", "utf8");
+    const page = new DOMParser().parseFromString(html, "text/html");
 
     expect(html).toContain("<h1>반복 명령은 줄이고,");
-    expect(html).toContain('id="theme-toggle"');
     expect(html).toContain('id="menu-toggle"');
     expect(html).toContain('class="hero-terminal"');
     expect(html).toContain("설치 명령 보기");
@@ -21,11 +21,17 @@ describe("cli-tools website", () => {
     expect(html).not.toContain("channprj.github.io");
     expect(html).not.toMatch(/[—–]/);
 
-    const header = html.match(
-      /<header class="site-header">([\s\S]*?)<\/header>/,
-    )?.[1];
-    expect(header).toContain("cli-tools");
-    expect(header).not.toContain('class="brand-mark"');
+    const header = page.querySelector(".site-header");
+    const themeGroups = page.querySelectorAll("[data-theme-control]");
+    expect(header.textContent).toContain("cli-tools");
+    expect(header.querySelector(".brand-mark")).toBeNull();
+    expect(header.querySelector(".preference-cluster")).not.toBeNull();
+    expect(themeGroups).toHaveLength(2);
+    expect(page.querySelectorAll('[data-theme-option="system"]')).toHaveLength(2);
+    expect(page.querySelectorAll('[data-theme-option="light"]')).toHaveLength(2);
+    expect(page.querySelectorAll('[data-theme-option="dark"]')).toHaveLength(2);
+    expect(page.querySelector(".mobile-menu__content").tagName).toBe("NAV");
+    expect(page.querySelector(".mobile-preferences").closest("nav")).not.toBeNull();
   });
 
   test("keeps the focused product visual system original and local", () => {
@@ -55,6 +61,36 @@ describe("cli-tools website", () => {
     expect(getComputedStyle(code).wordBreak).toBe("normal");
 
     code.remove();
+    style.remove();
+  });
+
+  test("keeps the zzz content within its responsive grid column", () => {
+    const style = document.createElement("style");
+    const content = document.createElement("div");
+    content.className = "zzz-feature__content";
+    style.textContent = readFileSync("src/styles.css", "utf8");
+    document.head.append(style);
+    document.body.append(content);
+
+    expect(getComputedStyle(content).width).toBe("100%");
+
+    content.remove();
+    style.remove();
+  });
+
+  test("allows analysis cards to shrink inside narrow grid columns", () => {
+    const style = document.createElement("style");
+    const tools = document.createElement("div");
+    const card = document.createElement("article");
+    tools.className = "analysis__tools";
+    tools.append(card);
+    style.textContent = readFileSync("src/styles.css", "utf8");
+    document.head.append(style);
+    document.body.append(tools);
+
+    expect(getComputedStyle(card).minWidth).toBe("0px");
+
+    tools.remove();
     style.remove();
   });
 
@@ -178,6 +214,17 @@ describe("cli-tools website", () => {
   test("makes horizontally scrollable command examples keyboard accessible", () => {
     const { container } = render(<App />);
     const examples = [...container.querySelectorAll("pre")];
+    const buildCommand = screen.getByRole("region", {
+      name: "전체 빌드 명령 코드",
+    });
+    const testCommand = screen.getByRole("region", {
+      name: "전체 테스트 명령 코드",
+    });
+    const analysisCommands = [
+      "code-cost 분석 명령 코드",
+      "work-summary 분석 명령 코드",
+      "git-tools 분석 명령 코드",
+    ].map((name) => screen.getByRole("region", { name }));
 
     expect(examples.length).toBeGreaterThan(0);
     expect(examples.every((example) => example.tabIndex === 0)).toBe(true);
@@ -185,6 +232,9 @@ describe("cli-tools website", () => {
       true,
     );
     expect(examples.every((example) => example.getAttribute("aria-label"))).toBe(true);
+    expect(buildCommand.tabIndex).toBe(0);
+    expect(testCommand.tabIndex).toBe(0);
+    expect(analysisCommands.every((command) => command.tabIndex === 0)).toBe(true);
   });
 
   test("keeps visible copy free of banned dash characters", () => {

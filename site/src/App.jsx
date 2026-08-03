@@ -212,11 +212,15 @@ function InstallSection() {
       <div className="install__checks">
         <p>
           전체 빌드
-          <code>cargo build --release --workspace --bins</code>
+          <code role="region" tabIndex={0} aria-label="전체 빌드 명령 코드">
+            cargo build --release --workspace --bins
+          </code>
         </p>
         <p>
           전체 테스트
-          <code>cargo test --workspace --all-targets</code>
+          <code role="region" tabIndex={0} aria-label="전체 테스트 명령 코드">
+            cargo test --workspace --all-targets
+          </code>
         </p>
       </div>
     </RevealSection>
@@ -479,17 +483,23 @@ function AnalysisSection() {
           <article>
             <h3>code-cost</h3>
             <p>언어별 코드량, 난이도, 복잡도, 성숙도를 분석해 비용과 가치를 추정합니다.</p>
-            <code>code-cost --export report.html</code>
+            <code role="region" tabIndex={0} aria-label="code-cost 분석 명령 코드">
+              code-cost --export report.html
+            </code>
           </article>
           <article>
             <h3>work-summary</h3>
             <p>커밋 간격과 변경량을 바탕으로 기간별 활동과 예상 작업 시간을 요약합니다.</p>
-            <code>work-summary --month</code>
+            <code role="region" tabIndex={0} aria-label="work-summary 분석 명령 코드">
+              work-summary --month
+            </code>
           </article>
           <article className="analysis__git">
             <h3>git-tools</h3>
             <p>분석 뒤에는 health, scan, changelog로 저장소 상태를 바로 정리합니다.</p>
-            <code>git-tools pulse</code>
+            <code role="region" tabIndex={0} aria-label="git-tools 분석 명령 코드">
+              git-tools pulse
+            </code>
           </article>
         </div>
       </div>

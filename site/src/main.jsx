@@ -7,7 +7,10 @@ import "@fontsource/geist/latin-700.css";
 import "@fontsource/geist-mono/latin-400.css";
 import "@fontsource/geist-mono/latin-500.css";
 import App from "./App";
+import { initChrome } from "./runtime/chrome";
 import "./styles.css";
+
+initChrome();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

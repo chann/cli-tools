@@ -104,19 +104,26 @@
           <a href="#install">설치</a>
           <a href="https://github.com/chann/cli-tools">GitHub</a>
         </nav>
-        <button
-          class="theme-button"
-          id="theme-toggle"
-          type="button"
-          aria-label="테마: 시스템. 다음 테마로 변경"
-        >
-          <span id="theme-label">시스템</span>
-        </button>
+        <div class="preference-cluster">
+          <div class="theme-control" data-theme-control role="group" aria-label="테마 선택">
+            <button type="button" data-theme-option="system" aria-pressed="true">
+              시스템
+            </button>
+            <button type="button" data-theme-option="light" aria-pressed="false">
+              라이트
+            </button>
+            <button type="button" data-theme-option="dark" aria-pressed="false">
+              다크
+            </button>
+          </div>
+        </div>
         <button
           class="menu-button"
           id="menu-toggle"
           type="button"
           aria-label="메뉴 열기"
+          data-open-label="메뉴 열기"
+          data-close-label="메뉴 닫기"
           aria-controls="mobile-menu"
           aria-expanded="false"
         >
@@ -126,10 +133,31 @@
       </div>
     </header>
     <div class="mobile-menu" id="mobile-menu" aria-hidden="true" inert>
-      <nav aria-label="모바일 메뉴">
-        <a href="#tools">도구 살펴보기</a>
-        <a href="#install">설치 명령 보기</a>
-        <a href="https://github.com/chann/cli-tools">GitHub에서 코드 보기</a>
+      <nav class="mobile-menu__content" aria-label="모바일 메뉴">
+        <div class="mobile-menu__links">
+          <a href="#tools">도구 살펴보기</a>
+          <a href="#install">설치 명령 보기</a>
+          <a href="https://github.com/chann/cli-tools">GitHub에서 코드 보기</a>
+        </div>
+        <div class="mobile-preferences">
+          <p id="mobile-theme-label">테마</p>
+          <div
+            class="theme-control theme-control--mobile"
+            data-theme-control
+            role="group"
+            aria-labelledby="mobile-theme-label"
+          >
+            <button type="button" data-theme-option="system" aria-pressed="true">
+              시스템
+            </button>
+            <button type="button" data-theme-option="light" aria-pressed="false">
+              라이트
+            </button>
+            <button type="button" data-theme-option="dark" aria-pressed="false">
+              다크
+            </button>
+          </div>
+        </div>
       </nav>
     </div>
     <main id="main">
@@ -198,77 +226,6 @@
       </div>
     </footer>
     <noscript>도구 탐색기와 복사 기능을 사용하려면 JavaScript가 필요합니다.</noscript>
-    <script>
-      (() => {
-        const modes = ["system", "light", "dark"];
-        const labels = { system: "시스템", light: "라이트", dark: "다크" };
-        const media = matchMedia("(prefers-color-scheme: dark)");
-        const button = document.getElementById("theme-toggle");
-        const label = document.getElementById("theme-label");
-        let mode = modes.includes(document.documentElement.dataset.themeMode)
-          ? document.documentElement.dataset.themeMode
-          : "system";
-
-        const apply = () => {
-          const resolved = mode === "system" ? (media.matches ? "dark" : "light") : mode;
-          document.documentElement.dataset.theme = resolved;
-          document.documentElement.dataset.themeMode = mode;
-          label.textContent = labels[mode];
-          button.setAttribute(
-            "aria-label",
-            `테마: ${labels[mode]}. 다음 테마로 변경`,
-          );
-          try {
-            localStorage.setItem("cli-tools-theme", mode);
-          } catch {
-            // The selected theme still applies for this visit.
-          }
-        };
-
-        button.addEventListener("click", () => {
-          mode = modes[(modes.indexOf(mode) + 1) % modes.length];
-          apply();
-        });
-        media.addEventListener("change", () => {
-          if (mode === "system") apply();
-        });
-        apply();
-
-        const menuButton = document.getElementById("menu-toggle");
-        const mobileMenu = document.getElementById("mobile-menu");
-        const closeMenu = () => {
-          document.documentElement.classList.remove("menu-open");
-          menuButton.setAttribute("aria-expanded", "false");
-          menuButton.setAttribute("aria-label", "메뉴 열기");
-          mobileMenu.setAttribute("aria-hidden", "true");
-          mobileMenu.setAttribute("inert", "");
-        };
-        const openMenu = () => {
-          document.documentElement.classList.add("menu-open");
-          menuButton.setAttribute("aria-expanded", "true");
-          menuButton.setAttribute("aria-label", "메뉴 닫기");
-          mobileMenu.setAttribute("aria-hidden", "false");
-          mobileMenu.removeAttribute("inert");
-        };
-
-        menuButton.addEventListener("click", () => {
-          if (menuButton.getAttribute("aria-expanded") === "true") {
-            closeMenu();
-          } else {
-            openMenu();
-          }
-        });
-        mobileMenu.querySelectorAll("a").forEach((link) => {
-          link.addEventListener("click", closeMenu);
-        });
-        document.addEventListener("keydown", (event) => {
-          if (event.key === "Escape" && menuButton.getAttribute("aria-expanded") === "true") {
-            closeMenu();
-            menuButton.focus();
-          }
-        });
-      })();
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
