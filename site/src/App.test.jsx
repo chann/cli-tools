@@ -20,6 +20,12 @@ describe("cli-tools website", () => {
     expect(html).toContain("https://chann.github.io/cli-tools/");
     expect(html).not.toContain("channprj.github.io");
     expect(html).not.toMatch(/[—–]/);
+
+    const header = html.match(
+      /<header class="site-header">([\s\S]*?)<\/header>/,
+    )?.[1];
+    expect(header).toContain("cli-tools");
+    expect(header).not.toContain('class="brand-mark"');
   });
 
   test("keeps the focused product visual system original and local", () => {
