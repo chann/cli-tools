@@ -23,6 +23,8 @@ Chinese. A selected language must remain active after reload.
 - Preserve the active locale across navigation and reload without a language flash.
 - Translate visible copy, interaction feedback, accessibility text, document
   metadata, structured data, and legal/error pages.
+- Apply `word-break: keep-all` to natural-language text in every locale while
+  preserving literal wrapping behavior for commands, code, and paths.
 - Preserve command names, command examples, paths, output formats, and product
   names exactly where they are part of the CLI contract.
 - Keep the existing restrained product visual system, responsive behavior,
@@ -130,6 +132,10 @@ and menu button so it remains usable at 320px without shrinking touch targets.
 
 ## Accessibility and responsive behavior
 
+- The document inherits `word-break: keep-all` so CJK phrases do not break inside
+  words. `pre`, `code`, `kbd`, and `samp` retain code-specific wrapping rules so
+  literal commands and paths remain accurate and horizontally scrollable where
+  necessary.
 - Theme options use a labelled group and explicit selected states.
 - Language selection has a localized accessible name and native keyboard behavior.
 - Focus indicators, Escape-to-close behavior, reduced motion, and existing tablist
@@ -148,8 +154,8 @@ and menu button so it remains usable at 320px without shrinking touch targets.
    selection, system-theme changes, language navigation, and storage failures.
 4. `pnpm check` runs the complete Vitest suite and production Vite build.
 5. Browser QA covers each locale, language persistence after reload, all three
-   theme modes, keyboard interaction, console errors, accessibility, and horizontal
-   overflow at desktop and narrow mobile widths.
+   theme modes, keyboard interaction, console errors, accessibility, keep-all text
+   wrapping, and horizontal overflow at desktop and narrow mobile widths.
 6. After each implementation checkpoint, push normally and prove
    `HEAD...@{u} = 0 0`.
 7. After the final push, require successful Pages build/deploy jobs and verify the
@@ -158,8 +164,9 @@ and menu button so it remains usable at 320px without shrinking touch targets.
 ## Realtime checkpoints
 
 1. `docs(site): define localization and preferences design`
-2. `fix(site): refine header and theme controls`
-3. `feat(site): add persistent locale routes`
+2. `style(site): keep natural-language text together`
+3. `fix(site): refine header and theme controls`
+4. `feat(site): add persistent locale routes`
 
 If final QA reveals a defect, the correction becomes a separate verified commit;
 published checkpoints are never rewritten.
