@@ -32,21 +32,14 @@ describe("cli-tools website", () => {
     expect(html).not.toMatch(/[—–]/);
 
     const header = page.querySelector(".site-header");
-    const themeMenus = page.querySelectorAll("[data-theme-menu]");
     expect(header.textContent).toContain("cli-tools");
     expect(header.querySelector(".brand-mark")).toBeNull();
     expect(header.querySelector(".preference-cluster")).not.toBeNull();
-    expect(themeMenus).toHaveLength(2);
-    const themeTriggers = [...page.querySelectorAll("[data-theme-trigger]")];
-    expect(themeTriggers).toHaveLength(2);
-    expect(themeTriggers.every((trigger) => !trigger.hasAttribute("aria-controls"))).toBe(
-      true,
-    );
-    expect(page.querySelectorAll('[role="menu"]')).toHaveLength(2);
-    expect(page.querySelectorAll('[data-theme-option="system"]')).toHaveLength(2);
-    expect(page.querySelectorAll('[data-theme-option="light"]')).toHaveLength(2);
-    expect(page.querySelectorAll('[data-theme-option="dark"]')).toHaveLength(2);
-    expect(page.querySelectorAll('[role="menuitemradio"]')).toHaveLength(6);
+    expect(page.querySelectorAll("[data-preference-host]")).toHaveLength(2);
+    expect(page.querySelectorAll("[data-preference-fallback]")).toHaveLength(4);
+    expect(page.getElementById("preferences-root")).not.toBeNull();
+    expect(page.querySelector("[data-theme-menu]")).toBeNull();
+    expect(page.querySelector(".language-select")).toBeNull();
     expect(page.querySelector(".mobile-menu__content").tagName).toBe("NAV");
     expect(page.querySelector(".mobile-preferences").closest("nav")).not.toBeNull();
   });

@@ -47,8 +47,12 @@ for (const locale of Object.values(expected)) {
   requireText(landing, `<html lang="${locale.lang}"`, landingPath);
   requireText(landing, locale.headline, landingPath);
   requireText(landing, `rel="canonical" href="${locale.canonical}"`, landingPath);
-  requireText(landing, "data-language-select", landingPath);
-  requireText(landing, "data-theme-menu", landingPath);
+  requireText(landing, 'data-preference-host="desktop"', landingPath);
+  requireText(landing, 'data-preference-host="mobile"', landingPath);
+  requireText(landing, 'id="preferences-root"', landingPath);
+  if (landing.includes("data-theme-menu") || landing.includes("language-select")) {
+    throw new Error(`${landingPath} still contains legacy preference markup`);
+  }
   if (landing.includes("cli-tools-locale:")) {
     throw new Error(`${landingPath} still contains its source locale marker`);
   }

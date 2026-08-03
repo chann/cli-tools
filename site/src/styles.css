@@ -1,3 +1,28 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-muted: var(--surface-muted);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--surface-muted);
+  --color-accent-foreground: var(--text);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--focus);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-ink);
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --color-destructive: var(--destructive);
+  --radius-lg: var(--radius);
+}
+
 :root {
   color-scheme: light;
   --font-display: "Geist", system-ui, sans-serif;
@@ -29,6 +54,7 @@
   --z-header: 20;
   --z-menu: 10;
   --z-skip: 40;
+  --destructive: oklch(0.577 0.245 27.325);
 }
 
 :root[data-theme="dark"] {
@@ -229,148 +255,98 @@ samp {
   background: var(--surface-muted);
 }
 
-.preference-cluster {
+.preference-host,
+.preference-controls {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.language-select {
-  width: 136px;
-  min-height: 36px;
-  padding: 6px 8px;
+.preference-control {
+  display: inline-flex;
+  align-items: center;
+}
+
+.preference-select,
+.preference-fallback select {
+  height: 36px;
   border: 1px solid var(--line);
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--surface-muted);
   color: var(--text);
   font: inherit;
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
+  transition: border-color 180ms ease, transform 180ms ease;
 }
 
-.language-select:hover,
-.language-select:focus-visible {
+.preference-select:hover,
+.preference-select[data-state="open"],
+.preference-fallback select:hover,
+.preference-fallback select:focus-visible {
   border-color: color-mix(in srgb, var(--text) 22%, var(--line));
   background: var(--surface);
 }
 
-.language-select--compact {
-  width: 52px;
-}
-
-.theme-dropdown {
-  position: relative;
-}
-
-.theme-dropdown__trigger {
-  display: inline-flex;
-  min-width: 92px;
-  min-height: 36px;
-  align-items: center;
-  gap: 6px;
-  justify-content: space-between;
-  padding: 6px 8px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface-muted);
-  color: var(--text);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
-}
-
-.theme-dropdown__trigger:hover,
-.theme-dropdown__trigger[aria-expanded="true"] {
-  background: var(--surface);
-  border-color: color-mix(in srgb, var(--text) 22%, var(--line));
-}
-
-.theme-dropdown__trigger:active {
+.preference-select:active {
   transform: scale(0.98);
 }
 
-.theme-dropdown__icon {
-  width: 11px;
-  height: 11px;
-  flex: 0 0 auto;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  box-shadow: inset -3px -2px 0 var(--surface-muted);
+.preference-fallback {
+  position: relative;
+  display: inline-flex;
 }
 
-.theme-dropdown__chevron {
+.preference-fallback select {
+  padding: 6px 32px 6px 12px;
+  appearance: none;
+}
+
+.preference-fallback::after {
+  position: absolute;
+  top: 50%;
+  right: 12px;
   width: 6px;
   height: 6px;
-  flex: 0 0 auto;
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
-  transform: translateY(-1px) rotate(45deg);
-  transition: transform 180ms ease;
-}
-
-.theme-dropdown__trigger[aria-expanded="true"] .theme-dropdown__chevron {
-  transform: translateY(2px) rotate(225deg);
-}
-
-.theme-dropdown__content {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  width: 136px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: 0 12px 32px rgb(23 23 18 / 0.14);
-}
-
-.theme-dropdown__content[hidden] {
-  display: none;
-}
-
-.theme-dropdown__content [role="group"] {
-  display: grid;
-  gap: 2px;
-}
-
-.theme-dropdown__content [role="menuitemradio"] {
-  position: relative;
-  display: flex;
-  width: 100%;
-  min-height: 32px;
-  align-items: center;
-  padding: 6px 8px 6px 28px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: 0.75rem;
-  text-align: left;
-  cursor: pointer;
-}
-
-.theme-dropdown__content [role="menuitemradio"]::before {
-  position: absolute;
-  left: 11px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--primary);
   content: "";
-  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
 }
 
-.theme-dropdown__content [role="menuitemradio"]:hover,
-.theme-dropdown__content [role="menuitemradio"]:focus-visible {
-  background: var(--surface-muted);
-  outline: none;
+.preference-fallback--compact select {
+  width: 72px;
 }
 
-.theme-dropdown__content [role="menuitemradio"][aria-checked="true"]::before {
-  opacity: 1;
+.preference-fallback--theme select {
+  width: 104px;
+}
+
+.preference-fallback--mobile select {
+  width: 136px;
+}
+
+.preference-controls--mobile {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.preference-controls--mobile .preference-control,
+.preference-host--mobile .preference-control {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.preference-control > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
 }
 
 .menu-button {
@@ -492,23 +468,6 @@ samp {
   transform: translateY(32px);
   opacity: 0;
   transition: all 700ms var(--ease-fluid) 250ms;
-}
-
-.mobile-preferences > p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-}
-
-.theme-dropdown--mobile .theme-dropdown__trigger {
-  min-width: 136px;
-}
-
-.theme-dropdown--mobile .theme-dropdown__content {
-  right: 50%;
-  transform: translateX(50%);
 }
 
 .menu-open .mobile-preferences {
@@ -1743,7 +1702,7 @@ noscript {
   }
 
   .nav-links,
-  .preference-cluster > .theme-dropdown {
+  [data-preference-host="desktop"] [data-preference-kind="theme"] {
     display: none;
   }
 

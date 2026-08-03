@@ -6,46 +6,44 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-describe("header layout density", () => {
-  test("adds quiet edge spacing and keeps the theme dropdown compact", () => {
+describe("header preference layout", () => {
+  test("keeps quiet edge spacing around the compact preference controls", () => {
     const style = document.createElement("style");
     const header = document.createElement("header");
     const nav = document.createElement("div");
     const brand = document.createElement("a");
-    const trigger = document.createElement("button");
-    const content = document.createElement("div");
+    const host = document.createElement("div");
     style.textContent = readFileSync("src/styles.css", "utf8");
     header.className = "site-header";
     nav.className = "nav-shell";
     brand.className = "brand";
-    trigger.className = "theme-dropdown__trigger";
-    content.className = "theme-dropdown__content";
-    nav.append(brand, trigger, content);
+    host.className = "preference-cluster preference-host";
+    nav.append(brand, host);
     header.append(nav);
     document.head.append(style);
     document.body.append(header);
 
-    const navStyle = getComputedStyle(nav);
-    const triggerStyle = getComputedStyle(trigger);
-    expect(navStyle.paddingLeft).toBe("10px");
-    expect(navStyle.paddingRight).toBe("10px");
+    expect(getComputedStyle(nav).paddingLeft).toBe("10px");
+    expect(getComputedStyle(nav).paddingRight).toBe("10px");
     expect(getComputedStyle(brand).paddingLeft).toBe("10px");
-    expect(parseFloat(triggerStyle.minWidth)).toBeLessThanOrEqual(96);
-    expect(triggerStyle.minHeight).toBe("36px");
-    expect(getComputedStyle(content).width).toBe("136px");
+    expect(getComputedStyle(host).gap).toBe("6px");
   });
 
-  test("styles the language selector as a compact header control", () => {
+  test("gives every fallback the shared trigger geometry and arrow inset", () => {
     const style = document.createElement("style");
+    const fallback = document.createElement("span");
     const select = document.createElement("select");
-    style.textContent = readFileSync("src/styles.css", "utf8");
-    select.className = "language-select language-select--compact";
+    const css = readFileSync("src/styles.css", "utf8");
+    style.textContent = css;
+    fallback.className = "preference-fallback preference-fallback--theme";
+    fallback.append(select);
     document.head.append(style);
-    document.body.append(select);
+    document.body.append(fallback);
 
     const selectStyle = getComputedStyle(select);
-    expect(selectStyle.width).toBe("52px");
-    expect(selectStyle.minHeight).toBe("36px");
-    expect(selectStyle.borderRadius).toBe("9px");
+    expect(selectStyle.height).toBe("36px");
+    expect(selectStyle.paddingRight).toBe("32px");
+    expect(selectStyle.borderRadius).toBe("10px");
+    expect(css).toMatch(/\.preference-fallback::after\s*{[^}]*right:\s*12px;/s);
   });
 });

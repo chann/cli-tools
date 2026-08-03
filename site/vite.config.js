@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "node:url";
 import {
   renderLanding,
@@ -48,7 +49,12 @@ function localizedPages() {
 
 export default defineConfig({
   base: "/cli-tools/",
-  plugins: [localizedPages(), react()],
+  plugins: [localizedPages(), react(), tailwindcss()],
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   build: {
     rollupOptions: {
       input: {

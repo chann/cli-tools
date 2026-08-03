@@ -29,41 +29,17 @@ function renderAlternates(documentName = "landing") {
   return links.join("\n    ");
 }
 
-function renderLanguageSelect(locale, documentName, suffix, compact = false) {
-  const messages = getMessages(locale);
-  const options = Object.entries(LOCALES)
+function renderPreferenceFallback({ ariaLabel, value, options, width, name }) {
+  const renderedOptions = options
     .map(
-      ([code, metadata]) =>
-        `<option value="${localizedPath(code, documentName)}" data-locale="${code}"${code === locale ? " selected" : ""}>${escapeHtml(compact ? metadata.shortLabel : metadata.label)}</option>`,
+      (option) =>
+        `<option value="${escapeHtml(option.value)}"${option.value === value ? " selected" : ""}>${escapeHtml(option.label)}</option>`,
     )
     .join("");
 
-  return `<select class="language-select${compact ? " language-select--compact" : ""}" data-language-select aria-label="${escapeHtml(messages.shell.languageLabel)}" id="language-${suffix}">${options}</select>`;
-}
-
-function renderThemeDropdown(messages, id, modifier = "") {
-  const choices = [
-    ["system", messages.shell.themeSystem],
-    ["light", messages.shell.themeLight],
-    ["dark", messages.shell.themeDark],
-  ];
-  const items = choices
-    .map(
-      ([mode, label]) =>
-        `<button type="button" role="menuitemradio" data-theme-option="${mode}" aria-checked="${mode === "system"}">${escapeHtml(label)}</button>`,
-    )
-    .join("");
-
-  return `<div class="theme-dropdown${modifier}" data-theme-menu>
-            <button class="theme-dropdown__trigger" type="button" data-theme-trigger aria-haspopup="menu" aria-expanded="false">
-              <span class="theme-dropdown__icon" aria-hidden="true"></span>
-              <span data-theme-current>${escapeHtml(messages.shell.themeSystem)}</span>
-              <span class="theme-dropdown__chevron" aria-hidden="true"></span>
-            </button>
-            <div class="theme-dropdown__content" id="${id}" role="menu" aria-label="${escapeHtml(messages.shell.themeLabel)}" hidden>
-              <div role="group" aria-label="${escapeHtml(messages.shell.themeLabel)}">${items}</div>
-            </div>
-          </div>`;
+  return `<span class="preference-fallback preference-fallback--${width}" data-preference-fallback>
+              <select aria-label="${escapeHtml(ariaLabel)}" name="${escapeHtml(name)}">${renderedOptions}</select>
+            </span>`;
 }
 
 function renderThemeBootstrap() {
@@ -101,6 +77,18 @@ export function renderLanding(locale = "ko") {
   const metadata = LOCALES[activeLocale];
   const messages = getMessages(activeLocale);
   const canonical = absoluteLocalizedUrl(activeLocale);
+  const compactLanguageOptions = Object.entries(LOCALES).map(
+    ([value, option]) => ({ value, label: option.shortLabel }),
+  );
+  const fullLanguageOptions = Object.entries(LOCALES).map(([value, option]) => ({
+    value,
+    label: option.label,
+  }));
+  const themeOptions = [
+    { value: "system", label: messages.shell.themeSystem },
+    { value: "light", label: messages.shell.themeLight },
+    { value: "dark", label: messages.shell.themeDark },
+  ];
 
   return `<!doctype html>
 <html lang="${metadata.htmlLang}" data-locale="${activeLocale}">
@@ -140,9 +128,13 @@ export function renderLanding(locale = "ko") {
           <a href="#install">${escapeHtml(messages.shell.navInstall)}</a>
           <a href="https://github.com/chann/cli-tools">GitHub</a>
         </nav>
-        <div class="preference-cluster">
-          ${renderLanguageSelect(activeLocale, "landing", "desktop", true)}
-          ${renderThemeDropdown(messages, "theme-menu-desktop")}
+        <div class="preference-cluster preference-host" data-preference-host="desktop">
+          <div class="preference-control" data-preference-kind="language">
+            ${renderPreferenceFallback({ ariaLabel: messages.shell.languageLabel, value: activeLocale, options: compactLanguageOptions, width: "compact", name: "language-desktop" })}
+          </div>
+          <div class="preference-control" data-preference-kind="theme">
+            ${renderPreferenceFallback({ ariaLabel: messages.shell.themeLabel, value: "system", options: themeOptions, width: "theme", name: "theme-desktop" })}
+          </div>
         </div>
         <button class="menu-button" id="menu-toggle" type="button" aria-label="${escapeHtml(messages.shell.menuOpen)}" data-open-label="${escapeHtml(messages.shell.menuOpen)}" data-close-label="${escapeHtml(messages.shell.menuClose)}" aria-controls="mobile-menu" aria-expanded="false">
           <span aria-hidden="true"></span><span aria-hidden="true"></span>
@@ -156,14 +148,19 @@ export function renderLanding(locale = "ko") {
           <a href="#install">${escapeHtml(messages.hero.action)}</a>
           <a href="https://github.com/chann/cli-tools">${escapeHtml(messages.shell.viewGitHub)}</a>
         </div>
-        <div class="mobile-preferences">
-          <p>${escapeHtml(messages.shell.languageLabel)}</p>
-          ${renderLanguageSelect(activeLocale, "landing", "mobile")}
-          <p>${escapeHtml(messages.shell.themeTitle)}</p>
-          ${renderThemeDropdown(messages, "theme-menu-mobile", " theme-dropdown--mobile")}
+        <div class="mobile-preferences preference-host preference-host--mobile" data-preference-host="mobile">
+          <div class="preference-control" data-preference-kind="language">
+            <p>${escapeHtml(messages.shell.languageLabel)}</p>
+            ${renderPreferenceFallback({ ariaLabel: messages.shell.languageLabel, value: activeLocale, options: fullLanguageOptions, width: "mobile", name: "language-mobile" })}
+          </div>
+          <div class="preference-control" data-preference-kind="theme">
+            <p>${escapeHtml(messages.shell.themeTitle)}</p>
+            ${renderPreferenceFallback({ ariaLabel: messages.shell.themeLabel, value: "system", options: themeOptions, width: "mobile", name: "theme-mobile" })}
+          </div>
         </div>
       </nav>
     </div>
+    <div id="preferences-root"></div>
     <main id="main">
       <section class="hero" id="top">
         <div class="hero__inner">

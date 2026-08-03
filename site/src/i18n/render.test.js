@@ -23,9 +23,12 @@ describe("localized static rendering", () => {
     expect(html).toContain(`>${messages.hero.title[1]}<`);
     expect(html).toContain('rel="alternate" hreflang="ko"');
     expect(html).toContain('rel="alternate" hreflang="x-default"');
-    expect(html).toContain('data-theme-menu');
-    expect(html).toContain('role="menuitemradio"');
-    expect(html).toContain('data-language-select');
+    expect(html).toContain('data-preference-host="desktop"');
+    expect(html).toContain('data-preference-host="mobile"');
+    expect(html).toContain('data-preference-fallback');
+    expect(html).toContain('id="preferences-root"');
+    expect(html).not.toContain('data-theme-menu');
+    expect(html).not.toContain('language-select');
     expect(html).toContain('type="application/ld+json"');
     expect(html).toContain(localizedPath(locale, "privacy"));
     expect(html).not.toMatch(/\{\{[^}]+\}\}/);
