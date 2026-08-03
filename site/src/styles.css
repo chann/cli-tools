@@ -71,6 +71,7 @@ body {
   font-size: 16px;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
+  word-break: keep-all;
 }
 
 body > * {
@@ -98,9 +99,11 @@ img {
 
 code,
 pre,
-kbd {
+kbd,
+samp {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  word-break: normal;
 }
 
 ::selection {

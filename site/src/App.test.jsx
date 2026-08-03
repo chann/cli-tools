@@ -44,6 +44,20 @@ describe("cli-tools website", () => {
     expect(css).not.toContain("paperclip");
   });
 
+  test("keeps prose together without changing literal code wrapping", () => {
+    const style = document.createElement("style");
+    const code = document.createElement("code");
+    style.textContent = readFileSync("src/styles.css", "utf8");
+    document.head.append(style);
+    document.body.append(code);
+
+    expect(getComputedStyle(document.body).wordBreak).toBe("keep-all");
+    expect(getComputedStyle(code).wordBreak).toBe("normal");
+
+    code.remove();
+    style.remove();
+  });
+
   test("uses the #4AF626 primary across themes and branded surfaces", () => {
     const css = readFileSync("src/styles.css", "utf8");
     const legalCss = readFileSync("public/legal.css", "utf8");
