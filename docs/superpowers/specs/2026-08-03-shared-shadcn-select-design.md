@@ -161,7 +161,8 @@ Storage failures never block the current visual change or language navigation.
 ## Realtime checkpoints
 
 1. `docs(site): design shared shadcn selects`
-2. `refactor(site): share shadcn preference selects`
+2. `docs(site): plan shared shadcn selects`
+3. `refactor(site): share shadcn preference selects`
 
 Any correction discovered after publication becomes a new verified commit; no
 pushed checkpoint is rewritten.
