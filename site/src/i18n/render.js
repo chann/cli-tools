@@ -89,6 +89,7 @@ export function renderLanding(locale = "ko") {
     { value: "light", label: messages.shell.themeLight },
     { value: "dark", label: messages.shell.themeDark },
   ];
+  const footerWordmark = "cli-tools";
 
   return `<!doctype html>
 <html lang="${metadata.htmlLang}" data-locale="${activeLocale}">
@@ -196,6 +197,14 @@ export function renderLanding(locale = "ko") {
           <a href="https://github.com/chann/cli-tools/blob/main/LICENSE">License</a>
           <a href="https://github.com/chann/cli-tools">GitHub</a>
         </nav>
+      </div>
+      <div class="site-footer__word" data-footer-wordmark aria-hidden="true">
+        ${[...footerWordmark]
+          .map(
+            (letter, index) =>
+              `<span style="--wordmark-index: ${index}">${escapeHtml(letter)}</span>`,
+          )
+          .join("")}
       </div>
     </footer>
     <noscript>${escapeHtml(messages.shell.noScript)}</noscript>

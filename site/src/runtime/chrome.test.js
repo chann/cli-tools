@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { initChrome } from "./chrome";
 
 function renderChrome() {
@@ -54,6 +54,46 @@ describe("site chrome", () => {
 
     expect(document.documentElement.classList.contains("menu-open")).toBe(false);
     expect(document.activeElement).toBe(button);
+    cleanup();
+  });
+
+  test("reveals the footer wordmark once it enters the viewport", () => {
+    const wordmark = document.createElement("div");
+    wordmark.dataset.footerWordmark = "";
+    document.body.append(wordmark);
+
+    let handleIntersection;
+    const observe = vi.fn();
+    const disconnect = vi.fn();
+    const IntersectionObserver = vi.fn(function MockObserver(callback) {
+      handleIntersection = callback;
+      this.observe = observe;
+      this.disconnect = disconnect;
+    });
+
+    const cleanup = initChrome({ document, IntersectionObserver });
+
+    expect(IntersectionObserver).toHaveBeenCalledWith(expect.any(Function), {
+      threshold: 0.2,
+    });
+    expect(observe).toHaveBeenCalledWith(wordmark);
+    expect(wordmark.hasAttribute("data-visible")).toBe(false);
+
+    handleIntersection([{ isIntersecting: true, target: wordmark }]);
+
+    expect(wordmark.hasAttribute("data-visible")).toBe(true);
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    cleanup();
+  });
+
+  test("shows the footer wordmark when IntersectionObserver is unavailable", () => {
+    const wordmark = document.createElement("div");
+    wordmark.dataset.footerWordmark = "";
+    document.body.append(wordmark);
+
+    const cleanup = initChrome({ document, IntersectionObserver: null });
+
+    expect(wordmark.hasAttribute("data-visible")).toBe(true);
     cleanup();
   });
 });

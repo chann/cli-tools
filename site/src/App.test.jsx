@@ -135,6 +135,21 @@ describe("cli-tools website", () => {
     expect(notFound).toContain("페이지를 찾을 수 없습니다");
   });
 
+  test("renders the footer wordmark as a decorative letter sequence", () => {
+    const page = new DOMParser().parseFromString(renderLanding("ko"), "text/html");
+    const wordmark = page.querySelector("[data-footer-wordmark]");
+    const letters = [...wordmark.querySelectorAll("span")];
+
+    expect(wordmark.getAttribute("aria-hidden")).toBe("true");
+    expect(wordmark.textContent.trim()).toBe("cli-tools");
+    expect(letters).toHaveLength(9);
+    expect(
+      letters.map((letter) =>
+        letter.style.getPropertyValue("--wordmark-index"),
+      ),
+    ).toEqual(["0", "1", "2", "3", "4", "5", "6", "7", "8"]);
+  });
+
   test("introduces every binary and switches to its real usage examples", async () => {
     const user = userEvent.setup();
     renderApp();
