@@ -154,6 +154,10 @@ describe("cli-tools website", () => {
     const user = userEvent.setup();
     renderApp();
 
+    expect(
+      screen.getByRole("heading", { name: "다섯 가지의 주요 도구." }),
+    ).toBeTruthy();
+
     for (const name of [
       "code-cost",
       "work-summary",

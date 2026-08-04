@@ -125,7 +125,7 @@ const ko = createCatalog({
   },
   explorer: {
     label: "03 / 도구 모음",
-    title: "다섯 도구, 한 작업 흐름.",
+    title: "다섯 가지의 주요 도구.",
     description:
       "도구를 선택하면 실제 옵션과 바로 실행할 수 있는 예시를 확인할 수 있습니다.",
     tabsLabel: "CLI 도구 선택",
