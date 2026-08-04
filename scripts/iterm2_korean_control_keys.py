@@ -34,6 +34,10 @@ BACKUP_ROOT = (
 )
 EXPECTED_ITERM_VERSION = "3.6.11"
 CUSTOM_PREFERENCES_KEY = "LoadPrefsFromCustomFolder"
+BOOLEAN_PREFERENCE_KEYS = {
+    LANGUAGE_AGNOSTIC_KEY,
+    CUSTOM_PREFERENCES_KEY,
+}
 
 
 class MigrationError(RuntimeError):
@@ -132,11 +136,22 @@ class ItermPreferenceClient:
                 response.preferences_response.results[0]
                 .get_preference_result.json_value
             )
-            return json.loads(raw)
+            value = json.loads(raw)
         except (AttributeError, IndexError, TypeError, json.JSONDecodeError) as error:
             raise MigrationError(
                 f"iTerm2 returned an invalid value for {key}"
             ) from error
+        if key in BOOLEAN_PREFERENCE_KEYS:
+            if value is None:
+                return False
+            if isinstance(value, bool):
+                return value
+            if type(value) is int and value in {0, 1}:
+                return bool(value)
+            raise MigrationError(
+                f"iTerm2 returned a non-boolean value for {key}"
+            )
+        return value
 
     async def set_preference(self, key: str, value: Any) -> None:
         await self.iterm2.async_set_preference(
@@ -208,6 +223,8 @@ async def build_snapshot(
     persisted, persisted_value = language_agnostic_persistence(
         preference_export
     )
+    if effective_flag is None and not persisted:
+        effective_flag = False
     try:
         exported_preferences = plistlib.loads(preference_export)
         exported_map = exported_preferences[GLOBAL_MAP_KEY]

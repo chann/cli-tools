@@ -447,6 +447,37 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
                 plistlib.dumps({"GlobalKeyMap": load_fixture()}),
             )
 
+    async def test_adapter_normalizes_numeric_boolean_preferences(self):
+        class NumericBooleanRPC:
+            @staticmethod
+            async def async_get_preference(connection, key):
+                values = {
+                    "LanguageAgnosticKeyBindings": "0",
+                    "LoadPrefsFromCustomFolder": "1",
+                }
+                result = types.SimpleNamespace(
+                    get_preference_result=types.SimpleNamespace(
+                        json_value=values[key]
+                    )
+                )
+                return types.SimpleNamespace(
+                    preferences_response=types.SimpleNamespace(results=[result])
+                )
+
+        client = module.ItermPreferenceClient(
+            types.SimpleNamespace(rpc=NumericBooleanRPC),
+            "connection",
+        )
+
+        self.assertIs(
+            await client.get_preference("LanguageAgnosticKeyBindings"),
+            False,
+        )
+        self.assertIs(
+            await client.get_preference("LoadPrefsFromCustomFolder"),
+            True,
+        )
+
     async def test_snapshot_rejects_export_and_api_map_mismatch(self):
         client = FakePreferenceClient()
         exported_map = load_fixture()
@@ -458,6 +489,23 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
                 "3.6.11",
                 plistlib.dumps({"GlobalKeyMap": exported_map}),
             )
+
+    async def test_snapshot_treats_raw_null_as_false_when_key_is_absent(self):
+        class RawAbsentClient(FakePreferenceClient):
+            async def get_preference(self, key):
+                if key == "LanguageAgnosticKeyBindings":
+                    return None
+                return await super().get_preference(key)
+
+        snapshot = await module.build_snapshot(
+            RawAbsentClient(),
+            "3.6.11",
+            plistlib.dumps({"GlobalKeyMap": load_fixture()}),
+        )
+
+        self.assertFalse(snapshot.language_agnostic_effective)
+        self.assertFalse(snapshot.language_agnostic_persisted)
+        self.assertIsNone(snapshot.language_agnostic_persisted_value)
 
 
 class CommandParserTests(unittest.TestCase):
