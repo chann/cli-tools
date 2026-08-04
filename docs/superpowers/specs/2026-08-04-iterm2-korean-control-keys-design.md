@@ -1,7 +1,7 @@
 # iTerm2 Korean Control Keys Design
 
 Date: 2026-08-04
-Status: Pending written-spec review
+Status: Approved
 
 ## Context
 
