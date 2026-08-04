@@ -155,7 +155,9 @@ describe("cli-tools website", () => {
     renderApp();
 
     expect(
-      screen.getByRole("heading", { name: "다섯 가지의 주요 도구." }),
+      screen.getByRole("heading", {
+        name: "5가지 재미있는 도구, 그리고 실용성까지.",
+      }),
     ).toBeTruthy();
 
     for (const name of [
