@@ -4,6 +4,10 @@
 *.pdb
 Cargo.lock
 
+# Python
+__pycache__/
+*.pyc
+
 # IDE
 .idea/
 .vscode/

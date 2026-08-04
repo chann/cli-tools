@@ -1,0 +1,16 @@
+{
+  "0x3d-0x140000-0x18": {
+    "Action": 25,
+    "Apply Mode": 0,
+    "Escaping": 2,
+    "Text": "Arrange Split Panes Evenly\\nArrange Split Panes Evenly",
+    "Version": 2
+  },
+  "0xd-0x20000-0x24": {
+    "Action": 12,
+    "Keycode": 13,
+    "Modifiers": 131072,
+    "Text": "\\\\n",
+    "Version": 1
+  }
+}
