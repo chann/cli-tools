@@ -12,7 +12,7 @@
 
 - Keep the current localized tagline copy and its intentional two-line layout.
 - Render exactly one literal space between adjacent words, including the boundary between authored lines, and no trailing space after the final word.
-- Use scroll-progress opacity from `0.22` to `1` with offsets `start 0.85` and `end 0.5`.
+- Use scroll-progress opacity from `0.48` to `1` with offsets `start 0.85` and `end 0.5`; `0.48` keeps the muted light-theme text above the WCAG large-text contrast floor.
 - Preserve `word-break: keep-all`, light/dark tokens, responsive typography, and every section outside the tagline.
 - When `prefers-reduced-motion` is active, attach no animated opacity style and render every word fully visible.
 - Add no dependency and no new animation outside the tagline.
@@ -26,6 +26,7 @@
 - `site/src/App.test.jsx`: lock exact text spacing, word count, reduced-motion output, and removal of synthetic spacing.
 - `site/src/App.motion.test.jsx`: exercise the real default-motion render and lock each word's pre-reveal opacity.
 - `site/src/styles.css`: keep word boxes inline while removing margin-based fake spaces.
+- `site/src/test/setup.js`: mirror Motion's actual reduced-motion media query in the shared test environment.
 
 ---
 
@@ -36,6 +37,7 @@
 - Modify: `site/src/App.test.jsx:176-187`
 - Create: `site/src/App.motion.test.jsx`
 - Modify: `site/src/styles.css:830-859`
+- Modify: `site/src/test/setup.js:11-22`
 
 **Interfaces:**
 - Consumes: `messages.tagline.lines: string[][]`, `useReducedMotion(): boolean | null`, Motion's `useScroll({ target, offset })`, and `useTransform(progress, range, output)`.
@@ -110,9 +112,10 @@ test("starts each tagline word at muted opacity when motion is allowed", async (
     "터미널을 떠나지 않고, 분석하고 정리하고 다음 작업으로.",
   );
   await waitFor(() => {
-    expect(words.map((word) => word.style.opacity)).toEqual(
-      Array(7).fill("0.22"),
-    );
+    const opacities = words.map((word) => Number(word.style.opacity));
+
+    expect(opacities.every((opacity) => opacity >= 0.48)).toBe(true);
+    expect(opacities.every((opacity) => opacity < 1)).toBe(true);
   });
 });
 ```
@@ -148,7 +151,7 @@ Insert this focused component directly before `TaglineReveal`:
 
 ```jsx
 function TaglineWord({ children, progress, range, animate }) {
-  const opacity = useTransform(progress, range, [0.22, 1]);
+  const opacity = useTransform(progress, range, [0.48, 1]);
 
   return (
     <motion.span
@@ -305,7 +308,7 @@ Open `http://127.0.0.1:4173/cli-tools/` at 1440x900 and 375x812. At each width:
    `터미널을 떠나지 않고, 분석하고 정리하고 다음 작업으로.`
 2. Capture word opacity before the section enters, while it crosses the configured
    range, and after it completes; confirm the seven values advance sequentially
-   from approximately `0.22` to `1` and reverse when scrolling upward.
+   from approximately `0.48` to `1` and reverse when scrolling upward.
 3. Confirm the two authored lines remain intact, page horizontal overflow is `0`,
    and the browser console contains no error.
 4. Repeat in resolved light and dark themes.
