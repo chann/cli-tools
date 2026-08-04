@@ -35,6 +35,14 @@ describe("shadcn Select foundation", () => {
     );
   });
 
+  test("keeps focused dropdown items ringless", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+
+    expect(css).toMatch(
+      /\[data-slot="select-item"\]:focus-visible\s*{[^}]*outline:\s*none;[^}]*box-shadow:\s*none;/s,
+    );
+  });
+
   test("bridges shadcn colors to existing semantic tokens", () => {
     const css = readFileSync("src/styles.css", "utf8");
     expect(css).toContain('@import "tailwindcss"');

@@ -296,6 +296,11 @@ samp {
   box-shadow: none;
 }
 
+[data-slot="select-item"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .preference-select:active {
   transform: scale(0.98);
 }
