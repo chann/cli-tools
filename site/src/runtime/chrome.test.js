@@ -57,7 +57,7 @@ describe("site chrome", () => {
     cleanup();
   });
 
-  test("reveals the footer wordmark once it enters the viewport", () => {
+  test("replays the footer wordmark when it re-enters the viewport", () => {
     const wordmark = document.createElement("div");
     wordmark.dataset.footerWordmark = "";
     document.body.append(wordmark);
@@ -79,11 +79,26 @@ describe("site chrome", () => {
     expect(observe).toHaveBeenCalledWith(wordmark);
     expect(wordmark.hasAttribute("data-visible")).toBe(false);
 
-    handleIntersection([{ isIntersecting: true, target: wordmark }]);
+    handleIntersection([
+      { intersectionRatio: 0.2, isIntersecting: true, target: wordmark },
+    ]);
 
     expect(wordmark.hasAttribute("data-visible")).toBe(true);
-    expect(disconnect).toHaveBeenCalledTimes(1);
+
+    handleIntersection([
+      { intersectionRatio: 0.1, isIntersecting: true, target: wordmark },
+    ]);
+
+    expect(wordmark.hasAttribute("data-visible")).toBe(false);
+
+    handleIntersection([
+      { intersectionRatio: 0.2, isIntersecting: true, target: wordmark },
+    ]);
+
+    expect(wordmark.hasAttribute("data-visible")).toBe(true);
+    expect(disconnect).not.toHaveBeenCalled();
     cleanup();
+    expect(disconnect).toHaveBeenCalledTimes(1);
   });
 
   test("shows the footer wordmark when IntersectionObserver is unavailable", () => {

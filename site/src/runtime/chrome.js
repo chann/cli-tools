@@ -1,3 +1,5 @@
+const FOOTER_WORDMARK_VISIBILITY_THRESHOLD = 0.2;
+
 export function initChrome({
   document = window.document,
   IntersectionObserver = document.defaultView?.IntersectionObserver,
@@ -57,17 +59,19 @@ export function initChrome({
     if (typeof IntersectionObserver === "function") {
       footerWordmarkObserver = new IntersectionObserver(
         (entries) => {
-          if (
-            entries.some(
-              (entry) => entry.target === footerWordmark && entry.isIntersecting,
-            )
-          ) {
-            footerWordmark.setAttribute("data-visible", "");
-            footerWordmarkObserver?.disconnect();
-            footerWordmarkObserver = undefined;
-          }
+          const wordmarkEntry = entries.find(
+            (entry) => entry.target === footerWordmark,
+          );
+          if (!wordmarkEntry) return;
+
+          footerWordmark.toggleAttribute(
+            "data-visible",
+            wordmarkEntry.isIntersecting &&
+              wordmarkEntry.intersectionRatio >=
+                FOOTER_WORDMARK_VISIBILITY_THRESHOLD,
+          );
         },
-        { threshold: 0.2 },
+        { threshold: FOOTER_WORDMARK_VISIBILITY_THRESHOLD },
       );
       footerWordmarkObserver.observe(footerWordmark);
     } else {
