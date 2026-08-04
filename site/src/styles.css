@@ -1637,7 +1637,7 @@ samp {
 
 .site-footer__word[data-visible] span {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(-0.08em);
 }
 
 noscript {
