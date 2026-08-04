@@ -7,8 +7,14 @@ import {
   ClipboardText,
   GitBranch,
 } from "@phosphor-icons/react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "motion/react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "./i18n/context";
 
 function CodeBlock({ code, label }) {
@@ -135,40 +141,62 @@ function BenefitsSection() {
   );
 }
 
+function TaglineWord({ children, progress, range, animate }) {
+  const opacity = useTransform(progress, range, [0.48, 1]);
+
+  return (
+    <motion.span
+      className="tagline__word"
+      style={animate ? { opacity } : undefined}
+    >
+      {children}
+    </motion.span>
+  );
+}
+
 function TaglineReveal() {
   const reduceMotion = useReducedMotion();
   const { messages } = useI18n();
   const taglineLines = messages.tagline.lines;
+  const taglineRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: taglineRef,
+    offset: ["start 0.85", "end 0.5"],
+  });
+  const wordCount = taglineLines.reduce(
+    (total, words) => total + words.length,
+    0,
+  );
+  let globalWordIndex = 0;
 
   return (
     <section className="tagline section-shell" aria-labelledby="tagline-heading">
-      <h2 className="tagline__copy" id="tagline-heading">
-        {taglineLines.map((line, lineIndex) => {
-          const offset = taglineLines
-            .slice(0, lineIndex)
-            .reduce((total, words) => total + words.length, 0);
+      <h2 className="tagline__copy" id="tagline-heading" ref={taglineRef}>
+        {taglineLines.map((line, lineIndex) => (
+          <Fragment key={line.join(" ")}>
+            <span className="tagline__line">
+              {line.map((word, wordIndexInLine) => {
+                const wordIndex = globalWordIndex;
+                globalWordIndex += 1;
+                const isLastWordInLine = wordIndexInLine === line.length - 1;
 
-          return (
-            <span className="tagline__line" key={line.join(" ")}>
-              {line.map((word, wordIndex) => (
-                <motion.span
-                  className="tagline__word"
-                  key={word}
-                  initial={reduceMotion ? false : { color: "var(--tagline-muted)" }}
-                  whileInView={{ color: "var(--text)" }}
-                  viewport={{ once: true, amount: 0.8 }}
-                  transition={{
-                    duration: reduceMotion ? 0 : 0.8,
-                    delay: reduceMotion ? 0 : (offset + wordIndex) * 0.08,
-                    ease: [0.32, 0.72, 0, 1],
-                  }}
-                >
-                  {word}
-                </motion.span>
-              ))}
+                return (
+                  <Fragment key={`${word}-${wordIndex}`}>
+                    <TaglineWord
+                      progress={scrollYProgress}
+                      range={[wordIndex / wordCount, globalWordIndex / wordCount]}
+                      animate={!reduceMotion}
+                    >
+                      {word}
+                    </TaglineWord>
+                    {isLastWordInLine ? null : " "}
+                  </Fragment>
+                );
+              })}
             </span>
-          );
-        })}
+            {lineIndex === taglineLines.length - 1 ? null : " "}
+          </Fragment>
+        ))}
       </h2>
     </section>
   );

@@ -182,12 +182,36 @@ describe("cli-tools website", () => {
       }),
     ).toBeTruthy();
     expect(container.querySelectorAll(".benefit-grid article")).toHaveLength(4);
-    expect(container.querySelectorAll(".tagline__word")).toHaveLength(7);
+    const tagline = screen.getByRole("heading", {
+      name: "터미널을 떠나지 않고, 분석하고 정리하고 다음 작업으로.",
+    });
+    const taglineWords = [...container.querySelectorAll(".tagline__word")];
+
+    expect(tagline.textContent).toBe(
+      "터미널을 떠나지 않고, 분석하고 정리하고 다음 작업으로.",
+    );
+    expect(taglineWords).toHaveLength(7);
+    expect(taglineWords.every((word) => word.style.opacity === "")).toBe(true);
     expect(container.querySelectorAll(".workflow-list li")).toHaveLength(3);
     expect(container.querySelectorAll(".faq-list dt")).toHaveLength(6);
 
     const finalAction = screen.getByRole("link", { name: /설치 명령 보기/ });
     expect(finalAction.getAttribute("href")).toBe("#install");
+  });
+
+  test("uses literal spaces instead of CSS margins between tagline words", () => {
+    const style = document.createElement("style");
+    style.textContent = readFileSync("src/styles.css", "utf8");
+    document.head.append(style);
+
+    try {
+      const { container } = renderApp();
+      const firstWord = container.querySelector(".tagline__word");
+
+      expect(Number.parseFloat(getComputedStyle(firstWord).marginRight)).toBe(0);
+    } finally {
+      style.remove();
+    }
   });
 
   test("copies commands and exposes success feedback", async () => {

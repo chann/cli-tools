@@ -11,7 +11,7 @@ afterEach(() => {
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
-    matches: query === "(prefers-reduced-motion: reduce)",
+    matches: query === "(prefers-reduced-motion)",
     media: query,
     onchange: null,
     addEventListener: vi.fn(),

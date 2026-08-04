@@ -47,7 +47,6 @@
   --terminal-line: #313131;
   --terminal-text: #f4f4ef;
   --focus: #1f7410;
-  --tagline-muted: #66655f;
   --radius: 16px;
   --radius-small: 8px;
   --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
@@ -74,7 +73,6 @@
   --accent-soft: #193d11;
   --accent-ink: #4AF626;
   --focus: #4AF626;
-  --tagline-muted: #a5a69f;
 }
 
 * {
@@ -851,11 +849,6 @@ samp {
 
 .tagline__word {
   display: inline-block;
-  margin-right: 12px;
-}
-
-.tagline__word:last-child {
-  margin-right: 0;
 }
 
 .install > .code-block {
