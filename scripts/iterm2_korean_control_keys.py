@@ -118,13 +118,22 @@ class PreferenceClient(Protocol):
 
     async def set_preference(self, key: str, value: Any) -> None: ...
 
+    async def unset_preference(self, key: str) -> None: ...
+
     async def profile_maps(self) -> dict[str, dict[str, Any]]: ...
 
 
 class ItermPreferenceClient:
-    def __init__(self, iterm2_module: Any, connection: Any):
+    def __init__(
+        self,
+        iterm2_module: Any,
+        connection: Any,
+        *,
+        delete_persisted: Any = None,
+    ):
         self.iterm2 = iterm2_module
         self.connection = connection
+        self._delete_persisted = delete_persisted
 
     async def get_preference(self, key: str) -> Any:
         response = await self.iterm2.rpc.async_get_preference(
@@ -159,6 +168,13 @@ class ItermPreferenceClient:
             key,
             value,
         )
+
+    async def unset_preference(self, key: str) -> None:
+        await self.set_preference(key, False)
+        delete = self._delete_persisted or delete_persisted_preference
+        delete(key)
+        if await self.get_preference(key) is not False:
+            raise MigrationError("The unset preference did not read back as false")
 
     async def profile_maps(self) -> dict[str, dict[str, Any]]:
         profiles = await self.iterm2.PartialProfile.async_query(
@@ -326,6 +342,32 @@ def export_persistent_domain(*, run: Any = subprocess.run) -> bytes:
     if not completed.stdout:
         raise MigrationError("The iTerm2 preference export is empty")
     return completed.stdout
+
+
+def delete_persisted_preference(
+    key: str,
+    *,
+    run: Any = subprocess.run,
+    export: Any = export_persistent_domain,
+) -> None:
+    if key != LANGUAGE_AGNOSTIC_KEY:
+        raise MigrationError("Refusing to delete an unapproved preference key")
+    try:
+        run(
+            [
+                "/usr/bin/defaults",
+                "delete",
+                "com.googlecode.iterm2",
+                key,
+            ],
+            check=False,
+            capture_output=True,
+        )
+    except OSError as error:
+        raise MigrationError("Could not delete the persisted preference") from error
+    persisted, _ = language_agnostic_persistence(export())
+    if persisted:
+        raise MigrationError("The persisted preference deletion did not verify")
 
 
 def _print_plan(
@@ -712,12 +754,13 @@ async def _restore_snapshot(
     snapshot: PreferenceSnapshot,
 ) -> None:
     await client.set_preference(GLOBAL_MAP_KEY, snapshot.global_map)
-    original_flag = (
-        snapshot.language_agnostic_persisted_value
-        if snapshot.language_agnostic_persisted
-        else None
-    )
-    await client.set_preference(LANGUAGE_AGNOSTIC_KEY, original_flag)
+    if snapshot.language_agnostic_persisted:
+        await client.set_preference(
+            LANGUAGE_AGNOSTIC_KEY,
+            snapshot.language_agnostic_persisted_value,
+        )
+    else:
+        await client.unset_preference(LANGUAGE_AGNOSTIC_KEY)
     restored_map = await client.get_preference(GLOBAL_MAP_KEY)
     restored_flag = await client.get_preference(LANGUAGE_AGNOSTIC_KEY)
     if (
@@ -789,12 +832,13 @@ async def restore_configuration(
     try:
         await client.set_preference(GLOBAL_MAP_KEY, restored_map)
         if map_matches_original:
-            restored_flag = (
-                receipt.original_language_agnostic_value
-                if receipt.original_language_agnostic_persisted
-                else None
-            )
-            await client.set_preference(LANGUAGE_AGNOSTIC_KEY, restored_flag)
+            if receipt.original_language_agnostic_persisted:
+                await client.set_preference(
+                    LANGUAGE_AGNOSTIC_KEY,
+                    receipt.original_language_agnostic_value,
+                )
+            else:
+                await client.unset_preference(LANGUAGE_AGNOSTIC_KEY)
 
         verified_map = await client.get_preference(GLOBAL_MAP_KEY)
         verified_flag = await client.get_preference(LANGUAGE_AGNOSTIC_KEY)

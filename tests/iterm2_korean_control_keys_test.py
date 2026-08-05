@@ -61,6 +61,14 @@ class FakePreferenceClient:
         else:
             self.values[key] = copy.deepcopy(value)
 
+    async def unset_preference(self, key):
+        self.write_attempts += 1
+        if self.write_attempts == self.fail_on_write:
+            self.fail_on_write = None
+            raise RuntimeError(f"injected write failure {self.write_attempts}")
+        self.writes.append((key, None))
+        self.values.pop(key, None)
+
     async def profile_maps(self):
         return copy.deepcopy(self._profile_maps)
 
@@ -308,6 +316,32 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.values["GlobalKeyMap"], snapshot.global_map)
         self.assertNotIn("LanguageAgnosticKeyBindings", client.values)
 
+    async def test_apply_compensation_uses_exact_unset_for_absent_flag(self):
+        class ExactUnsetClient(FakePreferenceClient):
+            def __init__(self):
+                super().__init__(fail_on_write=2)
+                self.unsets = []
+
+            async def set_preference(self, key, value):
+                if value is None:
+                    raise AssertionError("generic API cannot unset")
+                await super().set_preference(key, value)
+
+            async def unset_preference(self, key):
+                self.unsets.append(key)
+                self.values.pop(key, None)
+
+        client = ExactUnsetClient()
+        snapshot = await client.snapshot()
+        plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
+
+        with self.assertRaisesRegex(module.MigrationError, "were restored"):
+            await module.apply_configuration(client, snapshot, plan)
+
+        self.assertEqual(client.values["GlobalKeyMap"], snapshot.global_map)
+        self.assertNotIn("LanguageAgnosticKeyBindings", client.values)
+        self.assertEqual(client.unsets, ["LanguageAgnosticKeyBindings"])
+
     async def test_stale_map_aborts_before_first_write(self):
         client = FakePreferenceClient()
         snapshot = await client.snapshot()
@@ -337,6 +371,36 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("LanguageAgnosticKeyBindings", client.values)
         self.assertTrue(result.language_agnostic_restored)
         self.assertIsNone(result.warning)
+
+    async def test_restore_uses_exact_unset_for_absent_flag(self):
+        class ExactUnsetClient(FakePreferenceClient):
+            def __init__(self, snapshot):
+                super().__init__(snapshot)
+                self.unsets = []
+
+            async def set_preference(self, key, value):
+                if value is None:
+                    raise AssertionError("generic API cannot unset")
+                await super().set_preference(key, value)
+
+            async def unset_preference(self, key):
+                self.unsets.append(key)
+                self.values.pop(key, None)
+
+        snapshot = sample_snapshot()
+        plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
+        client = ExactUnsetClient(snapshot)
+        client.values["GlobalKeyMap"] = copy.deepcopy(plan.after)
+        client.values["LanguageAgnosticKeyBindings"] = True
+
+        result = await module.restore_configuration(
+            client, receipt_for(snapshot, plan)
+        )
+
+        self.assertEqual(client.values["GlobalKeyMap"], snapshot.global_map)
+        self.assertNotIn("LanguageAgnosticKeyBindings", client.values)
+        self.assertEqual(client.unsets, ["LanguageAgnosticKeyBindings"])
+        self.assertTrue(result.language_agnostic_restored)
 
     async def test_restore_refuses_edited_owned_entry_before_writing(self):
         snapshot = sample_snapshot()
@@ -476,6 +540,52 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(
             await client.get_preference("LoadPrefsFromCustomFolder"),
             True,
+        )
+
+    async def test_live_exact_unset_sets_false_deletes_and_reads_back(self):
+        events = []
+
+        class FalseRPC:
+            @staticmethod
+            async def async_get_preference(connection, key):
+                events.append(("get", connection, key))
+                result = types.SimpleNamespace(
+                    get_preference_result=types.SimpleNamespace(json_value="0")
+                )
+                return types.SimpleNamespace(
+                    preferences_response=types.SimpleNamespace(results=[result])
+                )
+
+        async def fake_set(connection, key, value):
+            events.append(("set", connection, key, value))
+
+        client = module.ItermPreferenceClient(
+            types.SimpleNamespace(
+                rpc=FalseRPC,
+                async_set_preference=fake_set,
+            ),
+            "connection",
+            delete_persisted=lambda key: events.append(("delete", key)),
+        )
+
+        await client.unset_preference("LanguageAgnosticKeyBindings")
+
+        self.assertEqual(
+            events,
+            [
+                (
+                    "set",
+                    "connection",
+                    "LanguageAgnosticKeyBindings",
+                    False,
+                ),
+                ("delete", "LanguageAgnosticKeyBindings"),
+                (
+                    "get",
+                    "connection",
+                    "LanguageAgnosticKeyBindings",
+                ),
+            ],
         )
 
     async def test_snapshot_rejects_export_and_api_map_mismatch(self):
@@ -654,6 +764,59 @@ class LocalEnvironmentTests(unittest.TestCase):
                 "/Applications/iTerm.app/Contents/Info.plist",
             ],
         )
+
+    def test_exact_unset_deletes_only_approved_key_and_verifies_absence(self):
+        calls = []
+
+        def fake_run(command, **kwargs):
+            calls.append((command, kwargs))
+            return types.SimpleNamespace(returncode=0)
+
+        module.delete_persisted_preference(
+            "LanguageAgnosticKeyBindings",
+            run=fake_run,
+            export=lambda: plistlib.dumps({"GlobalKeyMap": load_fixture()}),
+        )
+
+        self.assertEqual(
+            calls,
+            [
+                (
+                    [
+                        "/usr/bin/defaults",
+                        "delete",
+                        "com.googlecode.iterm2",
+                        "LanguageAgnosticKeyBindings",
+                    ],
+                    {"check": False, "capture_output": True},
+                )
+            ],
+        )
+
+    def test_exact_unset_rejects_every_other_preference_key(self):
+        calls = []
+
+        with self.assertRaisesRegex(module.MigrationError, "unapproved"):
+            module.delete_persisted_preference(
+                "GlobalKeyMap",
+                run=lambda *args, **kwargs: calls.append((args, kwargs)),
+                export=lambda: plistlib.dumps({}),
+            )
+
+        self.assertEqual(calls, [])
+
+    def test_exact_unset_fails_when_the_key_remains_persisted(self):
+        with self.assertRaisesRegex(module.MigrationError, "did not verify"):
+            module.delete_persisted_preference(
+                "LanguageAgnosticKeyBindings",
+                run=lambda *args, **kwargs: types.SimpleNamespace(returncode=1),
+                export=lambda: plistlib.dumps(
+                    {
+                        "GlobalKeyMap": load_fixture(),
+                        "LanguageAgnosticKeyBindings": False,
+                    }
+                ),
+            )
 
 
 if __name__ == "__main__":
