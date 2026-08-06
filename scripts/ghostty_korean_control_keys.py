@@ -73,6 +73,10 @@ def content_hash(content: bytes) -> str:
 
 def effective_target_actions(output: str) -> dict[str, str]:
     actions: dict[str, str] = {}
+    canonical_text_actions = {
+        expected.replace("\\", "\\\\"): expected
+        for expected in TARGET_BINDINGS.values()
+    }
     pattern = re.compile(
         r"^keybind = "
         r"(?P<prefix>(?:(?:all|global|unconsumed|performable):)*)"
@@ -84,6 +88,8 @@ def effective_target_actions(output: str) -> dict[str, str]:
             continue
         prefix = match.group("prefix")
         action = match.group("action")
+        if not prefix:
+            action = canonical_text_actions.get(action, action)
         actions[match.group("trigger")] = f"{prefix}{action}"
     return actions
 

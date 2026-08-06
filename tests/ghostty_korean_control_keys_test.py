@@ -38,6 +38,19 @@ class CommandSurfaceTests(unittest.TestCase):
 
 
 class ConfigurationPlannerTests(unittest.TestCase):
+    def test_accepts_ghosttys_canonical_escaped_text_action_output(self):
+        effective = (
+            r"keybind = ctrl+c=text:\\x03"
+            "\n"
+            r"keybind = ctrl+g=text:\\x07"
+            "\n"
+        )
+
+        plan = module.plan_configuration(b"theme = dark\n", effective)
+
+        self.assertEqual(plan.after, plan.before)
+        self.assertEqual(plan.owned_bindings, {})
+
     def test_appends_only_missing_bindings_without_changing_existing_bytes(self):
         before = b"font-family = JetBrains Mono\nkeybind = ctrl+n=new_window\n"
         effective = "keybind = ctrl+n=new_window\n"
