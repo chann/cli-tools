@@ -63,7 +63,6 @@ end run
 struct TerminalEnvironment {
     term_program: Option<String>,
     bundle_identifier: Option<String>,
-    iterm_session_id: Option<String>,
 }
 
 impl TerminalEnvironment {
@@ -75,14 +74,13 @@ impl TerminalEnvironment {
         Self {
             term_program: get("TERM_PROGRAM"),
             bundle_identifier: get("__CFBundleIdentifier"),
-            iterm_session_id: get("TERM_SESSION_ID"),
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum DetectedTerminal {
-    ITerm2 { session_uuid: String },
+    ITerm2,
     Ghostty,
     TerminalApp,
 }
@@ -138,14 +136,36 @@ pub(super) struct NotificationCommands {
 }
 
 pub(super) fn completion_commands(command_name: &str) -> NotificationCommands {
+    let environment = TerminalEnvironment::current();
+    let executable = env::current_exe().ok();
+    let alerter = resolve_alerter();
+    let notifier = resolve_notifier();
+
+    completion_commands_with(
+        command_name,
+        &environment,
+        current_tty,
+        executable.as_deref(),
+        alerter.as_deref(),
+        notifier.as_deref(),
+    )
+}
+
+fn completion_commands_with(
+    command_name: &str,
+    environment: &TerminalEnvironment,
+    mut current_tty: impl FnMut() -> Option<PathBuf>,
+    executable: Option<&Path>,
+    alerter: Option<&Path>,
+    notifier: Option<&Path>,
+) -> NotificationCommands {
     let fallback = || NotificationCommands {
         succeeded: system_notification_command(Outcome::Succeeded, command_name),
         failed: system_notification_command(Outcome::Failed, command_name),
     };
 
-    let target = match detect_terminal(&TerminalEnvironment::current()) {
-        Some(DetectedTerminal::ITerm2 { session_uuid }) => FocusTarget::ITerm2 { session_uuid },
-        Some(DetectedTerminal::Ghostty) => {
+    let target = match detect_terminal(environment) {
+        Some(DetectedTerminal::ITerm2 | DetectedTerminal::Ghostty) => {
             let Some(tty) = current_tty() else {
                 return fallback();
             };
@@ -167,21 +187,21 @@ pub(super) fn completion_commands(command_name: &str) -> NotificationCommands {
         None => return fallback(),
     };
 
-    let Ok(executable) = env::current_exe() else {
+    let Some(executable) = executable else {
         return fallback();
     };
     let icon = terminal_icon(&target);
 
-    if resolve_alerter().is_some() {
+    if alerter.is_some() {
         return NotificationCommands {
             succeeded: alerter_notification_command(
-                &executable,
+                executable,
                 &target,
                 Outcome::Succeeded,
                 command_name,
             ),
             failed: alerter_notification_command(
-                &executable,
+                executable,
                 &target,
                 Outcome::Failed,
                 command_name,
@@ -189,23 +209,23 @@ pub(super) fn completion_commands(command_name: &str) -> NotificationCommands {
         };
     }
 
-    let Some(notifier) = resolve_notifier() else {
+    let Some(notifier) = notifier else {
         return fallback();
     };
 
     NotificationCommands {
         succeeded: terminal_notification_command(
-            &notifier,
+            notifier,
             icon.as_deref(),
-            &executable,
+            executable,
             &target,
             Outcome::Succeeded,
             command_name,
         ),
         failed: terminal_notification_command(
-            &notifier,
+            notifier,
             icon.as_deref(),
-            &executable,
+            executable,
             &target,
             Outcome::Failed,
             command_name,
@@ -310,11 +330,7 @@ fn detect_terminal(environment: &TerminalEnvironment) -> Option<DetectedTerminal
     let is_iterm = environment.term_program.as_deref() == Some("iTerm.app")
         || environment.bundle_identifier.as_deref() == Some(ITERM_BUNDLE_ID);
     if is_iterm {
-        let session_id = environment.iterm_session_id.as_deref()?;
-        let session_uuid = session_id.rsplit(':').next()?;
-        return valid_uuid(session_uuid).then(|| DetectedTerminal::ITerm2 {
-            session_uuid: session_uuid.to_string(),
-        });
+        return Some(DetectedTerminal::ITerm2);
     }
 
     let is_ghostty = environment.term_program.as_deref() == Some("ghostty")
@@ -624,35 +640,30 @@ mod tests {
     use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
 
-    fn iterm_environment(session_id: &str) -> TerminalEnvironment {
+    fn iterm_environment() -> TerminalEnvironment {
         TerminalEnvironment {
             term_program: Some("iTerm.app".into()),
             bundle_identifier: Some("com.googlecode.iterm2".into()),
-            iterm_session_id: Some(session_id.into()),
         }
     }
 
     #[test]
-    fn reads_iterm_session_from_the_standard_environment_key() {
+    fn detects_iterm_without_session_metadata() {
         let mut requested = Vec::new();
         let environment = TerminalEnvironment::read(|key| {
             requested.push(key.to_string());
             match key {
                 "TERM_PROGRAM" => Some("iTerm.app".into()),
                 "__CFBundleIdentifier" => Some("com.googlecode.iterm2".into()),
-                "TERM_SESSION_ID" => Some("w0t2p2:F8176E01-630A-4505-9B2B-0DE870BF4706".into()),
                 _ => None,
             }
         });
 
         assert_eq!(
             detect_terminal(&environment),
-            Some(DetectedTerminal::ITerm2 {
-                session_uuid: "F8176E01-630A-4505-9B2B-0DE870BF4706".into(),
-            })
+            Some(DetectedTerminal::ITerm2)
         );
-        assert!(requested.iter().any(|key| key == "TERM_SESSION_ID"));
-        assert!(!requested.iter().any(|key| key == "ITERM_SESSION_ID"));
+        assert!(!requested.iter().any(|key| key == "TERM_SESSION_ID"));
     }
 
     fn iterm_target() -> FocusTarget {
@@ -662,22 +673,17 @@ mod tests {
     }
 
     #[test]
-    fn detects_iterm2_and_extracts_the_session_uuid() {
+    fn detects_iterm2_by_program_or_bundle_identifier() {
         assert_eq!(
-            detect_terminal(&iterm_environment(
-                "w0t2p2:F8176E01-630A-4505-9B2B-0DE870BF4706"
-            )),
-            Some(DetectedTerminal::ITerm2 {
-                session_uuid: "F8176E01-630A-4505-9B2B-0DE870BF4706".into(),
-            })
+            detect_terminal(&iterm_environment()),
+            Some(DetectedTerminal::ITerm2)
         );
-    }
-
-    #[test]
-    fn rejects_malformed_iterm2_session_ids() {
         assert_eq!(
-            detect_terminal(&iterm_environment("w0t2p2:not-a-uuid")),
-            None
+            detect_terminal(&TerminalEnvironment {
+                term_program: None,
+                bundle_identifier: Some("com.googlecode.iterm2".into()),
+            }),
+            Some(DetectedTerminal::ITerm2)
         );
     }
 
@@ -686,7 +692,6 @@ mod tests {
         let environment = TerminalEnvironment {
             term_program: Some("Apple_Terminal".into()),
             bundle_identifier: Some("com.apple.Terminal".into()),
-            iterm_session_id: None,
         };
 
         assert_eq!(
@@ -700,12 +705,10 @@ mod tests {
         let by_program = TerminalEnvironment {
             term_program: Some("ghostty".into()),
             bundle_identifier: None,
-            iterm_session_id: None,
         };
         let by_bundle = TerminalEnvironment {
             term_program: None,
             bundle_identifier: Some("com.mitchellh.ghostty".into()),
-            iterm_session_id: None,
         };
 
         assert_eq!(
@@ -829,6 +832,24 @@ mod tests {
         assert!(command.contains("'Failed'"));
         assert!(command.contains("'cargo'"));
         assert!(command.ends_with(" >/dev/null 2>&1"));
+    }
+
+    #[test]
+    fn iterm_completion_uses_native_notification_channel_even_when_alerter_is_installed() {
+        let commands = completion_commands_with(
+            "cargo",
+            &iterm_environment(),
+            || Some(PathBuf::from("/dev/ttys014")),
+            Some(Path::new("/usr/local/bin/zzz")),
+            Some(Path::new("/opt/homebrew/bin/alerter")),
+            None,
+        );
+
+        assert!(commands
+            .succeeded
+            .contains("\u{1b}]9;zzz Succeeded: cargo\u{1b}\\"));
+        assert!(commands.succeeded.contains("'/dev/ttys014'"));
+        assert!(!commands.succeeded.contains(TERMINAL_NOTIFICATION_FLAG));
     }
 
     #[test]

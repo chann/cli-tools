@@ -249,6 +249,36 @@ fn completion_notification_launches_alerter_in_a_detached_worker() {
     fs::remove_dir_all(home).unwrap();
 }
 
+#[test]
+#[cfg(target_os = "macos")]
+fn iterm_completion_posts_a_native_notification_without_session_metadata() {
+    let home = unique_temp_home();
+    fs::create_dir_all(&home).unwrap();
+
+    let output = Command::new("/usr/bin/script")
+        .args(["-q", "/dev/null"])
+        .arg(zzz_bin())
+        .args(["--wait", "sh", "-c", "exit 0"])
+        .env("HOME", &home)
+        .env("ZDOTDIR", &home)
+        .env("SHELL", "/bin/zsh")
+        .env("TERM_PROGRAM", "iTerm.app")
+        .env("__CFBundleIdentifier", "com.googlecode.iterm2")
+        .env_remove("TERM_SESSION_ID")
+        .env_remove("USERPROFILE")
+        .output()
+        .unwrap();
+
+    assert!(output.status.success(), "zzz failed: {output:?}");
+    let transcript = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        transcript.contains("\u{1b}]9;zzz Succeeded: sh\u{1b}\\"),
+        "iTerm2 notification escape was not written to the originating TTY:\n{transcript}"
+    );
+
+    fs::remove_dir_all(home).unwrap();
+}
+
 fn zzz_bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_zzz"))
 }
