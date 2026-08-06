@@ -267,7 +267,7 @@ The CLI should:
 - inspect effective bindings and stop on any conflicting action;
 - show a diff before applying;
 - back up every touched file or exported preference object;
-- write an ownership receipt containing only the entries it added;
+- write setting history containing only the entries it added;
 - use terminal-supported APIs/import formats instead of blind plist editing;
 - restore only owned entries and refuse to overwrite later user edits; and
 - provide a raw-mode byte probe that always restores termios state.
@@ -363,18 +363,18 @@ adding profile-local mappings:
 - `0x63-0x40000-0x8 -> {"Action": 11, "Text": "0x03"}`; and
 - `0x67-0x40000-0x5 -> {"Action": 11, "Text": "0x07"}`.
 
-The first apply produced a private receipt, live read-back passed, and an exact
+The first apply produced private setting history, live read-back passed, and an exact
 restore drill returned the map to the before hash. The originally absent
 `LanguageAgnosticKeyBindings` key was proven absent again through a fresh
-preference-domain export. A second apply then produced the active receipt:
+preference-domain export. A second apply then produced the active history:
 
 ```text
 ~/Library/Application Support/cli-tools/iterm2-korean-control-keys/
-  20260806T015400.204770Z/receipt.json
+  20260806T015400.204770Z/setting_history.json
 ```
 
-Its directory and receipt modes are `0700` and `0600`. The receipt owns only
-the two entries above and records that the physical-key preference was
+Its directory and history-file modes are `0700` and `0600`. The history records
+only the two entries above and records that the physical-key preference was
 originally absent.
 
 iTerm2 `3.6.11` rejects the Python client's documented `None` unset request as

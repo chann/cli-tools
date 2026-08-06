@@ -63,22 +63,23 @@ uv run scripts/iterm2_korean_control_keys.py verify
 ```
 
 `apply`는 충돌하는 전역 또는 프로필 매핑을 발견하면 쓰기 전에 멈춥니다.
-개인 영수증 경로는
+비공개 설정 이력은
 `~/Library/Application Support/cli-tools/iterm2-korean-control-keys/` 아래에
-출력되며 영수증 디렉토리는 `0700`, 파일은 `0600` 모드를 사용합니다.
+기록되며 이력 디렉토리는 `0700`, 파일은 `0600` 모드를 사용합니다.
 
-복원할 때는 glob을 사용하지 말고 `apply`가 출력한 영수증의 절대 경로를
-그대로 전달하세요:
+복원할 때는 glob을 사용하지 말고 `apply`가 출력한
+`setting_history.json`의 절대 경로를 그대로 전달하세요:
 
 ```bash
 uv run scripts/iterm2_korean_control_keys.py restore \
-  --receipt '/absolute/path/printed-by-apply/receipt.json'
+  --history '/absolute/path/printed-by-apply/setting_history.json'
 ```
 
-복원은 해당 영수증이 소유한 항목만 제거하고, 소유 항목이 나중에 바뀌었다면
-덮어쓰지 않고 중단합니다. 관리한 매핑이 원래 상태로 돌아가면 처음에 값이
-없었던 경우까지 포함해 물리 키 설정을 원래대로 복원합니다. 그동안 관련 없는
-매핑이 바뀌었다면 해당 설정은 보수적으로 활성 상태로 유지합니다.
+복원은 해당 설정 이력에 기록된 항목만 제거하고, 관리 항목이 나중에
+바뀌었다면 덮어쓰지 않고 중단합니다. 관리한 매핑이 원래 상태로 돌아가면
+처음에 값이 없었던 경우까지 포함해 물리 키 설정을 원래대로 복원합니다.
+그동안 관련 없는 매핑이 바뀌었다면 해당 설정은 보수적으로 활성 상태로
+유지합니다.
 
 한글 입력을 선택한 상태에서 실제 터미널 경로를 확인하세요:
 

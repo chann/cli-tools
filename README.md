@@ -63,23 +63,23 @@ uv run scripts/iterm2_korean_control_keys.py verify
 ```
 
 `apply` stops before writing if it finds a conflicting global or profile
-mapping. It prints a private receipt under
-`~/Library/Application Support/cli-tools/iterm2-korean-control-keys/`; receipt
+mapping. It writes private setting history under
+`~/Library/Application Support/cli-tools/iterm2-korean-control-keys/`; history
 directories use mode `0700` and files use `0600`.
 
-To restore, pass the literal absolute receipt path printed by `apply`—do not
-use a glob:
+To restore, pass the literal absolute `setting_history.json` path printed by
+`apply`—do not use a glob:
 
 ```bash
 uv run scripts/iterm2_korean_control_keys.py restore \
-  --receipt '/absolute/path/printed-by-apply/receipt.json'
+  --history '/absolute/path/printed-by-apply/setting_history.json'
 ```
 
-Restore removes only entries owned by that receipt and refuses to overwrite an
-owned entry changed later. It restores the original physical-key preference,
-including an originally absent value, when the managed map returns to its
-original state. If unrelated mappings changed meanwhile, it conservatively
-keeps that preference enabled.
+Restore removes only entries recorded in that setting history and refuses to
+overwrite a managed entry changed later. It restores the original physical-key
+preference, including an originally absent value, when the managed map returns
+to its original state. If unrelated mappings changed meanwhile, it
+conservatively keeps that preference enabled.
 
 Verify the real terminal path with Korean input selected:
 
