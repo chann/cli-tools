@@ -24,7 +24,7 @@ CONTROL = 0x40000
 HEX_CODE_ACTION = 11
 GLOBAL_MAP_KEY = "GlobalKeyMap"
 LANGUAGE_AGNOSTIC_KEY = "LanguageAgnosticKeyBindings"
-RECEIPT_SCHEMA_VERSION = 1
+SETTING_HISTORY_SCHEMA_VERSION = 1
 BACKUP_ROOT = (
     pathlib.Path.home()
     / "Library"
@@ -94,7 +94,7 @@ class PreferenceSnapshot:
 
 
 @dataclasses.dataclass(frozen=True)
-class Receipt:
+class SettingHistory:
     schema_version: int
     iterm_version: str
     created_at: str
@@ -282,7 +282,7 @@ async def build_snapshot(
 def absolute_path(value: str) -> pathlib.Path:
     path = pathlib.Path(value)
     if not path.is_absolute():
-        raise MigrationError("restore requires an absolute receipt path")
+        raise MigrationError("restore requires an absolute setting history path")
     return path
 
 
@@ -295,10 +295,17 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("apply")
     subparsers.add_parser("verify")
     restore_parser = subparsers.add_parser("restore")
-    restore_parser.add_argument(
-        "--receipt",
-        required=True,
+    history_group = restore_parser.add_mutually_exclusive_group(required=True)
+    history_group.add_argument(
+        "--history",
+        dest="history",
         type=absolute_path,
+    )
+    history_group.add_argument(
+        "--receipt",
+        dest="history",
+        type=absolute_path,
+        help=argparse.SUPPRESS,
     )
     return parser
 
@@ -422,13 +429,13 @@ async def run_command(
     )
 
     if args.command == "restore":
-        receipt = load_receipt(args.receipt, backup_root)
-        if receipt.iterm_version != snapshot.iterm_version:
+        setting_history = load_setting_history(args.history, backup_root)
+        if setting_history.iterm_version != snapshot.iterm_version:
             raise MigrationError(
-                "The receipt was created for a different iTerm2 version"
+                "The setting history was created for a different iTerm2 version"
             )
         async with iterm2_module.Transaction(connection):
-            result = await restore_configuration(client, receipt)
+            result = await restore_configuration(client, setting_history)
         if result.warning:
             print(f"WARNING: {result.warning}", file=output)
         print(f"RESTORED map hash: {result.map_hash}", file=output)
@@ -456,13 +463,13 @@ async def run_command(
         raise MigrationError(f"Unsupported command: {args.command}")
 
     _print_plan(snapshot, plan, output)
-    receipt_path = create_backup(
+    history_path = create_backup(
         snapshot,
         plan,
         backup_root,
         preference_export=preference_export,
     )
-    print(f"Private receipt: {receipt_path}", file=output)
+    print(f"Private setting history: {history_path}", file=output)
     async with iterm2_module.Transaction(connection):
         await apply_configuration(client, snapshot, plan)
 
@@ -520,8 +527,8 @@ def create_backup(
     except FileExistsError as error:
         raise MigrationError("A backup with this timestamp already exists") from error
 
-    receipt = Receipt(
-        schema_version=RECEIPT_SCHEMA_VERSION,
+    setting_history = SettingHistory(
+        schema_version=SETTING_HISTORY_SCHEMA_VERSION,
         iterm_version=snapshot.iterm_version,
         created_at=dt.datetime.now(dt.UTC).isoformat().replace("+00:00", "Z"),
         before_hash=canonical_hash(snapshot.global_map),
@@ -535,7 +542,7 @@ def create_backup(
         owned_entries=copy.deepcopy(plan.owned_additions),
         result="prepared",
     )
-    receipt_path = backup_directory / "receipt.json"
+    history_path = backup_directory / "setting_history.json"
     _atomic_write_private(
         backup_directory / "global-key-map.before.json",
         canonical_json(snapshot.global_map) + b"\n",
@@ -545,64 +552,72 @@ def create_backup(
         preference_export,
     )
     _atomic_write_private(
-        receipt_path,
-        canonical_json(dataclasses.asdict(receipt)) + b"\n",
+        history_path,
+        canonical_json(dataclasses.asdict(setting_history)) + b"\n",
     )
-    return receipt_path
+    return history_path
 
 
-def load_receipt(
+def load_setting_history(
     path: pathlib.Path,
     root: pathlib.Path = BACKUP_ROOT,
-) -> Receipt:
+) -> SettingHistory:
     candidate = pathlib.Path(path)
     root_path = pathlib.Path(root)
     trusted_root = root_path.resolve()
     root_absolute = root_path.absolute()
     candidate_absolute = candidate.absolute()
     if candidate.is_symlink():
-        raise MigrationError("Refusing to load a receipt through a symlink")
+        raise MigrationError(
+            "Refusing to load setting history through a symlink"
+        )
     try:
         resolved = candidate.resolve(strict=True)
     except FileNotFoundError as error:
-        raise MigrationError("The requested receipt does not exist") from error
+        raise MigrationError(
+            "The requested setting history does not exist"
+        ) from error
     if not resolved.is_relative_to(trusted_root):
-        raise MigrationError("The receipt is outside the trusted backup root")
+        raise MigrationError(
+            "The setting history is outside the trusted backup root"
+        )
 
     try:
         relative_parts = candidate_absolute.relative_to(root_absolute).parts
     except ValueError as error:
         raise MigrationError(
-            "The receipt is outside the trusted backup root"
+            "The setting history is outside the trusted backup root"
         ) from error
     current = root_absolute
     for part in relative_parts:
         current /= part
         if current.is_symlink():
-            raise MigrationError("Refusing to load a receipt through a symlink")
+            raise MigrationError(
+                "Refusing to load setting history through a symlink"
+            )
 
     try:
         raw = json.loads(resolved.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise MigrationError("Could not parse the migration receipt") from error
+        raise MigrationError("Could not parse the setting history") from error
     if not isinstance(raw, dict):
-        raise MigrationError("The migration receipt is not a dictionary")
+        raise MigrationError("The setting history is not a dictionary")
     if (
         type(raw.get("schema_version")) is not int
-        or raw["schema_version"] != RECEIPT_SCHEMA_VERSION
+        or raw["schema_version"] != SETTING_HISTORY_SCHEMA_VERSION
     ):
-        raise MigrationError("Unsupported migration receipt schema")
-    expected_fields = {field.name for field in dataclasses.fields(Receipt)}
+        raise MigrationError("Unsupported setting history schema")
+    expected_fields = {field.name for field in dataclasses.fields(SettingHistory)}
     if set(raw) != expected_fields:
-        raise MigrationError("The migration receipt has unexpected fields")
+        raise MigrationError("The setting history has unexpected fields")
     if not isinstance(raw.get("owned_entries"), dict):
-        raise MigrationError("The migration receipt has invalid owned entries")
+        raise MigrationError("The setting history has invalid owned entries")
     approved_entries = {target.serialized: target.action for target in TARGETS}
     if any(
         key not in approved_entries or action != approved_entries[key]
         for key, action in raw["owned_entries"].items()
     ):
-        raise MigrationError("The migration receipt has invalid owned entries")
+        raise MigrationError("The setting history has invalid owned entries")
     original_value = raw.get("original_language_agnostic_value")
     original_value_is_valid = original_value is None or isinstance(
         original_value, bool
@@ -627,11 +642,11 @@ def load_receipt(
         )
         or raw.get("result") != "prepared"
     ):
-        raise MigrationError("The migration receipt is invalid")
+        raise MigrationError("The setting history is invalid")
     try:
-        return Receipt(**raw)
+        return SettingHistory(**raw)
     except TypeError as error:
-        raise MigrationError("The migration receipt is invalid") from error
+        raise MigrationError("The setting history is invalid") from error
 
 
 def parse_serialized_key(key: str) -> ParsedKey:
@@ -803,24 +818,26 @@ async def apply_configuration(
 
 async def restore_configuration(
     client: PreferenceClient,
-    receipt: Receipt,
+    setting_history: SettingHistory,
 ) -> RestoreResult:
     current_map = await client.get_preference(GLOBAL_MAP_KEY)
     current_flag = await client.get_preference(LANGUAGE_AGNOSTIC_KEY)
     if not isinstance(current_map, Mapping):
         raise MigrationError("The current global key map is not a dictionary")
 
-    for serialized, owned_action in receipt.owned_entries.items():
+    for serialized, owned_action in setting_history.owned_entries.items():
         if current_map.get(serialized) != owned_action:
             raise MigrationError(
                 f"Refusing restore because an owned entry changed: {serialized}"
             )
 
     restored_map = copy.deepcopy(dict(current_map))
-    for serialized in receipt.owned_entries:
+    for serialized in setting_history.owned_entries:
         del restored_map[serialized]
 
-    map_matches_original = canonical_hash(restored_map) == receipt.before_hash
+    map_matches_original = (
+        canonical_hash(restored_map) == setting_history.before_hash
+    )
     warning = None
     if not map_matches_original:
         warning = (
@@ -832,10 +849,10 @@ async def restore_configuration(
     try:
         await client.set_preference(GLOBAL_MAP_KEY, restored_map)
         if map_matches_original:
-            if receipt.original_language_agnostic_persisted:
+            if setting_history.original_language_agnostic_persisted:
                 await client.set_preference(
                     LANGUAGE_AGNOSTIC_KEY,
-                    receipt.original_language_agnostic_value,
+                    setting_history.original_language_agnostic_value,
                 )
             else:
                 await client.unset_preference(LANGUAGE_AGNOSTIC_KEY)
@@ -845,7 +862,9 @@ async def restore_configuration(
         if canonical_hash(verified_map) != canonical_hash(restored_map):
             raise MigrationError("The restored global key map did not verify")
         if map_matches_original:
-            expected_flag = bool(receipt.original_language_agnostic_value)
+            expected_flag = bool(
+                setting_history.original_language_agnostic_value
+            )
             if bool(verified_flag) != expected_flag:
                 raise MigrationError(
                     "The restored language-agnostic preference did not verify"

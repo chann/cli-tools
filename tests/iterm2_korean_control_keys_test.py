@@ -89,8 +89,8 @@ class FakePreferenceClient:
         )
 
 
-def receipt_for(snapshot, plan):
-    return module.Receipt(
+def setting_history_for(snapshot, plan):
+    return module.SettingHistory(
         schema_version=1,
         iterm_version=snapshot.iterm_version,
         created_at="2026-08-05T00:00:00Z",
@@ -193,35 +193,44 @@ class KeymapPlannerTests(unittest.TestCase):
         self.assertEqual(module.canonical_hash(first), module.canonical_hash(second))
 
 
-class BackupAndReceiptTests(unittest.TestCase):
+class BackupAndSettingHistoryTests(unittest.TestCase):
     def test_backup_is_private_and_records_exact_hashes(self):
         snapshot = sample_snapshot()
         plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
         preference_export = b"bplist00fixture"
 
         with tempfile.TemporaryDirectory() as directory:
-            receipt_path = module.create_backup(
+            history_path = module.create_backup(
                 snapshot,
                 plan,
                 pathlib.Path(directory) / "backups",
                 preference_export=preference_export,
             )
 
+            self.assertEqual(history_path.name, "setting_history.json")
             self.assertEqual(
-                stat.S_IMODE(receipt_path.parent.stat().st_mode), 0o700
+                stat.S_IMODE(history_path.parent.stat().st_mode), 0o700
             )
-            for path in receipt_path.parent.iterdir():
+            for path in history_path.parent.iterdir():
                 self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
-            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-            self.assertEqual(
-                receipt["before_hash"], module.canonical_hash(snapshot.global_map)
+            setting_history = json.loads(
+                history_path.read_text(encoding="utf-8")
             )
-            self.assertEqual(receipt["after_hash"], module.canonical_hash(plan.after))
-            self.assertFalse(receipt["original_language_agnostic_persisted"])
-            self.assertIsNone(receipt["original_language_agnostic_value"])
-            self.assertEqual(receipt["result"], "prepared")
             self.assertEqual(
-                (receipt_path.parent / "preferences.plist").read_bytes(),
+                setting_history["before_hash"],
+                module.canonical_hash(snapshot.global_map),
+            )
+            self.assertEqual(
+                setting_history["after_hash"],
+                module.canonical_hash(plan.after),
+            )
+            self.assertFalse(
+                setting_history["original_language_agnostic_persisted"]
+            )
+            self.assertIsNone(setting_history["original_language_agnostic_value"])
+            self.assertEqual(setting_history["result"], "prepared")
+            self.assertEqual(
+                (history_path.parent / "preferences.plist").read_bytes(),
                 preference_export,
             )
 
@@ -238,60 +247,64 @@ class BackupAndReceiptTests(unittest.TestCase):
             module.language_agnostic_persistence(explicit_false), (True, False)
         )
 
-    def test_receipt_loader_rejects_outside_path_and_symlink(self):
+    def test_setting_history_loader_rejects_outside_path_and_symlink(self):
         snapshot = sample_snapshot()
         plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
 
         with tempfile.TemporaryDirectory() as directory:
             base = pathlib.Path(directory)
             root = base / "backups"
-            receipt_path = module.create_backup(
+            history_path = module.create_backup(
                 snapshot, plan, root, preference_export=b"plist"
             )
             outside = base / "outside.json"
-            outside.write_text(receipt_path.read_text(encoding="utf-8"))
+            outside.write_text(history_path.read_text(encoding="utf-8"))
             with self.assertRaisesRegex(module.MigrationError, "backup root"):
-                module.load_receipt(outside, root)
+                module.load_setting_history(outside, root)
 
-            link = receipt_path.parent / "linked-receipt.json"
+            link = history_path.parent / "linked-setting-history.json"
             os.symlink(outside, link)
             with self.assertRaisesRegex(module.MigrationError, "symlink"):
-                module.load_receipt(link, root)
+                module.load_setting_history(link, root)
 
-    def test_receipt_loader_rejects_unapproved_owned_entry(self):
+    def test_setting_history_loader_rejects_unapproved_owned_entry(self):
         snapshot = sample_snapshot()
         plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
 
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory) / "backups"
-            receipt_path = module.create_backup(
+            history_path = module.create_backup(
                 snapshot, plan, root, preference_export=b"plist"
             )
-            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-            receipt["owned_entries"]["0x61-0x0"] = {
+            setting_history = json.loads(
+                history_path.read_text(encoding="utf-8")
+            )
+            setting_history["owned_entries"]["0x61-0x0"] = {
                 "Action": 11,
                 "Text": "0x01",
             }
-            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            history_path.write_text(json.dumps(setting_history), encoding="utf-8")
 
             with self.assertRaisesRegex(module.MigrationError, "owned entries"):
-                module.load_receipt(receipt_path, root)
+                module.load_setting_history(history_path, root)
 
-    def test_receipt_loader_rejects_boolean_schema_version(self):
+    def test_setting_history_loader_rejects_boolean_schema_version(self):
         snapshot = sample_snapshot()
         plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
 
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory) / "backups"
-            receipt_path = module.create_backup(
+            history_path = module.create_backup(
                 snapshot, plan, root, preference_export=b"plist"
             )
-            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-            receipt["schema_version"] = True
-            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+            setting_history = json.loads(
+                history_path.read_text(encoding="utf-8")
+            )
+            setting_history["schema_version"] = True
+            history_path.write_text(json.dumps(setting_history), encoding="utf-8")
 
             with self.assertRaisesRegex(module.MigrationError, "schema"):
-                module.load_receipt(receipt_path, root)
+                module.load_setting_history(history_path, root)
 
 
 class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
@@ -364,7 +377,7 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
         client.values["LanguageAgnosticKeyBindings"] = True
 
         result = await module.restore_configuration(
-            client, receipt_for(snapshot, plan)
+            client, setting_history_for(snapshot, plan)
         )
 
         self.assertEqual(client.values["GlobalKeyMap"], snapshot.global_map)
@@ -394,7 +407,7 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
         client.values["LanguageAgnosticKeyBindings"] = True
 
         result = await module.restore_configuration(
-            client, receipt_for(snapshot, plan)
+            client, setting_history_for(snapshot, plan)
         )
 
         self.assertEqual(client.values["GlobalKeyMap"], snapshot.global_map)
@@ -411,7 +424,9 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
         client.values["LanguageAgnosticKeyBindings"] = True
 
         with self.assertRaisesRegex(module.MigrationError, "owned entry changed"):
-            await module.restore_configuration(client, receipt_for(snapshot, plan))
+            await module.restore_configuration(
+                client, setting_history_for(snapshot, plan)
+            )
 
         self.assertEqual(client.writes, [])
 
@@ -427,7 +442,7 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
         client.values["LanguageAgnosticKeyBindings"] = True
 
         result = await module.restore_configuration(
-            client, receipt_for(snapshot, plan)
+            client, setting_history_for(snapshot, plan)
         )
 
         self.assertNotIn("0x63-0x40000-0x8", client.values["GlobalKeyMap"])
@@ -627,16 +642,26 @@ class CommandParserTests(unittest.TestCase):
         self.assertEqual(module.build_parser().parse_args(["verify"]).command,
                          "verify")
         parsed = module.build_parser().parse_args(
-            ["restore", "--receipt", "/private/tmp/receipt.json"]
+            ["restore", "--history", "/private/tmp/setting_history.json"]
         )
         self.assertEqual(parsed.command, "restore")
-        self.assertEqual(parsed.receipt, pathlib.Path("/private/tmp/receipt.json"))
+        self.assertEqual(
+            parsed.history,
+            pathlib.Path("/private/tmp/setting_history.json"),
+        )
 
-    def test_restore_requires_an_absolute_receipt_path(self):
+    def test_restore_keeps_the_legacy_flag_as_hidden_compatibility(self):
+        parsed = module.build_parser().parse_args(
+            ["restore", "--receipt", "/private/tmp/receipt.json"]
+        )
+
+        self.assertEqual(parsed.history, pathlib.Path("/private/tmp/receipt.json"))
+
+    def test_restore_requires_an_absolute_setting_history_path(self):
         with self.assertRaisesRegex(
-            module.MigrationError, "absolute receipt path"
+            module.MigrationError, "absolute setting history path"
         ):
-            module.absolute_path("relative/receipt.json")
+            module.absolute_path("relative/setting_history.json")
 
 
 class CommandExecutionTests(unittest.IsolatedAsyncioTestCase):
@@ -714,8 +739,8 @@ class CommandExecutionTests(unittest.IsolatedAsyncioTestCase):
 
                 @staticmethod
                 def assert_backup_exists():
-                    receipts = list(root.glob("*/receipt.json"))
-                    if len(receipts) != 1:
+                    histories = list(root.glob("*/setting_history.json"))
+                    if len(histories) != 1:
                         raise AssertionError("backup was not closed before write")
 
             client = BackupAwareClient()
@@ -731,7 +756,7 @@ class CommandExecutionTests(unittest.IsolatedAsyncioTestCase):
                 output=output,
             )
 
-            receipt_path = next(root.glob("*/receipt.json"))
+            history_path = next(root.glob("*/setting_history.json"))
             self.assertEqual(client.values["GlobalKeyMap"],
                              module.plan_keymap(load_fixture(), {}).after)
             self.assertIs(client.values["LanguageAgnosticKeyBindings"], True)
@@ -742,7 +767,7 @@ class CommandExecutionTests(unittest.IsolatedAsyncioTestCase):
                     ("transaction-exit", "connection"),
                 ],
             )
-            self.assertIn(str(receipt_path), output.getvalue())
+            self.assertIn(str(history_path), output.getvalue())
             self.assertIn("APPLIED", output.getvalue())
 
 
