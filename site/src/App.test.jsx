@@ -179,6 +179,39 @@ describe("cli-tools website", () => {
     expect(panel.textContent).toContain("~/.commands/{yymmdd}");
   });
 
+  test("explains the reversible iTerm2 Korean control-key workflow", () => {
+    renderApp();
+
+    expect(
+      screen.getByRole("heading", {
+        name: "한글 입력은 그대로, 터미널 단축키도 그대로.",
+      }),
+    ).toBeTruthy();
+
+    const mappings = screen.getByRole("group", {
+      name: "물리 키와 PTY 바이트 매핑",
+    });
+    expect(mappings.textContent).toContain("Control-C");
+    expect(mappings.textContent).toContain("0x03");
+    expect(mappings.textContent).toContain("Control-G");
+    expect(mappings.textContent).toContain("0x07");
+
+    const commands = screen.getByRole("region", {
+      name: "iTerm2 한글 단축키 설정 코드",
+    });
+    expect(commands.textContent).toContain(
+      "uv run scripts/iterm2_korean_control_keys.py preflight",
+    );
+    expect(commands.textContent).toContain(
+      "uv run scripts/iterm2_korean_control_keys.py apply",
+    );
+    expect(commands.textContent).toContain(
+      "uv run scripts/iterm2_korean_control_keys.py verify",
+    );
+    expect(document.body.textContent).toContain("iTerm2 3.6.11");
+    expect(document.body.textContent).toContain("개인 백업 영수증");
+  });
+
   test("completes the landing argument from benefits through FAQ", () => {
     const { container } = renderApp();
 

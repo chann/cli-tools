@@ -52,12 +52,14 @@ describe("message catalogs", () => {
 
   test("keeps CLI commands and paths byte-identical", () => {
     const koreanCommands = catalogs.ko.tools.map((tool) => tool.examples);
+    const koreanItermCommands = catalogs.ko.itermKeys.command;
     const koreanUtilities = catalogs.ko.utility.groups.flatMap((group) =>
       group.commands.map((command) => command.code),
     );
 
     for (const locale of Object.keys(LOCALES)) {
       expect(catalogs[locale].tools.map((tool) => tool.examples)).toEqual(koreanCommands);
+      expect(catalogs[locale].itermKeys.command).toBe(koreanItermCommands);
       expect(
         catalogs[locale].utility.groups.flatMap((group) =>
           group.commands.map((command) => command.code),

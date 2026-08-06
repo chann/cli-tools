@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   ArrowUpRight,
   BellRinging,
   BracketsCurly,
@@ -314,6 +315,60 @@ function ToolExplorer() {
   );
 }
 
+function ItermKeysSection() {
+  const { messages } = useI18n();
+
+  return (
+    <RevealSection className="iterm-keys section-shell" id="iterm-korean">
+      <div className="iterm-keys__content">
+        <div className="section-heading">
+          <p className="section-label">{messages.itermKeys.label}</p>
+          <h2>{messages.itermKeys.title}</h2>
+          <p>{messages.itermKeys.description}</p>
+        </div>
+        <div className="behavior-list">
+          {messages.itermKeys.safeguards.map((safeguard) => (
+            <div key={safeguard.title}>
+              <strong>{safeguard.title}</strong>
+              <span>{safeguard.description}</span>
+            </div>
+          ))}
+        </div>
+        <CodeBlock
+          code={messages.itermKeys.command}
+          label={messages.itermKeys.codeLabel}
+        />
+        <CodeBlock
+          code={messages.itermKeys.restoreCommand}
+          label={messages.itermKeys.restoreCodeLabel}
+        />
+        <p className="iterm-keys__note">{messages.itermKeys.note}</p>
+      </div>
+      <div
+        className="iterm-keys__mapping"
+        role="group"
+        aria-label={messages.itermKeys.mappingLabel}
+      >
+        <div className="iterm-keys__mapping-header">
+          <span>{messages.itermKeys.physicalLabel}</span>
+          <span>{messages.itermKeys.byteLabel}</span>
+        </div>
+        <div className="iterm-keys__mapping-row">
+          <kbd>Control-C</kbd>
+          <ArrowRight aria-hidden="true" weight="bold" />
+          <code>0x03</code>
+        </div>
+        <div className="iterm-keys__mapping-row">
+          <kbd>Control-G</kbd>
+          <ArrowRight aria-hidden="true" weight="bold" />
+          <code>0x07</code>
+        </div>
+        <p>{messages.itermKeys.mappingNote}</p>
+      </div>
+    </RevealSection>
+  );
+}
+
 function ZzzSection() {
   const { messages } = useI18n();
 
@@ -577,6 +632,7 @@ export default function App() {
       <InstallSection />
       <ToolExplorer />
       <TaglineReveal />
+      <ItermKeysSection />
       <ZzzSection />
       <UtilityExplorer />
       <AnalysisSection />

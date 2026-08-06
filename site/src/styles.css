@@ -685,6 +685,7 @@ samp {
 .install,
 .benefits,
 .tool-explorer,
+.iterm-keys,
 .zzz-feature,
 .utility-explorer,
 .analysis,
@@ -697,6 +698,7 @@ samp {
 .install,
 .benefits,
 .tool-explorer,
+.iterm-keys,
 .utility-explorer,
 .analysis,
 .workflow,
@@ -1130,6 +1132,108 @@ samp {
 
 .tool-panel__output code {
   color: var(--text);
+}
+
+.iterm-keys {
+  display: grid;
+  grid-template-columns: minmax(0, 1.04fr) minmax(360px, 0.96fr);
+  align-items: center;
+  gap: 64px;
+}
+
+.iterm-keys__content {
+  min-width: 0;
+}
+
+.iterm-keys .section-heading {
+  margin: 0;
+  text-align: left;
+}
+
+.iterm-keys .section-heading > p:last-child {
+  margin-inline: 0;
+}
+
+.iterm-keys .code-block + .code-block {
+  margin-top: 12px;
+}
+
+.iterm-keys__note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-wrap: pretty;
+  word-break: keep-all;
+}
+
+.iterm-keys__mapping {
+  min-width: 0;
+  overflow: hidden;
+  padding: 32px;
+  border: 1px solid var(--terminal-line);
+  border-radius: 12px;
+  background: var(--terminal-bg);
+  box-shadow: 0 24px 48px rgb(0 0 0 / 0.08);
+  color: var(--terminal-text);
+}
+
+.iterm-keys__mapping-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--terminal-line);
+  color: #8f968b;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-transform: uppercase;
+}
+
+.iterm-keys__mapping-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding-block: 24px;
+  border-bottom: 1px solid var(--terminal-line);
+}
+
+.iterm-keys__mapping-row kbd {
+  width: fit-content;
+  padding: 10px 12px;
+  border: 1px solid #454641;
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: var(--terminal-surface);
+  color: #f4f4ef;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.iterm-keys__mapping-row > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--primary);
+}
+
+.iterm-keys__mapping-row code {
+  color: var(--primary);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 2.5rem;
+  text-align: right;
+}
+
+.iterm-keys__mapping > p {
+  margin: 24px 0 0;
+  color: #aab0a7;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-wrap: pretty;
+  word-break: keep-all;
 }
 
 .zzz-feature {
@@ -1674,6 +1778,17 @@ noscript {
     gap: 48px;
   }
 
+  .iterm-keys {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .iterm-keys__content,
+  .iterm-keys__mapping {
+    width: min(100%, 700px);
+    margin-inline: auto;
+  }
+
   .zzz-feature__content {
     max-width: 700px;
     margin-inline: auto;
@@ -1782,6 +1897,7 @@ noscript {
   .install,
   .benefits,
   .tool-explorer,
+  .iterm-keys,
   .utility-explorer,
   .analysis,
   .workflow,
@@ -1864,7 +1980,12 @@ noscript {
     text-align: center;
   }
 
-  .zzz-feature .section-heading > p:last-child {
+  .iterm-keys .section-heading {
+    text-align: center;
+  }
+
+  .zzz-feature .section-heading > p:last-child,
+  .iterm-keys .section-heading > p:last-child {
     margin-inline: auto;
   }
 
@@ -1987,6 +2108,19 @@ noscript {
   .behavior-list > div {
     grid-template-columns: 96px 1fr;
     gap: 12px;
+  }
+
+  .iterm-keys__mapping {
+    padding: 24px 16px;
+  }
+
+  .iterm-keys__mapping-row {
+    gap: 12px;
+  }
+
+  .iterm-keys__mapping-row code {
+    font-size: 1.5rem;
+    line-height: 2rem;
   }
 
   .code-block__header {

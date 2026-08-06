@@ -1,4 +1,10 @@
-import { installAll, tools as commandTools, utilityGroups as commandGroups } from "../data/tools.js";
+import {
+  installAll,
+  iterm2KoreanControlCommand,
+  iterm2KoreanControlRestoreCommand,
+  tools as commandTools,
+  utilityGroups as commandGroups,
+} from "../data/tools.js";
 
 function localizeTools(items) {
   return items.map((item, index) => ({
@@ -25,6 +31,11 @@ function createCatalog(copy) {
   return {
     ...copy,
     install: { ...copy.install, command: installAll },
+    itermKeys: {
+      ...copy.itermKeys,
+      command: iterm2KoreanControlCommand,
+      restoreCommand: iterm2KoreanControlRestoreCommand,
+    },
     tools: localizeTools(copy.tools),
     utility: {
       ...copy.utility,
@@ -159,8 +170,26 @@ const ko = createCatalog({
       detail: "프롬프트는 즉시 돌려받고, macOS에서는 완료 알림과 원래 터미널 포커스를 지원합니다.",
     },
   ],
+  itermKeys: {
+    label: "04 / macOS · iTerm2",
+    title: "한글 입력은 그대로, 터미널 단축키도 그대로.",
+    description:
+      "iTerm2 3.6.11에서 물리 Control-C와 Control-G를 입력 언어와 무관한 PTY 바이트로 연결합니다. 입력 소스를 바꾸거나 상주 키보드 도구를 설치하지 않습니다.",
+    mappingLabel: "물리 키와 PTY 바이트 매핑",
+    physicalLabel: "물리 키",
+    byteLabel: "PTY 바이트",
+    mappingNote: "iTerm2가 한글 조합 문자 대신 물리 키 위치를 읽고 정확한 제어 바이트를 전송합니다.",
+    safeguards: [
+      { title: "입력 유지", description: "한글 입력 소스를 ABC로 전환하지 않고 iTerm2 안에서만 동작합니다." },
+      { title: "충돌 차단", description: "전역 및 프로필 매핑을 먼저 검사하고 다른 동작과 겹치면 변경 전에 멈춥니다." },
+      { title: "정확한 복원", description: "개인 백업 영수증으로 소유한 두 항목만 제거하고 이후 사용자 변경은 덮어쓰지 않습니다." },
+    ],
+    codeLabel: "iTerm2 한글 단축키 설정",
+    restoreCodeLabel: "영수증으로 복원",
+    note: "uv와 iTerm2 Python API 승인이 필요합니다. apply가 출력한 개인 영수증의 절대 경로만 restore에 사용하세요.",
+  },
   zzz: {
-    label: "04 / 백그라운드",
+    label: "05 / 백그라운드",
     title: "명령은 백그라운드로. 결과는 로그로.",
     descriptionBefore: "는 프롬프트를 바로 돌려주고 완료 여부를 알림으로 알려줍니다.",
     behaviors: [
@@ -176,7 +205,7 @@ const ko = createCatalog({
     previewLabel: "zzz 실행 흐름 예시",
   },
   utility: {
-    label: "05 / 유틸리티",
+    label: "06 / 유틸리티",
     title: "반복 작업을 한 명령으로.",
     descriptionBefore: "는 데이터, 네트워크, 코드, 파일 작업을 주제별 하위 명령으로 묶습니다.",
     tabsLabel: "dev-tools 주제",
@@ -191,7 +220,7 @@ const ko = createCatalog({
     ],
   },
   analysis: {
-    label: "06 / 분석",
+    label: "07 / 분석",
     title: "저장소를 읽고, 숫자로 남기세요.",
     description: "코드와 Git 이력을 같은 기준으로 읽어 규모와 작업 흐름을 설명합니다.",
     items: [
@@ -216,7 +245,7 @@ const ko = createCatalog({
     ],
   },
   workflow: {
-    label: "07 / 시작 흐름",
+    label: "08 / 시작 흐름",
     title: "복제하고, 고르고, 바로 확인합니다.",
     description: "별도 계정이나 설정 화면 없이 익숙한 Cargo 흐름으로 시작합니다.",
     steps: [
@@ -238,7 +267,7 @@ const ko = createCatalog({
     ],
   },
   faq: {
-    label: "08 / 자주 묻는 질문",
+    label: "09 / 자주 묻는 질문",
     title: "설치 전에 궁금한 점.",
     description: "도구 선택부터 데이터 처리 방식까지 먼저 확인하세요.",
     items: [
@@ -464,8 +493,26 @@ const en = createCatalog({
       detail: "Get the prompt back immediately, with completion notifications and terminal focus support on macOS.",
     },
   ],
+  itermKeys: {
+    label: "04 / macOS · iTerm2",
+    title: "Keep Korean input. Keep terminal shortcuts.",
+    description:
+      "On iTerm2 3.6.11, map physical Control-C and Control-G to language-independent PTY bytes. The helper neither switches input sources nor installs a resident keyboard tool.",
+    mappingLabel: "Physical keys mapped to PTY bytes",
+    physicalLabel: "Physical key",
+    byteLabel: "PTY byte",
+    mappingNote: "iTerm2 reads the physical key position instead of a composed Korean character and sends the exact control byte.",
+    safeguards: [
+      { title: "Input stays put", description: "Keep Korean selected and scope the behavior to iTerm2 instead of switching to ABC." },
+      { title: "Conflicts stop", description: "Audit global and profile mappings first, then stop before changing anything if another action overlaps." },
+      { title: "Exact restore", description: "Use a private ownership receipt to remove only the two managed entries without overwriting later user edits." },
+    ],
+    codeLabel: "Configure Korean control keys in iTerm2",
+    restoreCodeLabel: "Restore from a receipt",
+    note: "Requires uv and iTerm2 Python API approval. Restore only with the absolute private receipt path printed by apply.",
+  },
   zzz: {
-    label: "04 / BACKGROUND",
+    label: "05 / BACKGROUND",
     title: "Commands in the background. Results in logs.",
     descriptionBefore: " returns your prompt immediately and notifies you when the command finishes.",
     behaviors: [
@@ -478,7 +525,7 @@ const en = createCatalog({
     previewLabel: "Example zzz execution flow",
   },
   utility: {
-    label: "05 / UTILITIES",
+    label: "06 / UTILITIES",
     title: "Make repetitive tasks one command.",
     descriptionBefore: " groups data, network, code, and file work into focused subcommands.",
     tabsLabel: "dev-tools topics",
@@ -493,7 +540,7 @@ const en = createCatalog({
     ],
   },
   analysis: {
-    label: "06 / ANALYSIS",
+    label: "07 / ANALYSIS",
     title: "Read the repository. Keep the numbers.",
     description: "Use the same frame for code and Git history to explain project size and work patterns.",
     items: [
@@ -503,7 +550,7 @@ const en = createCatalog({
     ],
   },
   workflow: {
-    label: "07 / GET STARTED",
+    label: "08 / GET STARTED",
     title: "Clone, choose, and verify.",
     description: "Start with the Cargo workflow you know, without a separate account or settings screen.",
     steps: [
@@ -513,7 +560,7 @@ const en = createCatalog({
     ],
   },
   faq: {
-    label: "08 / FAQ",
+    label: "09 / FAQ",
     title: "Questions before you install.",
     description: "Check tool selection and data behavior before you begin.",
     items: [
@@ -658,8 +705,25 @@ const ja = createCatalog({
     { label: "開発者ユーティリティ", summary: "JSON、エンコード、ネットワーク、テキスト、システム作業を短いサブコマンドで提供します。", detail: "小さな Web ツールを探したり一時的なスクリプトを書いたりせず、ターミナルで処理します。" },
     { label: "バックグラウンド実行", summary: "対話型シェルでコマンドをバックグラウンド実行し、出力を日付別ログに保存します。", detail: "プロンプトはすぐ戻り、macOS では完了通知と元のターミナルへの復帰を支援します。" },
   ],
+  itermKeys: {
+    label: "04 / macOS · iTerm2",
+    title: "韓国語入力のまま、ターミナルショートカットも使う。",
+    description: "iTerm2 3.6.11 で、物理 Control-C と Control-G を入力言語に依存しない PTY バイトへ割り当てます。入力ソースの切り替えや常駐キーボードツールは不要です。",
+    mappingLabel: "物理キーと PTY バイトの割り当て",
+    physicalLabel: "物理キー",
+    byteLabel: "PTY バイト",
+    mappingNote: "iTerm2 が韓国語の組み立て文字ではなく物理キーの位置を読み、正確な制御バイトを送信します。",
+    safeguards: [
+      { title: "入力を維持", description: "韓国語を選択したまま、ABC へ切り替えず iTerm2 内だけで動作します。" },
+      { title: "競合で停止", description: "グローバルとプロファイルの割り当てを先に検査し、別の動作と重なる場合は変更前に停止します。" },
+      { title: "正確に復元", description: "非公開の所有権レシートで管理対象の2項目だけを削除し、後から行ったユーザー変更は上書きしません。" },
+    ],
+    codeLabel: "iTerm2 の韓国語コントロールキー設定",
+    restoreCodeLabel: "レシートから復元",
+    note: "uv と iTerm2 Python API の許可が必要です。apply が表示した非公開レシートの絶対パスだけを restore に使用してください。",
+  },
   zzz: {
-    label: "04 / バックグラウンド",
+    label: "05 / バックグラウンド",
     title: "コマンドはバックグラウンドへ。結果はログへ。",
     descriptionBefore: "はプロンプトをすぐ戻し、コマンドの完了を通知します。",
     behaviors: [
@@ -672,7 +736,7 @@ const ja = createCatalog({
     previewLabel: "zzz の実行フロー例",
   },
   utility: {
-    label: "05 / ユーティリティ",
+    label: "06 / ユーティリティ",
     title: "繰り返し作業を一つのコマンドに。",
     descriptionBefore: "はデータ、ネットワーク、コード、ファイル操作をテーマ別サブコマンドにまとめます。",
     tabsLabel: "dev-tools のテーマ",
@@ -687,7 +751,7 @@ const ja = createCatalog({
     ],
   },
   analysis: {
-    label: "06 / 分析",
+    label: "07 / 分析",
     title: "リポジトリを読み、数字に残す。",
     description: "コードと Git 履歴を同じ基準で読み、規模と作業の流れを説明します。",
     items: [
@@ -697,7 +761,7 @@ const ja = createCatalog({
     ],
   },
   workflow: {
-    label: "07 / はじめ方",
+    label: "08 / はじめ方",
     title: "複製して、選んで、すぐ確認。",
     description: "別のアカウントや設定画面なしで、使い慣れた Cargo の流れから始めます。",
     steps: [
@@ -707,7 +771,7 @@ const ja = createCatalog({
     ],
   },
   faq: {
-    label: "08 / よくある質問",
+    label: "09 / よくある質問",
     title: "インストール前の疑問。",
     description: "ツールの選び方からデータの扱いまで、先に確認できます。",
     items: [
@@ -852,8 +916,25 @@ const zh = createCatalog({
     { label: "开发者实用工具", summary: "用简短子命令处理 JSON、编码、网络、文本和系统任务。", detail: "无需寻找网页工具或编写一次性脚本，直接在终端完成小任务。" },
     { label: "后台运行", summary: "通过交互式 shell 在后台运行命令，并把输出保存到按日期组织的日志。", detail: "立即取回提示符；在 macOS 上还支持完成通知和返回原终端。" },
   ],
+  itermKeys: {
+    label: "04 / macOS · iTerm2",
+    title: "保持韩文输入，也保留终端快捷键。",
+    description: "在 iTerm2 3.6.11 中，将物理 Control-C 和 Control-G 映射为不受输入语言影响的 PTY 字节。无需切换输入源，也无需安装常驻键盘工具。",
+    mappingLabel: "物理按键与 PTY 字节映射",
+    physicalLabel: "物理按键",
+    byteLabel: "PTY 字节",
+    mappingNote: "iTerm2 读取物理按键位置，而不是组合后的韩文字符，并发送准确的控制字节。",
+    safeguards: [
+      { title: "保持输入", description: "继续使用韩文输入，不切换到 ABC，且行为仅限于 iTerm2。" },
+      { title: "冲突即停止", description: "先检查全局和配置文件映射；如果与其他操作重叠，则在修改前停止。" },
+      { title: "精确恢复", description: "使用私有所有权收据只删除两个受管条目，不覆盖用户之后的修改。" },
+    ],
+    codeLabel: "配置 iTerm2 韩文控制键",
+    restoreCodeLabel: "使用收据恢复",
+    note: "需要 uv 和 iTerm2 Python API 授权。restore 只能使用 apply 输出的私有收据绝对路径。",
+  },
   zzz: {
-    label: "04 / 后台运行",
+    label: "05 / 后台运行",
     title: "命令在后台，结果进日志。",
     descriptionBefore: "会立即返还提示符，并在命令完成时通知你。",
     behaviors: [
@@ -866,7 +947,7 @@ const zh = createCatalog({
     previewLabel: "zzz 运行流程示例",
   },
   utility: {
-    label: "05 / 实用工具",
+    label: "06 / 实用工具",
     title: "用一条命令处理重复工作。",
     descriptionBefore: "把数据、网络、代码和文件任务整理为按主题划分的子命令。",
     tabsLabel: "dev-tools 主题",
@@ -881,7 +962,7 @@ const zh = createCatalog({
     ],
   },
   analysis: {
-    label: "06 / 分析",
+    label: "07 / 分析",
     title: "读懂仓库，留下数字。",
     description: "用同一标准读取代码和 Git 历史，说明项目规模与工作方式。",
     items: [
@@ -891,7 +972,7 @@ const zh = createCatalog({
     ],
   },
   workflow: {
-    label: "07 / 开始使用",
+    label: "08 / 开始使用",
     title: "克隆、选择、立即验证。",
     description: "无需单独账号或设置页面，沿用熟悉的 Cargo 流程即可开始。",
     steps: [
@@ -901,7 +982,7 @@ const zh = createCatalog({
     ],
   },
   faq: {
-    label: "08 / 常见问题",
+    label: "09 / 常见问题",
     title: "安装前常见问题。",
     description: "先了解工具选择和数据处理方式。",
     items: [

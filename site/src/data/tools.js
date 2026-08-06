@@ -9,6 +9,13 @@ cargo install --path crates/git-tools --force
 cargo install --path crates/dev-tools --force
 cargo install --path crates/zzz --force`;
 
+export const iterm2KoreanControlCommand = `uv run scripts/iterm2_korean_control_keys.py preflight
+uv run scripts/iterm2_korean_control_keys.py apply
+uv run scripts/iterm2_korean_control_keys.py verify`;
+
+export const iterm2KoreanControlRestoreCommand = `uv run scripts/iterm2_korean_control_keys.py restore \\
+  --receipt '/absolute/path/to/receipt.json'`;
+
 export const tools = [
   {
     id: "code-cost",
