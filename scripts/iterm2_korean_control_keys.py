@@ -16,6 +16,7 @@ import pathlib
 import plistlib
 import subprocess
 import sys
+import xml.parsers.expat
 from collections.abc import Mapping
 from typing import Any, Protocol
 
@@ -24,7 +25,8 @@ CONTROL = 0x40000
 HEX_CODE_ACTION = 11
 GLOBAL_MAP_KEY = "GlobalKeyMap"
 LANGUAGE_AGNOSTIC_KEY = "LanguageAgnosticKeyBindings"
-SETTING_HISTORY_SCHEMA_VERSION = 1
+SETTING_HISTORY_SCHEMA_VERSION = 2
+LEGACY_SETTING_HISTORY_SCHEMA_VERSION = 1
 BACKUP_ROOT = (
     pathlib.Path.home()
     / "Library"
@@ -34,9 +36,16 @@ BACKUP_ROOT = (
 )
 EXPECTED_ITERM_VERSION = "3.6.11"
 CUSTOM_PREFERENCES_KEY = "LoadPrefsFromCustomFolder"
+DEFAULT_GLOBAL_MAP_PATH = pathlib.Path(
+    "/Applications/iTerm.app/Contents/Resources/DefaultGlobalKeyMap.plist"
+)
 BOOLEAN_PREFERENCE_KEYS = {
     LANGUAGE_AGNOSTIC_KEY,
     CUSTOM_PREFERENCES_KEY,
+}
+DELETABLE_PREFERENCE_KEYS = {
+    GLOBAL_MAP_KEY,
+    LANGUAGE_AGNOSTIC_KEY,
 }
 
 
@@ -87,6 +96,7 @@ class KeymapPlan:
 class PreferenceSnapshot:
     iterm_version: str
     global_map: dict[str, Any]
+    global_map_persisted: bool
     language_agnostic_effective: bool
     language_agnostic_persisted: bool
     language_agnostic_persisted_value: bool | None
@@ -100,6 +110,7 @@ class SettingHistory:
     created_at: str
     before_hash: str
     after_hash: str
+    original_global_map_persisted: bool
     original_language_agnostic_persisted: bool
     original_language_agnostic_value: bool | None
     owned_entries: dict[str, Any]
@@ -129,11 +140,17 @@ class ItermPreferenceClient:
         iterm2_module: Any,
         connection: Any,
         *,
+        default_global_map: Mapping[str, Any],
         delete_persisted: Any = None,
     ):
+        if not isinstance(default_global_map, Mapping):
+            raise MigrationError(
+                "The iTerm2 default global key map is not a dictionary"
+            )
         self.iterm2 = iterm2_module
         self.connection = connection
         self._delete_persisted = delete_persisted
+        self._default_global_map = copy.deepcopy(dict(default_global_map))
 
     async def get_preference(self, key: str) -> Any:
         response = await self.iterm2.rpc.async_get_preference(
@@ -150,6 +167,8 @@ class ItermPreferenceClient:
             raise MigrationError(
                 f"iTerm2 returned an invalid value for {key}"
             ) from error
+        if key == GLOBAL_MAP_KEY and value is None:
+            return copy.deepcopy(self._default_global_map)
         if key in BOOLEAN_PREFERENCE_KEYS:
             if value is None:
                 return False
@@ -170,11 +189,22 @@ class ItermPreferenceClient:
         )
 
     async def unset_preference(self, key: str) -> None:
-        await self.set_preference(key, False)
+        if key == GLOBAL_MAP_KEY:
+            replacement: Any = copy.deepcopy(self._default_global_map)
+        elif key == LANGUAGE_AGNOSTIC_KEY:
+            replacement = False
+        else:
+            raise MigrationError("Refusing to unset an unapproved preference key")
+        await self.set_preference(key, replacement)
         delete = self._delete_persisted or delete_persisted_preference
         delete(key)
-        if await self.get_preference(key) is not False:
-            raise MigrationError("The unset preference did not read back as false")
+        restored = await self.get_preference(key)
+        if key == GLOBAL_MAP_KEY:
+            verified = canonical_hash(restored) == canonical_hash(replacement)
+        else:
+            verified = restored is False
+        if not verified:
+            raise MigrationError("The unset preference did not verify")
 
     async def profile_maps(self) -> dict[str, dict[str, Any]]:
         profiles = await self.iterm2.PartialProfile.async_query(
@@ -202,29 +232,47 @@ def canonical_hash(value: Any) -> str:
     return hashlib.sha256(canonical_json(value)).hexdigest()
 
 
-def language_agnostic_persistence(
+def preference_persistence(
     preference_export: bytes,
-) -> tuple[bool, bool | None]:
+    key: str,
+) -> tuple[bool, Any]:
     try:
         preferences = plistlib.loads(preference_export)
-    except (plistlib.InvalidFileException, ValueError) as error:
+    except (
+        plistlib.InvalidFileException,
+        ValueError,
+        xml.parsers.expat.ExpatError,
+    ) as error:
         raise MigrationError("Could not parse the iTerm2 preference export") from error
     if not isinstance(preferences, Mapping):
         raise MigrationError("The iTerm2 preference export is not a dictionary")
-    if LANGUAGE_AGNOSTIC_KEY not in preferences:
+    if key not in preferences:
         return False, None
-    value = preferences[LANGUAGE_AGNOSTIC_KEY]
+    return True, preferences[key]
+
+
+def language_agnostic_persistence(
+    preference_export: bytes,
+) -> tuple[bool, bool | None]:
+    persisted, value = preference_persistence(
+        preference_export,
+        LANGUAGE_AGNOSTIC_KEY,
+    )
+    if not persisted:
+        return False, None
     if not isinstance(value, bool):
         raise MigrationError(
             f"{LANGUAGE_AGNOSTIC_KEY} is persisted with a non-boolean value"
         )
-    return True, value
+    return persisted, value
 
 
 async def build_snapshot(
     client: PreferenceClient,
     iterm_version: str,
     preference_export: bytes,
+    *,
+    default_global_map: Mapping[str, Any] | None = None,
 ) -> PreferenceSnapshot:
     if iterm_version != EXPECTED_ITERM_VERSION:
         raise MigrationError(
@@ -243,16 +291,24 @@ async def build_snapshot(
         effective_flag = False
     try:
         exported_preferences = plistlib.loads(preference_export)
-        exported_map = exported_preferences[GLOBAL_MAP_KEY]
-    except (
-        KeyError,
-        TypeError,
-        ValueError,
-        plistlib.InvalidFileException,
-    ) as error:
+    except (TypeError, ValueError, plistlib.InvalidFileException) as error:
         raise MigrationError(
             "The iTerm2 export does not contain a valid global key map"
         ) from error
+    if not isinstance(exported_preferences, Mapping):
+        raise MigrationError(
+            "The iTerm2 export does not contain a valid global key map"
+        )
+    global_map_persisted = GLOBAL_MAP_KEY in exported_preferences
+    if global_map_persisted:
+        exported_map = exported_preferences[GLOBAL_MAP_KEY]
+    elif isinstance(default_global_map, Mapping):
+        exported_map = default_global_map
+    else:
+        raise MigrationError(
+            "The iTerm2 export omits the global key map and factory "
+            "defaults are unavailable"
+        )
     if not isinstance(global_map, Mapping):
         raise MigrationError("The global iTerm2 key map is not a dictionary")
     if not isinstance(exported_map, Mapping):
@@ -272,6 +328,7 @@ async def build_snapshot(
     return PreferenceSnapshot(
         iterm_version=iterm_version,
         global_map=copy.deepcopy(dict(global_map)),
+        global_map_persisted=global_map_persisted,
         language_agnostic_effective=effective_flag,
         language_agnostic_persisted=persisted,
         language_agnostic_persisted_value=persisted_value,
@@ -332,6 +389,38 @@ def read_iterm_version(*, run: Any = subprocess.run) -> str:
     return version
 
 
+def read_default_global_map(
+    path: pathlib.Path = DEFAULT_GLOBAL_MAP_PATH,
+) -> dict[str, Any]:
+    try:
+        raw = pathlib.Path(path).read_bytes()
+    except OSError as error:
+        raise MigrationError(
+            "Could not read the iTerm2 default global key map"
+        ) from error
+    try:
+        value = plistlib.loads(raw)
+    except (
+        plistlib.InvalidFileException,
+        ValueError,
+        xml.parsers.expat.ExpatError,
+    ) as error:
+        raise MigrationError(
+            "Could not parse the iTerm2 default global key map"
+        ) from error
+    if not isinstance(value, Mapping):
+        raise MigrationError(
+            "The iTerm2 default global key map is not a dictionary"
+        )
+    try:
+        canonical_json(value)
+    except (TypeError, ValueError) as error:
+        raise MigrationError(
+            "The iTerm2 default global key map cannot be canonicalized"
+        ) from error
+    return copy.deepcopy(dict(value))
+
+
 def export_persistent_domain(*, run: Any = subprocess.run) -> bytes:
     try:
         completed = run(
@@ -357,7 +446,7 @@ def delete_persisted_preference(
     run: Any = subprocess.run,
     export: Any = export_persistent_domain,
 ) -> None:
-    if key != LANGUAGE_AGNOSTIC_KEY:
+    if key not in DELETABLE_PREFERENCE_KEYS:
         raise MigrationError("Refusing to delete an unapproved preference key")
     try:
         run(
@@ -372,7 +461,7 @@ def delete_persisted_preference(
         )
     except OSError as error:
         raise MigrationError("Could not delete the persisted preference") from error
-    persisted, _ = language_agnostic_persistence(export())
+    persisted, _ = preference_persistence(export(), key)
     if persisted:
         raise MigrationError("The persisted preference deletion did not verify")
 
@@ -419,6 +508,7 @@ async def run_command(
     *,
     iterm_version: str,
     preference_export: bytes,
+    default_global_map: Mapping[str, Any] | None = None,
     backup_root: pathlib.Path = BACKUP_ROOT,
     output: Any = sys.stdout,
 ) -> None:
@@ -426,6 +516,7 @@ async def run_command(
         client,
         iterm_version,
         preference_export,
+        default_global_map=default_global_map,
     )
 
     if args.command == "restore":
@@ -533,6 +624,7 @@ def create_backup(
         created_at=dt.datetime.now(dt.UTC).isoformat().replace("+00:00", "Z"),
         before_hash=canonical_hash(snapshot.global_map),
         after_hash=canonical_hash(plan.after),
+        original_global_map_persisted=snapshot.global_map_persisted,
         original_language_agnostic_persisted=(
             snapshot.language_agnostic_persisted
         ),
@@ -556,6 +648,41 @@ def create_backup(
         canonical_json(dataclasses.asdict(setting_history)) + b"\n",
     )
     return history_path
+
+
+def _legacy_global_map_persistence(
+    history_path: pathlib.Path,
+    before_hash: Any,
+) -> bool:
+    preferences_path = history_path.with_name("preferences.plist")
+    if preferences_path.is_symlink():
+        raise MigrationError(
+            "Refusing to load legacy preferences through a symlink"
+        )
+    try:
+        preference_export = preferences_path.read_bytes()
+    except OSError as error:
+        raise MigrationError(
+            "Could not read the legacy iTerm2 preference export"
+        ) from error
+    persisted, value = preference_persistence(
+        preference_export,
+        GLOBAL_MAP_KEY,
+    )
+    if persisted:
+        try:
+            matches = (
+                isinstance(value, Mapping)
+                and canonical_hash(value) == before_hash
+            )
+        except (TypeError, ValueError):
+            matches = False
+        if not matches:
+            raise MigrationError(
+                "The legacy preference export global map does not match "
+                "the setting history"
+            )
+    return persisted
 
 
 def load_setting_history(
@@ -602,13 +729,28 @@ def load_setting_history(
         raise MigrationError("Could not parse the setting history") from error
     if not isinstance(raw, dict):
         raise MigrationError("The setting history is not a dictionary")
+    schema_version = raw.get("schema_version")
+    supported_schema_versions = {
+        LEGACY_SETTING_HISTORY_SCHEMA_VERSION,
+        SETTING_HISTORY_SCHEMA_VERSION,
+    }
     if (
-        type(raw.get("schema_version")) is not int
-        or raw["schema_version"] != SETTING_HISTORY_SCHEMA_VERSION
+        type(schema_version) is not int
+        or schema_version not in supported_schema_versions
     ):
         raise MigrationError("Unsupported setting history schema")
     expected_fields = {field.name for field in dataclasses.fields(SettingHistory)}
-    if set(raw) != expected_fields:
+    if schema_version == LEGACY_SETTING_HISTORY_SCHEMA_VERSION:
+        legacy_fields = expected_fields - {"original_global_map_persisted"}
+        if set(raw) != legacy_fields:
+            raise MigrationError("The setting history has unexpected fields")
+        raw["original_global_map_persisted"] = (
+            _legacy_global_map_persistence(
+                resolved,
+                raw.get("before_hash"),
+            )
+        )
+    elif set(raw) != expected_fields:
         raise MigrationError("The setting history has unexpected fields")
     if not isinstance(raw.get("owned_entries"), dict):
         raise MigrationError("The setting history has invalid owned entries")
@@ -632,6 +774,7 @@ def load_setting_history(
         not isinstance(raw.get("iterm_version"), str)
         or not isinstance(raw.get("created_at"), str)
         or not hashes_are_valid
+        or not isinstance(raw.get("original_global_map_persisted"), bool)
         or not isinstance(
             raw.get("original_language_agnostic_persisted"), bool
         )
@@ -768,7 +911,10 @@ async def _restore_snapshot(
     client: PreferenceClient,
     snapshot: PreferenceSnapshot,
 ) -> None:
-    await client.set_preference(GLOBAL_MAP_KEY, snapshot.global_map)
+    if snapshot.global_map_persisted:
+        await client.set_preference(GLOBAL_MAP_KEY, snapshot.global_map)
+    else:
+        await client.unset_preference(GLOBAL_MAP_KEY)
     if snapshot.language_agnostic_persisted:
         await client.set_preference(
             LANGUAGE_AGNOSTIC_KEY,
@@ -847,7 +993,13 @@ async def restore_configuration(
         )
 
     try:
-        await client.set_preference(GLOBAL_MAP_KEY, restored_map)
+        if (
+            map_matches_original
+            and not setting_history.original_global_map_persisted
+        ):
+            await client.unset_preference(GLOBAL_MAP_KEY)
+        else:
+            await client.set_preference(GLOBAL_MAP_KEY, restored_map)
         if map_matches_original:
             if setting_history.original_language_agnostic_persisted:
                 await client.set_preference(
@@ -898,12 +1050,17 @@ def main(argv: list[str] | None = None) -> int:
     try:
         args = build_parser().parse_args(argv)
         iterm_version = read_iterm_version()
+        default_global_map = read_default_global_map()
         preference_export = export_persistent_domain()
 
         import iterm2  # Deferred so standard-library tests stay dependency-free.
 
         async def execute(connection: Any) -> None:
-            client = ItermPreferenceClient(iterm2, connection)
+            client = ItermPreferenceClient(
+                iterm2,
+                connection,
+                default_global_map=default_global_map,
+            )
             await run_command(
                 args,
                 client,
@@ -911,6 +1068,7 @@ def main(argv: list[str] | None = None) -> int:
                 connection,
                 iterm_version=iterm_version,
                 preference_export=preference_export,
+                default_global_map=default_global_map,
             )
 
         iterm2.run_until_complete(execute)

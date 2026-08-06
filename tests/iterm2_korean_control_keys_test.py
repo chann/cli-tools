@@ -19,10 +19,16 @@ def load_fixture():
     return json.loads(FIXTURE.read_text(encoding="utf-8"))
 
 
-def sample_snapshot(*, persisted=False, persisted_value=None):
+def sample_snapshot(
+    *,
+    global_map_persisted=True,
+    persisted=False,
+    persisted_value=None,
+):
     return module.PreferenceSnapshot(
         iterm_version="3.6.11",
         global_map=load_fixture(),
+        global_map_persisted=global_map_persisted,
         language_agnostic_effective=False,
         language_agnostic_persisted=persisted,
         language_agnostic_persisted_value=persisted_value,
@@ -33,7 +39,10 @@ def sample_snapshot(*, persisted=False, persisted_value=None):
 class FakePreferenceClient:
     def __init__(self, snapshot=None, *, fail_on_write=None):
         snapshot = snapshot or sample_snapshot()
-        self.values = {"GlobalKeyMap": copy.deepcopy(snapshot.global_map)}
+        self._default_global_map = copy.deepcopy(snapshot.global_map)
+        self.values = {}
+        if snapshot.global_map_persisted:
+            self.values["GlobalKeyMap"] = copy.deepcopy(snapshot.global_map)
         if snapshot.language_agnostic_persisted:
             self.values["LanguageAgnosticKeyBindings"] = (
                 snapshot.language_agnostic_persisted_value
@@ -44,6 +53,10 @@ class FakePreferenceClient:
         self.writes = []
 
     async def get_preference(self, key):
+        if key == "GlobalKeyMap":
+            return copy.deepcopy(
+                self.values.get(key, self._default_global_map)
+            )
         if key == "LanguageAgnosticKeyBindings":
             return copy.deepcopy(self.values.get(key, False))
         if key == "LoadPrefsFromCustomFolder":
@@ -75,7 +88,8 @@ class FakePreferenceClient:
     async def snapshot(self):
         return module.PreferenceSnapshot(
             iterm_version="3.6.11",
-            global_map=copy.deepcopy(self.values["GlobalKeyMap"]),
+            global_map=await self.get_preference("GlobalKeyMap"),
+            global_map_persisted="GlobalKeyMap" in self.values,
             language_agnostic_effective=bool(
                 self.values.get("LanguageAgnosticKeyBindings", False)
             ),
@@ -91,11 +105,12 @@ class FakePreferenceClient:
 
 def setting_history_for(snapshot, plan):
     return module.SettingHistory(
-        schema_version=1,
+        schema_version=2,
         iterm_version=snapshot.iterm_version,
         created_at="2026-08-05T00:00:00Z",
         before_hash=module.canonical_hash(snapshot.global_map),
         after_hash=module.canonical_hash(plan.after),
+        original_global_map_persisted=snapshot.global_map_persisted,
         original_language_agnostic_persisted=(
             snapshot.language_agnostic_persisted
         ),
@@ -216,6 +231,7 @@ class BackupAndSettingHistoryTests(unittest.TestCase):
             setting_history = json.loads(
                 history_path.read_text(encoding="utf-8")
             )
+            self.assertEqual(setting_history["schema_version"], 2)
             self.assertEqual(
                 setting_history["before_hash"],
                 module.canonical_hash(snapshot.global_map),
@@ -223,6 +239,9 @@ class BackupAndSettingHistoryTests(unittest.TestCase):
             self.assertEqual(
                 setting_history["after_hash"],
                 module.canonical_hash(plan.after),
+            )
+            self.assertTrue(
+                setting_history["original_global_map_persisted"]
             )
             self.assertFalse(
                 setting_history["original_language_agnostic_persisted"]
@@ -306,6 +325,58 @@ class BackupAndSettingHistoryTests(unittest.TestCase):
             with self.assertRaisesRegex(module.MigrationError, "schema"):
                 module.load_setting_history(history_path, root)
 
+    def test_legacy_setting_history_recovers_global_map_persistence(self):
+        for persisted in (False, True):
+            with self.subTest(persisted=persisted):
+                snapshot = sample_snapshot(global_map_persisted=persisted)
+                plan = module.plan_keymap(
+                    snapshot.global_map,
+                    snapshot.profile_maps,
+                )
+                preferences = {}
+                if persisted:
+                    preferences["GlobalKeyMap"] = snapshot.global_map
+
+                with tempfile.TemporaryDirectory() as directory:
+                    root = pathlib.Path(directory) / "backups"
+                    history_path = module.create_backup(
+                        snapshot,
+                        plan,
+                        root,
+                        preference_export=plistlib.dumps(preferences),
+                    )
+                    raw = json.loads(history_path.read_text(encoding="utf-8"))
+                    raw["schema_version"] = 1
+                    del raw["original_global_map_persisted"]
+                    history_path.write_text(json.dumps(raw), encoding="utf-8")
+
+                    loaded = module.load_setting_history(history_path, root)
+
+                self.assertIs(
+                    loaded.original_global_map_persisted,
+                    persisted,
+                )
+
+    def test_legacy_setting_history_rejects_mismatched_persisted_map(self):
+        snapshot = sample_snapshot(global_map_persisted=True)
+        plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory) / "backups"
+            history_path = module.create_backup(
+                snapshot,
+                plan,
+                root,
+                preference_export=plistlib.dumps({"GlobalKeyMap": {}}),
+            )
+            raw = json.loads(history_path.read_text(encoding="utf-8"))
+            raw["schema_version"] = 1
+            del raw["original_global_map_persisted"]
+            history_path.write_text(json.dumps(raw), encoding="utf-8")
+
+            with self.assertRaisesRegex(module.MigrationError, "legacy.*map"):
+                module.load_setting_history(history_path, root)
+
 
 class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
     async def test_apply_sets_exact_map_and_language_preference(self):
@@ -328,6 +399,20 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(client.values["GlobalKeyMap"], snapshot.global_map)
         self.assertNotIn("LanguageAgnosticKeyBindings", client.values)
+
+    async def test_apply_compensation_restores_absent_global_map(self):
+        snapshot = sample_snapshot(global_map_persisted=False)
+        client = FakePreferenceClient(snapshot, fail_on_write=2)
+        plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
+
+        with self.assertRaisesRegex(module.MigrationError, "restored"):
+            await module.apply_configuration(client, snapshot, plan)
+
+        self.assertNotIn("GlobalKeyMap", client.values)
+        self.assertEqual(
+            await client.get_preference("GlobalKeyMap"),
+            snapshot.global_map,
+        )
 
     async def test_apply_compensation_uses_exact_unset_for_absent_flag(self):
         class ExactUnsetClient(FakePreferenceClient):
@@ -384,6 +469,25 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("LanguageAgnosticKeyBindings", client.values)
         self.assertTrue(result.language_agnostic_restored)
         self.assertIsNone(result.warning)
+
+    async def test_restore_returns_global_map_to_absent_state(self):
+        snapshot = sample_snapshot(global_map_persisted=False)
+        plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
+        client = FakePreferenceClient(snapshot)
+        client.values["GlobalKeyMap"] = copy.deepcopy(plan.after)
+        client.values["LanguageAgnosticKeyBindings"] = True
+
+        result = await module.restore_configuration(
+            client, setting_history_for(snapshot, plan)
+        )
+
+        self.assertNotIn("GlobalKeyMap", client.values)
+        self.assertEqual(
+            await client.get_preference("GlobalKeyMap"),
+            snapshot.global_map,
+        )
+        self.assertNotIn("LanguageAgnosticKeyBindings", client.values)
+        self.assertTrue(result.language_agnostic_restored)
 
     async def test_restore_uses_exact_unset_for_absent_flag(self):
         class ExactUnsetClient(FakePreferenceClient):
@@ -451,6 +555,29 @@ class PreferenceMutationTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result.language_agnostic_restored)
         self.assertIn("unrelated mappings changed", result.warning)
 
+    async def test_restore_persists_unrelated_map_when_original_was_absent(self):
+        snapshot = sample_snapshot(global_map_persisted=False)
+        plan = module.plan_keymap(snapshot.global_map, snapshot.profile_maps)
+        client = FakePreferenceClient(snapshot)
+        client.values["GlobalKeyMap"] = copy.deepcopy(plan.after)
+        client.values["GlobalKeyMap"]["0x61-0x100000"] = {
+            "Action": 0,
+            "Text": "",
+        }
+        client.values["LanguageAgnosticKeyBindings"] = True
+
+        result = await module.restore_configuration(
+            client, setting_history_for(snapshot, plan)
+        )
+
+        self.assertIn("GlobalKeyMap", client.values)
+        self.assertEqual(
+            client.values["GlobalKeyMap"]["0x61-0x100000"],
+            {"Action": 0, "Text": ""},
+        )
+        self.assertIs(client.values["LanguageAgnosticKeyBindings"], True)
+        self.assertFalse(result.language_agnostic_restored)
+
 
 class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
     async def test_raw_rpc_read_generic_write_and_profile_copy(self):
@@ -491,7 +618,11 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
             PartialProfile=FakePartialProfile,
             async_set_preference=fake_set,
         )
-        client = module.ItermPreferenceClient(iterm2_module, "connection")
+        client = module.ItermPreferenceClient(
+            iterm2_module,
+            "connection",
+            default_global_map={},
+        )
 
         value = await client.get_preference("GlobalKeyMap")
         await client.set_preference("GlobalKeyMap", {"new": True})
@@ -546,6 +677,7 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
         client = module.ItermPreferenceClient(
             types.SimpleNamespace(rpc=NumericBooleanRPC),
             "connection",
+            default_global_map={},
         )
 
         self.assertIs(
@@ -556,6 +688,33 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
             await client.get_preference("LoadPrefsFromCustomFolder"),
             True,
         )
+
+    async def test_adapter_uses_factory_map_when_global_map_is_absent(self):
+        class AbsentGlobalMapRPC:
+            @staticmethod
+            async def async_get_preference(connection, key):
+                self.assertEqual(connection, "connection")
+                self.assertEqual(key, "GlobalKeyMap")
+                result = types.SimpleNamespace(
+                    get_preference_result=types.SimpleNamespace(
+                        json_value="null"
+                    )
+                )
+                return types.SimpleNamespace(
+                    preferences_response=types.SimpleNamespace(results=[result])
+                )
+
+        factory_map = load_fixture()
+        client = module.ItermPreferenceClient(
+            types.SimpleNamespace(rpc=AbsentGlobalMapRPC),
+            "connection",
+            default_global_map=factory_map,
+        )
+
+        resolved = await client.get_preference("GlobalKeyMap")
+        resolved["test-only-mutation"] = {}
+
+        self.assertEqual(await client.get_preference("GlobalKeyMap"), factory_map)
 
     async def test_live_exact_unset_sets_false_deletes_and_reads_back(self):
         events = []
@@ -580,6 +739,7 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
                 async_set_preference=fake_set,
             ),
             "connection",
+            default_global_map={},
             delete_persisted=lambda key: events.append(("delete", key)),
         )
 
@@ -603,6 +763,47 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
+    async def test_live_exact_unset_restores_factory_global_map(self):
+        events = []
+        factory_map = load_fixture()
+
+        class AbsentGlobalMapRPC:
+            @staticmethod
+            async def async_get_preference(connection, key):
+                events.append(("get", connection, key))
+                result = types.SimpleNamespace(
+                    get_preference_result=types.SimpleNamespace(
+                        json_value="null"
+                    )
+                )
+                return types.SimpleNamespace(
+                    preferences_response=types.SimpleNamespace(results=[result])
+                )
+
+        async def fake_set(connection, key, value):
+            events.append(("set", connection, key, copy.deepcopy(value)))
+
+        client = module.ItermPreferenceClient(
+            types.SimpleNamespace(
+                rpc=AbsentGlobalMapRPC,
+                async_set_preference=fake_set,
+            ),
+            "connection",
+            default_global_map=factory_map,
+            delete_persisted=lambda key: events.append(("delete", key)),
+        )
+
+        await client.unset_preference("GlobalKeyMap")
+
+        self.assertEqual(
+            events,
+            [
+                ("set", "connection", "GlobalKeyMap", factory_map),
+                ("delete", "GlobalKeyMap"),
+                ("get", "connection", "GlobalKeyMap"),
+            ],
+        )
+
     async def test_snapshot_rejects_export_and_api_map_mismatch(self):
         client = FakePreferenceClient()
         exported_map = load_fixture()
@@ -613,6 +814,47 @@ class LiveAdapterTests(unittest.IsolatedAsyncioTestCase):
                 client,
                 "3.6.11",
                 plistlib.dumps({"GlobalKeyMap": exported_map}),
+            )
+
+    async def test_snapshot_uses_factory_map_when_export_omits_global_map(self):
+        client = FakePreferenceClient()
+        factory_map = load_fixture()
+
+        snapshot = await module.build_snapshot(
+            client,
+            "3.6.11",
+            plistlib.dumps({}),
+            default_global_map=factory_map,
+        )
+
+        self.assertEqual(snapshot.global_map, factory_map)
+        self.assertFalse(snapshot.global_map_persisted)
+        self.assertFalse(snapshot.language_agnostic_persisted)
+        self.assertIsNone(snapshot.language_agnostic_persisted_value)
+
+    async def test_snapshot_preserves_explicit_empty_global_map(self):
+        client = FakePreferenceClient()
+        client.values["GlobalKeyMap"] = {}
+
+        snapshot = await module.build_snapshot(
+            client,
+            "3.6.11",
+            plistlib.dumps({"GlobalKeyMap": {}}),
+            default_global_map=load_fixture(),
+        )
+
+        self.assertEqual(snapshot.global_map, {})
+        self.assertTrue(snapshot.global_map_persisted)
+
+    async def test_snapshot_rejects_factory_fallback_and_api_map_mismatch(self):
+        client = FakePreferenceClient()
+
+        with self.assertRaisesRegex(module.MigrationError, "export.*API"):
+            await module.build_snapshot(
+                client,
+                "3.6.11",
+                plistlib.dumps({}),
+                default_global_map={},
             )
 
     async def test_snapshot_treats_raw_null_as_false_when_key_is_absent(self):
@@ -790,6 +1032,45 @@ class LocalEnvironmentTests(unittest.TestCase):
             ],
         )
 
+    def test_default_global_map_reader_loads_dictionary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "DefaultGlobalKeyMap.plist"
+            expected = load_fixture()
+            path.write_bytes(plistlib.dumps(expected))
+
+            self.assertEqual(module.read_default_global_map(path), expected)
+
+    def test_default_global_map_reader_rejects_missing_resource(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "missing.plist"
+
+            with self.assertRaisesRegex(module.MigrationError, "default global"):
+                module.read_default_global_map(path)
+
+    def test_default_global_map_reader_rejects_non_dictionary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "DefaultGlobalKeyMap.plist"
+            path.write_bytes(plistlib.dumps([]))
+
+            with self.assertRaisesRegex(module.MigrationError, "dictionary"):
+                module.read_default_global_map(path)
+
+    def test_default_global_map_reader_rejects_non_json_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "DefaultGlobalKeyMap.plist"
+            path.write_bytes(plistlib.dumps({"binding": {"Data": b"bytes"}}))
+
+            with self.assertRaisesRegex(module.MigrationError, "canonical"):
+                module.read_default_global_map(path)
+
+    def test_default_global_map_reader_rejects_malformed_plist(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "DefaultGlobalKeyMap.plist"
+            path.write_bytes(b'<?xml version="1.0"?><plist><dict>')
+
+            with self.assertRaisesRegex(module.MigrationError, "parse"):
+                module.read_default_global_map(path)
+
     def test_exact_unset_deletes_only_approved_key_and_verifies_absence(self):
         calls = []
 
@@ -818,12 +1099,40 @@ class LocalEnvironmentTests(unittest.TestCase):
             ],
         )
 
+    def test_exact_unset_deletes_global_map_and_verifies_absence(self):
+        calls = []
+
+        def fake_run(command, **kwargs):
+            calls.append((command, kwargs))
+            return types.SimpleNamespace(returncode=0)
+
+        module.delete_persisted_preference(
+            "GlobalKeyMap",
+            run=fake_run,
+            export=lambda: plistlib.dumps({}),
+        )
+
+        self.assertEqual(
+            calls,
+            [
+                (
+                    [
+                        "/usr/bin/defaults",
+                        "delete",
+                        "com.googlecode.iterm2",
+                        "GlobalKeyMap",
+                    ],
+                    {"check": False, "capture_output": True},
+                )
+            ],
+        )
+
     def test_exact_unset_rejects_every_other_preference_key(self):
         calls = []
 
         with self.assertRaisesRegex(module.MigrationError, "unapproved"):
             module.delete_persisted_preference(
-                "GlobalKeyMap",
+                "Keyboard Map",
                 run=lambda *args, **kwargs: calls.append((args, kwargs)),
                 export=lambda: plistlib.dumps({}),
             )
