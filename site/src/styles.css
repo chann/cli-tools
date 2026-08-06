@@ -695,6 +695,10 @@ samp {
   scroll-margin-top: 96px;
 }
 
+.section-shell[id] {
+  scroll-margin-top: 96px;
+}
+
 .install,
 .benefits,
 .tool-explorer,
@@ -740,6 +744,39 @@ samp {
   line-height: 1;
   text-wrap: balance;
   word-break: keep-all;
+}
+
+.section-anchor {
+  color: inherit;
+  text-decoration: none;
+}
+
+.section-anchor__mark {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  font-size: 0.55em;
+  line-height: 1;
+  margin-inline-start: 0.28em;
+  opacity: 0.58;
+  transform: translateY(-0.04em);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  vertical-align: 0.12em;
+  white-space: nowrap;
+}
+
+.section-anchor__mark svg {
+  width: 1em;
+  height: 1em;
+}
+
+.section-anchor:hover .section-anchor__mark,
+.section-anchor:focus-visible .section-anchor__mark,
+.section-shell:target .section-anchor__mark {
+  opacity: 1;
+  transform: translateY(-0.12em);
 }
 
 .section-heading > p:last-child,

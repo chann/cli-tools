@@ -7,6 +7,7 @@ import {
   Check,
   ClipboardText,
   GitBranch,
+  LinkSimple,
 } from "@phosphor-icons/react";
 import {
   AnimatePresence,
@@ -86,14 +87,44 @@ function CodeBlock({ code, label }) {
   );
 }
 
-function RevealSection({ children, className = "", ...props }) {
+function SectionTitle({ anchor, children, className, headingId, headingRef }) {
+  return (
+    <h2 className={className} id={headingId} ref={headingRef}>
+      <a className="section-anchor" href={`#${anchor}`}>
+        {children}
+        <span className="section-anchor__mark" aria-hidden="true">
+          <LinkSimple weight="bold" />
+        </span>
+      </a>
+    </h2>
+  );
+}
+
+function useInitialHashScroll() {
+  useEffect(() => {
+    const targetId = window.location.hash.slice(1);
+    if (!targetId) {
+      return undefined;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView();
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+}
+
+function RevealSection({ children, className = "", id, ...props }) {
   const reduceMotion = useReducedMotion();
+  const isInitialHashTarget = id && window.location.hash === `#${id}`;
 
   return (
     <motion.section
       className={className}
+      id={id}
       initial={
-        reduceMotion
+        reduceMotion || isInitialHashTarget
           ? false
           : { opacity: 0, y: 64, filter: "blur(12px)" }
       }
@@ -120,7 +151,7 @@ function BenefitsSection() {
     <RevealSection className="benefits section-shell" id="benefits">
       <div className="section-heading section-heading--left">
         <p className="section-label">{messages.benefits.label}</p>
-        <h2>{messages.benefits.title}</h2>
+        <SectionTitle anchor="benefits">{messages.benefits.title}</SectionTitle>
         <p>{messages.benefits.description}</p>
       </div>
       <div className="benefit-grid">
@@ -171,8 +202,17 @@ function TaglineReveal() {
   let globalWordIndex = 0;
 
   return (
-    <section className="tagline section-shell" aria-labelledby="tagline-heading">
-      <h2 className="tagline__copy" id="tagline-heading" ref={taglineRef}>
+    <section
+      className="tagline section-shell"
+      id="tagline"
+      aria-labelledby="tagline-heading"
+    >
+      <SectionTitle
+        anchor="tagline"
+        className="tagline__copy"
+        headingId="tagline-heading"
+        headingRef={taglineRef}
+      >
         {taglineLines.map((line, lineIndex) => (
           <Fragment key={line.join(" ")}>
             <span className="tagline__line">
@@ -198,7 +238,7 @@ function TaglineReveal() {
             {lineIndex === taglineLines.length - 1 ? null : " "}
           </Fragment>
         ))}
-      </h2>
+      </SectionTitle>
     </section>
   );
 }
@@ -210,7 +250,7 @@ function InstallSection() {
     <RevealSection className="install section-shell" id="install">
       <div className="section-heading">
         <p className="section-label">{messages.install.label}</p>
-        <h2>{messages.install.title}</h2>
+        <SectionTitle anchor="install">{messages.install.title}</SectionTitle>
         <p>{messages.install.description}</p>
       </div>
       <CodeBlock code={messages.install.command} label={messages.install.codeLabel} />
@@ -254,7 +294,7 @@ function ToolExplorer() {
     <RevealSection className="tool-explorer section-shell" id="tools">
       <div className="section-heading">
         <p className="section-label">{messages.explorer.label}</p>
-        <h2>{messages.explorer.title}</h2>
+        <SectionTitle anchor="tools">{messages.explorer.title}</SectionTitle>
         <p>{messages.explorer.description}</p>
       </div>
       <div className="tool-explorer__layout">
@@ -323,7 +363,9 @@ function ItermKeysSection() {
       <div className="iterm-keys__content">
         <div className="section-heading">
           <p className="section-label">{messages.itermKeys.label}</p>
-          <h2>{messages.itermKeys.title}</h2>
+          <SectionTitle anchor="iterm-korean">
+            {messages.itermKeys.title}
+          </SectionTitle>
           <p>{messages.itermKeys.description}</p>
         </div>
         <div className="behavior-list">
@@ -377,7 +419,7 @@ function ZzzSection() {
       <div className="zzz-feature__content">
         <div className="section-heading">
           <p className="section-label">{messages.zzz.label}</p>
-          <h2>{messages.zzz.title}</h2>
+          <SectionTitle anchor="zzz">{messages.zzz.title}</SectionTitle>
           <p>
             <code>zzz</code>{messages.zzz.descriptionBefore}
           </p>
@@ -461,7 +503,7 @@ function UtilityExplorer() {
     <RevealSection className="utility-explorer section-shell" id="utilities">
       <div className="section-heading">
         <p className="section-label">{messages.utility.label}</p>
-        <h2>{messages.utility.title}</h2>
+        <SectionTitle anchor="utilities">{messages.utility.title}</SectionTitle>
         <p>
           <code>dev-tools</code>{messages.utility.descriptionBefore}
         </p>
@@ -540,7 +582,7 @@ function AnalysisSection() {
       <div className="analysis__content">
         <div className="section-heading">
           <p className="section-label">{messages.analysis.label}</p>
-          <h2>{messages.analysis.title}</h2>
+          <SectionTitle anchor="analysis">{messages.analysis.title}</SectionTitle>
           <p>{messages.analysis.description}</p>
         </div>
         <div className="analysis__tools">
@@ -566,7 +608,7 @@ function WorkflowSection() {
     <RevealSection className="workflow section-shell" id="workflow">
       <div className="section-heading section-heading--left">
         <p className="section-label">{messages.workflow.label}</p>
-        <h2>{messages.workflow.title}</h2>
+        <SectionTitle anchor="workflow">{messages.workflow.title}</SectionTitle>
         <p>{messages.workflow.description}</p>
       </div>
       <ol className="workflow-list">
@@ -591,7 +633,7 @@ function FaqSection() {
     <RevealSection className="faq section-shell" id="faq">
       <div className="section-heading section-heading--left">
         <p className="section-label">{messages.faq.label}</p>
-        <h2>{messages.faq.title}</h2>
+        <SectionTitle anchor="faq">{messages.faq.title}</SectionTitle>
         <p>{messages.faq.description}</p>
       </div>
       <dl className="faq-list">
@@ -610,10 +652,10 @@ function FinalSection() {
   const { messages } = useI18n();
 
   return (
-    <RevealSection className="final-cta section-shell">
+    <RevealSection className="final-cta section-shell" id="get-started">
       <div>
         <p className="section-label">{messages.final.label}</p>
-        <h2>{messages.final.title}</h2>
+        <SectionTitle anchor="get-started">{messages.final.title}</SectionTitle>
         <p className="final-cta__description">{messages.final.description}</p>
         <p className="final-cta__risk">{messages.final.risk}</p>
       </div>
@@ -626,6 +668,8 @@ function FinalSection() {
 }
 
 export default function App() {
+  useInitialHashScroll();
+
   return (
     <>
       <BenefitsSection />

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, test, vi } from "vitest";
@@ -210,6 +210,54 @@ describe("cli-tools website", () => {
     );
     expect(document.body.textContent).toContain("iTerm2 3.6.11");
     expect(document.body.textContent).toContain("개인 백업 영수증");
+  });
+
+  test("makes every landing section heading a shareable anchor", () => {
+    const { container } = renderApp();
+    const sections = [
+      ["benefits", "하루에 몇 번씩 하던 일을, 한 번의 명령으로."],
+      ["install", "필요한 도구만 설치하세요."],
+      ["tools", "5가지 재미있는 도구, 그리고 실용성까지."],
+      ["tagline", "터미널을 떠나지 않고, 분석하고 정리하고 다음 작업으로."],
+      ["iterm-korean", "한글 입력은 그대로, 터미널 단축키도 그대로."],
+      ["zzz", "명령은 백그라운드로. 결과는 로그로."],
+      ["utilities", "반복 작업을 한 명령으로."],
+      ["analysis", "저장소를 읽고, 숫자로 남기세요."],
+      ["workflow", "복제하고, 고르고, 바로 확인합니다."],
+      ["faq", "설치 전에 궁금한 점."],
+      ["get-started", "필요한 도구부터 설치하세요."],
+    ];
+
+    for (const [id, title] of sections) {
+      const section = container.querySelector(`#${id}`);
+      expect(section).not.toBeNull();
+      const heading = within(section).getByRole("heading", {
+        level: 2,
+        name: title,
+      });
+      expect(within(heading).getByRole("link", { name: title }).getAttribute("href")).toBe(
+        `#${id}`,
+      );
+    }
+
+    expect(container.querySelectorAll("h2")).toHaveLength(sections.length);
+  });
+
+  test("scrolls to a shared section hash after the landing content mounts", async () => {
+    const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView");
+    window.history.replaceState(null, "", "/cli-tools/#iterm-korean");
+
+    try {
+      renderApp();
+
+      await waitFor(() => {
+        expect(scrollIntoView).toHaveBeenCalledOnce();
+      });
+      expect(scrollIntoView.mock.instances[0].id).toBe("iterm-korean");
+    } finally {
+      window.history.replaceState(null, "", "/cli-tools/");
+      scrollIntoView.mockRestore();
+    }
   });
 
   test("completes the landing argument from benefits through FAQ", () => {
