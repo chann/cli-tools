@@ -221,7 +221,7 @@ describe("cli-tools website", () => {
 
   test("nests concise Ghostty support inside terminal integration", () => {
     const { container } = renderApp();
-    const integration = container.querySelector("#iterm-korean");
+    const integration = container.querySelector("#term-korean");
     const ghostty = within(integration).getByRole("group", {
       name: "Ghostty 터미널 연동 지원",
     });
@@ -251,6 +251,7 @@ describe("cli-tools website", () => {
     expect(ghostty.textContent).toContain("setting_history.json");
     expect(container.querySelectorAll(".terminal-keys")).toHaveLength(1);
     expect(container.querySelector("#ghostty-korean").closest("section")).toBe(integration);
+    expect(ghostty.parentElement).toBe(integration);
   });
 
   test("keeps section titles shareable without visible link icons", () => {
@@ -260,7 +261,7 @@ describe("cli-tools website", () => {
       ["install", "필요한 도구만 설치하세요."],
       ["tools", "5가지 재미있는 도구, 그리고 실용성까지."],
       ["tagline", "터미널을 떠나지 않고, 분석하고 정리하고 다음 작업으로."],
-      ["iterm-korean", "한글 입력은 그대로, 터미널 단축키도 그대로."],
+      ["term-korean", "한글 입력은 그대로, 터미널 단축키도 그대로."],
       ["zzz", "명령은 백그라운드로. 결과는 로그로."],
       ["utilities", "반복 작업을 한 명령으로."],
       ["analysis", "저장소를 읽고, 숫자로 남기세요."],
@@ -284,6 +285,7 @@ describe("cli-tools website", () => {
 
     expect(container.querySelectorAll("h2")).toHaveLength(sections.length);
     expect(container.querySelector(".section-anchor__mark")).toBeNull();
+    expect(container.querySelector("#iterm-korean")).toBeNull();
   });
 
   test("scrolls to a shared section hash after the landing content mounts", async () => {

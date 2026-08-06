@@ -356,11 +356,11 @@ function TerminalIntegrationSection() {
   const terminal = messages.itermKeys;
 
   return (
-    <RevealSection className="terminal-keys section-shell" id="iterm-korean">
+    <RevealSection className="terminal-keys section-shell" id="term-korean">
       <div className="terminal-keys__content">
         <div className="section-heading">
           <p className="section-label">{terminal.label}</p>
-          <SectionTitle anchor="iterm-korean">{terminal.title}</SectionTitle>
+          <SectionTitle anchor="term-korean">{terminal.title}</SectionTitle>
           <p>{terminal.description}</p>
         </div>
         <div className="behavior-list">
@@ -380,21 +380,6 @@ function TerminalIntegrationSection() {
           label={terminal.restoreCodeLabel}
         />
         <p className="terminal-keys__note">{terminal.note}</p>
-        <div
-          className="terminal-keys__ghostty"
-          id="ghostty-korean"
-          role="group"
-          aria-label={terminal.ghostty.ariaLabel}
-        >
-          <p className="terminal-keys__ghostty-label">{terminal.ghostty.label}</p>
-          <h3>{terminal.ghostty.title}</h3>
-          <p>{terminal.ghostty.description}</p>
-          <CodeBlock
-            code={terminal.ghostty.command}
-            label={terminal.ghostty.codeLabel}
-          />
-          <p className="terminal-keys__note">{terminal.ghostty.note}</p>
-        </div>
       </div>
       <div
         className="terminal-keys__mapping"
@@ -416,6 +401,21 @@ function TerminalIntegrationSection() {
           <code>0x07</code>
         </div>
         <p>{terminal.mappingNote}</p>
+      </div>
+      <div
+        className="terminal-keys__ghostty"
+        id="ghostty-korean"
+        role="group"
+        aria-label={terminal.ghostty.ariaLabel}
+      >
+        <p className="terminal-keys__ghostty-label">{terminal.ghostty.label}</p>
+        <h3>{terminal.ghostty.title}</h3>
+        <p>{terminal.ghostty.description}</p>
+        <CodeBlock
+          code={terminal.ghostty.command}
+          label={terminal.ghostty.codeLabel}
+        />
+        <p className="terminal-keys__note">{terminal.ghostty.note}</p>
       </div>
     </RevealSection>
   );

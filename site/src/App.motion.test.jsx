@@ -46,7 +46,7 @@ test("skips entrance translation for the initial hash target", async () => {
     removeListener: vi.fn(),
     dispatchEvent: vi.fn(),
   }));
-  window.history.replaceState(null, "", "/cli-tools/#iterm-korean");
+  window.history.replaceState(null, "", "/cli-tools/#term-korean");
 
   try {
     const { default: App } = await import("./App");
@@ -55,7 +55,7 @@ test("skips entrance translation for the initial hash target", async () => {
         <App />
       </I18nProvider>,
     );
-    const target = container.querySelector("#iterm-korean");
+    const target = container.querySelector("#term-korean");
 
     expect(target.style.opacity).toBe("");
     expect(target.style.transform).toBe("");

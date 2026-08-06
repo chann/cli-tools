@@ -1177,7 +1177,8 @@ samp {
 }
 
 .terminal-keys__ghostty {
-  margin-top: 32px;
+  min-width: 0;
+  grid-column: 1 / -1;
   padding: 24px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -1828,12 +1829,13 @@ noscript {
   }
 
   .terminal-keys {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 48px;
   }
 
   .terminal-keys__content,
-  .terminal-keys__mapping {
+  .terminal-keys__mapping,
+  .terminal-keys__ghostty {
     width: min(100%, 700px);
     margin-inline: auto;
   }
