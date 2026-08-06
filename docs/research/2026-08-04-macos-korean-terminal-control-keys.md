@@ -350,7 +350,9 @@ keypress test.
 
 ## Implementation Evidence (2026-08-06)
 
-The selected iTerm2-only configuration is active on iTerm2 `3.6.11`. The
+### iTerm2
+
+The iTerm2 configuration is active on iTerm2 `3.6.11`. The
 implementation audited the global map and both configured profiles without
 adding profile-local mappings:
 
@@ -363,8 +365,8 @@ adding profile-local mappings:
 - `0x63-0x40000-0x8 -> {"Action": 11, "Text": "0x03"}`; and
 - `0x67-0x40000-0x5 -> {"Action": 11, "Text": "0x07"}`.
 
-The first apply produced private setting history, live read-back passed, and an exact
-restore drill returned the map to the before hash. The originally absent
+The first apply produced private setting history, live read-back passed, and an
+exact restore drill returned the map to the before hash. The originally absent
 `LanguageAgnosticKeyBindings` key was proven absent again through a fresh
 preference-domain export. A second apply then produced the active history:
 
@@ -400,6 +402,44 @@ override. A separate physical replay of the pre-existing
 `Control-Command-=` and `Shift-Return` shortcuts was not reported, so their
 runtime behavior is supported by structural preservation rather than a second
 manual spot check.
+
+### Ghostty
+
+The Ghostty configuration is active on Ghostty `1.3.1`. The helper validated
+both standard config roots and selected `~/.config/ghostty/config` because it
+was the only file containing real directives; the later macOS-specific file
+contained comments only. The managed file moved from SHA-256
+`a20cd942e23851253276c1e31cd82048f4ef76eb2b1e9d340b42e1b72eef4848`
+to `133e7f7cf654e05038bf103208a640ced6860e8d3aefff7deaf1ebe80516ce82`.
+
+The live effective keymap contains:
+
+```text
+keybind = ctrl+c=text:\\x03
+keybind = ctrl+g=text:\\x07
+```
+
+Ghostty serializes the source actions `text:\x03` and `text:\x07` with one
+additional escape in `+list-keybinds --plain`. A regression test covers that
+Ghostty `1.3.1` representation without accepting prefixed bindings or deeper
+escaping as equivalent.
+
+An apply/read-back/restore drill returned the config to the exact before hash,
+mode `0644`, size `1014`, and `com.apple.provenance` extended attribute. It
+also preserved the existing `Control-N` action and all seven `Control-A`
+sequences. The final apply restored the after hash, mode `0644`, size `1159`,
+and the same extended attribute. Its active setting history is:
+
+```text
+~/Library/Application Support/cli-tools/ghostty-korean-control-keys/
+  20260806T041649.829200Z/setting_history.json
+```
+
+The history directory and files use modes `0700` and `0600`. The Python suite
+passed 63 tests across Ghostty, iTerm2, and the physical-byte probe. The input
+source during automated Ghostty verification was `com.apple.keylayout.ABC`, so
+the Ghostty row still needs a physical `PASS: 03 07` replay with Apple's
+2-Set Korean input selected, followed by a normal Korean composition check.
 
 ## Decision
 

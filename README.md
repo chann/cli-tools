@@ -5,8 +5,9 @@
 Rust-based command-line tools for repository analysis, Git workflow maintenance,
 everyday developer utilities, and silent command logging.
 
-The repository also includes a reversible macOS helper that keeps physical
-`Control-C` and `Control-G` working in iTerm2 while Korean input stays selected.
+The repository also includes reversible macOS helpers that keep physical
+`Control-C` and `Control-G` working in iTerm2 and Ghostty while Korean input
+stays selected.
 
 ## Tools
 
@@ -92,6 +93,49 @@ Press physical `Control-C`, then physical `Control-G`. The probe must print
 `PASS: 03 07`; confirm Korean composition still works afterward. See the
 [research and acceptance matrix](docs/research/2026-08-04-macos-korean-terminal-control-keys.md)
 for the rationale and broader terminal findings.
+
+## Ghostty Korean Control Keys (macOS)
+
+On Ghostty `1.3.1`, `scripts/ghostty_korean_control_keys.py` adds the same PTY
+byte bindings with Ghostty's native `text` action. It audits every standard
+macOS config location, refuses conflicting or prefixed `Control-C`/`Control-G`
+actions, and edits only the single file that contains real directives.
+
+This helper requires macOS, exactly Ghostty `1.3.1` installed at
+`/Applications/Ghostty.app`, and Python 3.11 or newer. Run each command from
+the repository root:
+
+```bash
+# Validate all loaded config files and preview only the missing bindings
+python3 scripts/ghostty_korean_control_keys.py preflight
+
+# Save private setting history and append one managed config block
+python3 scripts/ghostty_korean_control_keys.py apply
+
+# Validate the effective Ghostty keymap and every pre-existing binding
+python3 scripts/ghostty_korean_control_keys.py verify
+```
+
+`apply` preserves the original file mode and extended attributes. It writes
+`setting_history.json` and `config.before` under
+`~/Library/Application Support/cli-tools/ghostty-korean-control-keys/`; history
+directories use mode `0700` and files use `0600`.
+
+Restore with the literal absolute history path printed by `apply`:
+
+```bash
+python3 scripts/ghostty_korean_control_keys.py restore \
+  --history '/absolute/path/printed-by-apply/setting_history.json'
+```
+
+Restore removes only the exact managed block. It blocks if that block changed
+later and preserves unrelated config edits. Reload existing Ghostty windows
+after apply or restore with the configured reload shortcut; Ghostty's macOS
+default is `Command-Shift-,`.
+
+Use the same input-source command and raw-byte probe from the iTerm2 section
+inside Ghostty. With Korean selected, the acceptance result is `PASS: 03 07`
+followed by normal Korean composition.
 
 ## code-cost
 
@@ -330,7 +374,7 @@ cli-tools/
 │   ├── git-tools/      # Git workflow and health tools
 │   ├── work-summary/   # Git work summary analyzer
 │   └── zzz/            # Standalone silent command logger
-├── scripts/             # iTerm2 migration and terminal probes
+├── scripts/             # iTerm2/Ghostty migrations and terminal probes
 ├── Cargo.toml
 └── versioning.md
 ```

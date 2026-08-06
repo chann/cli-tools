@@ -5,8 +5,8 @@
 저장소 분석, Git 워크플로우 관리, 개발자용 데이터 변환, 무음 명령 로그
 저장을 위한 Rust 기반 CLI 도구 모음입니다.
 
-한글 입력을 유지한 채 iTerm2에서 물리 `Control-C`와 `Control-G`를 사용할 수
-있도록 설정하는 복원 가능한 macOS 도우미도 포함합니다.
+한글 입력을 유지한 채 iTerm2와 Ghostty에서 물리 `Control-C`와 `Control-G`를
+사용할 수 있도록 설정하는 복원 가능한 macOS 도우미도 포함합니다.
 
 ## 도구
 
@@ -92,6 +92,49 @@ python3 scripts/probe_control_bytes.py
 합니다. 이어서 한글 조합이 그대로 동작하는지도 확인하세요. 설계 근거와 전체
 검증표는 [연구 문서](docs/research/2026-08-04-macos-korean-terminal-control-keys.md)를
 참고하세요.
+
+## Ghostty 한글 Control 키 설정 (macOS)
+
+Ghostty `1.3.1`에서 `scripts/ghostty_korean_control_keys.py`는 Ghostty의
+네이티브 `text` 액션으로 같은 PTY 바이트 매핑을 추가합니다. macOS의 모든
+표준 설정 위치를 검사하고, 접두사가 있거나 다른 동작을 가진
+`Control-C`/`Control-G` 충돌을 차단하며, 실제 지시문이 있는 단일 파일만
+수정합니다.
+
+이 도우미는 macOS, `/Applications/Ghostty.app`에 설치된 정확히 Ghostty
+`1.3.1`, Python 3.11 이상이 필요합니다. 저장소 루트에서 실행하세요:
+
+```bash
+# 불러오는 모든 설정 파일을 검증하고 누락된 매핑만 미리 보기
+python3 scripts/ghostty_korean_control_keys.py preflight
+
+# 비공개 설정 이력을 저장하고 관리 블록 하나 추가
+python3 scripts/ghostty_korean_control_keys.py apply
+
+# Ghostty 유효 키맵과 기존 단축키 보존 여부 검증
+python3 scripts/ghostty_korean_control_keys.py verify
+```
+
+`apply`는 원래 파일 모드와 확장 속성을 보존합니다.
+`setting_history.json`과 `config.before`는
+`~/Library/Application Support/cli-tools/ghostty-korean-control-keys/` 아래에
+기록되며 이력 디렉토리는 `0700`, 파일은 `0600` 모드를 사용합니다.
+
+복원할 때는 `apply`가 출력한 설정 이력의 절대 경로를 그대로 전달하세요:
+
+```bash
+python3 scripts/ghostty_korean_control_keys.py restore \
+  --history '/absolute/path/printed-by-apply/setting_history.json'
+```
+
+복원은 정확한 관리 블록만 제거합니다. 해당 블록이 나중에 바뀌었다면
+중단하고, 관련 없는 설정 변경은 보존합니다. 적용하거나 복원한 뒤 기존
+Ghostty 창에서는 설정 reload 단축키를 누르세요. macOS 기본값은
+`Command-Shift-,`입니다.
+
+iTerm2 절의 입력 소스 확인 명령과 raw-byte 프로브를 Ghostty 안에서도
+사용하세요. 한글 입력을 선택한 상태에서 `PASS: 03 07`이 출력되고 이후 한글
+조합이 정상 동작해야 검증이 끝납니다.
 
 ## code-cost
 
@@ -304,7 +347,7 @@ cli-tools/
 │   ├── git-tools/      # Git 워크플로우와 건강도 도구
 │   ├── work-summary/   # Git 업무 요약 분석기
 │   └── zzz/            # 독립 무음 명령 로그 저장기
-├── scripts/             # iTerm2 마이그레이션과 터미널 검사 도구
+├── scripts/             # iTerm2/Ghostty 마이그레이션과 터미널 검사 도구
 ├── Cargo.toml
 └── versioning.md
 ```
