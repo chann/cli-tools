@@ -53,6 +53,9 @@ describe("message catalogs", () => {
   test("keeps CLI commands and paths byte-identical", () => {
     const koreanCommands = catalogs.ko.tools.map((tool) => tool.examples);
     const koreanItermCommands = catalogs.ko.itermKeys.command;
+    const koreanItermRestore = catalogs.ko.itermKeys.restoreCommand;
+    const koreanGhosttyCommands = catalogs.ko.ghosttyKeys.command;
+    const koreanGhosttyRestore = catalogs.ko.ghosttyKeys.restoreCommand;
     const koreanUtilities = catalogs.ko.utility.groups.flatMap((group) =>
       group.commands.map((command) => command.code),
     );
@@ -60,6 +63,9 @@ describe("message catalogs", () => {
     for (const locale of Object.keys(LOCALES)) {
       expect(catalogs[locale].tools.map((tool) => tool.examples)).toEqual(koreanCommands);
       expect(catalogs[locale].itermKeys.command).toBe(koreanItermCommands);
+      expect(catalogs[locale].itermKeys.restoreCommand).toBe(koreanItermRestore);
+      expect(catalogs[locale].ghosttyKeys.command).toBe(koreanGhosttyCommands);
+      expect(catalogs[locale].ghosttyKeys.restoreCommand).toBe(koreanGhosttyRestore);
       expect(
         catalogs[locale].utility.groups.flatMap((group) =>
           group.commands.map((command) => command.code),

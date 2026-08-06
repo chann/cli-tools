@@ -14,7 +14,14 @@ uv run scripts/iterm2_korean_control_keys.py apply
 uv run scripts/iterm2_korean_control_keys.py verify`;
 
 export const iterm2KoreanControlRestoreCommand = `uv run scripts/iterm2_korean_control_keys.py restore \\
-  --receipt '/absolute/path/to/receipt.json'`;
+  --history '/absolute/path/to/setting_history.json'`;
+
+export const ghosttyKoreanControlCommand = `python3 scripts/ghostty_korean_control_keys.py preflight
+python3 scripts/ghostty_korean_control_keys.py apply
+python3 scripts/ghostty_korean_control_keys.py verify`;
+
+export const ghosttyKoreanControlRestoreCommand = `python3 scripts/ghostty_korean_control_keys.py restore \\
+  --history '/absolute/path/to/setting_history.json'`;
 
 export const tools = [
   {

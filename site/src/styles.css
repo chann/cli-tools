@@ -685,7 +685,7 @@ samp {
 .install,
 .benefits,
 .tool-explorer,
-.iterm-keys,
+.terminal-keys,
 .zzz-feature,
 .utility-explorer,
 .analysis,
@@ -702,7 +702,7 @@ samp {
 .install,
 .benefits,
 .tool-explorer,
-.iterm-keys,
+.terminal-keys,
 .utility-explorer,
 .analysis,
 .workflow,
@@ -1171,31 +1171,31 @@ samp {
   color: var(--text);
 }
 
-.iterm-keys {
+.terminal-keys {
   display: grid;
   grid-template-columns: minmax(0, 1.04fr) minmax(360px, 0.96fr);
   align-items: center;
   gap: 64px;
 }
 
-.iterm-keys__content {
+.terminal-keys__content {
   min-width: 0;
 }
 
-.iterm-keys .section-heading {
+.terminal-keys .section-heading {
   margin: 0;
   text-align: left;
 }
 
-.iterm-keys .section-heading > p:last-child {
+.terminal-keys .section-heading > p:last-child {
   margin-inline: 0;
 }
 
-.iterm-keys .code-block + .code-block {
+.terminal-keys .code-block + .code-block {
   margin-top: 12px;
 }
 
-.iterm-keys__note {
+.terminal-keys__note {
   margin: 12px 0 0;
   color: var(--muted);
   font-size: 0.75rem;
@@ -1204,7 +1204,7 @@ samp {
   word-break: keep-all;
 }
 
-.iterm-keys__mapping {
+.terminal-keys__mapping {
   min-width: 0;
   overflow: hidden;
   padding: 32px;
@@ -1215,7 +1215,7 @@ samp {
   color: var(--terminal-text);
 }
 
-.iterm-keys__mapping-header {
+.terminal-keys__mapping-header {
   display: flex;
   justify-content: space-between;
   gap: 24px;
@@ -1228,7 +1228,7 @@ samp {
   text-transform: uppercase;
 }
 
-.iterm-keys__mapping-row {
+.terminal-keys__mapping-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -1237,7 +1237,7 @@ samp {
   border-bottom: 1px solid var(--terminal-line);
 }
 
-.iterm-keys__mapping-row kbd {
+.terminal-keys__mapping-row kbd {
   width: fit-content;
   padding: 10px 12px;
   border: 1px solid #454641;
@@ -1250,13 +1250,13 @@ samp {
   line-height: 1.25rem;
 }
 
-.iterm-keys__mapping-row > svg {
+.terminal-keys__mapping-row > svg {
   width: 16px;
   height: 16px;
   color: var(--primary);
 }
 
-.iterm-keys__mapping-row code {
+.terminal-keys__mapping-row code {
   color: var(--primary);
   font-size: 2rem;
   font-weight: 600;
@@ -1264,7 +1264,7 @@ samp {
   text-align: right;
 }
 
-.iterm-keys__mapping > p {
+.terminal-keys__mapping > p {
   margin: 24px 0 0;
   color: #aab0a7;
   font-size: 0.75rem;
@@ -1815,13 +1815,13 @@ noscript {
     gap: 48px;
   }
 
-  .iterm-keys {
+  .terminal-keys {
     grid-template-columns: 1fr;
     gap: 48px;
   }
 
-  .iterm-keys__content,
-  .iterm-keys__mapping {
+  .terminal-keys__content,
+  .terminal-keys__mapping {
     width: min(100%, 700px);
     margin-inline: auto;
   }
@@ -1934,7 +1934,7 @@ noscript {
   .install,
   .benefits,
   .tool-explorer,
-  .iterm-keys,
+  .terminal-keys,
   .utility-explorer,
   .analysis,
   .workflow,
@@ -2017,12 +2017,12 @@ noscript {
     text-align: center;
   }
 
-  .iterm-keys .section-heading {
+  .terminal-keys .section-heading {
     text-align: center;
   }
 
   .zzz-feature .section-heading > p:last-child,
-  .iterm-keys .section-heading > p:last-child {
+  .terminal-keys .section-heading > p:last-child {
     margin-inline: auto;
   }
 
@@ -2147,15 +2147,15 @@ noscript {
     gap: 12px;
   }
 
-  .iterm-keys__mapping {
+  .terminal-keys__mapping {
     padding: 24px 16px;
   }
 
-  .iterm-keys__mapping-row {
+  .terminal-keys__mapping-row {
     gap: 12px;
   }
 
-  .iterm-keys__mapping-row code {
+  .terminal-keys__mapping-row code {
     font-size: 1.5rem;
     line-height: 2rem;
   }

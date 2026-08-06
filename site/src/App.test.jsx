@@ -208,8 +208,56 @@ describe("cli-tools website", () => {
     expect(commands.textContent).toContain(
       "uv run scripts/iterm2_korean_control_keys.py verify",
     );
+    const restore = screen.getByRole("region", {
+      name: "iTerm2 설정 이력으로 복원 코드",
+    });
+    expect(restore.textContent).toContain(
+      "--history '/absolute/path/to/setting_history.json'",
+    );
     expect(document.body.textContent).toContain("iTerm2 3.6.11");
-    expect(document.body.textContent).toContain("개인 백업 영수증");
+    expect(document.body.textContent).toContain("비공개 설정 이력");
+    expect(document.body.textContent).not.toContain("영수증");
+  });
+
+  test("explains the reversible Ghostty Korean control-key workflow", () => {
+    renderApp();
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Ghostty에서도 한글 입력과 Control 키를 함께.",
+      }),
+    ).toBeTruthy();
+
+    const mappings = screen.getByRole("group", {
+      name: "Ghostty 물리 키와 PTY 바이트 매핑",
+    });
+    expect(mappings.textContent).toContain("Control-C");
+    expect(mappings.textContent).toContain("0x03");
+    expect(mappings.textContent).toContain("Control-G");
+    expect(mappings.textContent).toContain("0x07");
+
+    const commands = screen.getByRole("region", {
+      name: "Ghostty 한글 단축키 설정 코드",
+    });
+    expect(commands.textContent).toContain(
+      "python3 scripts/ghostty_korean_control_keys.py preflight",
+    );
+    expect(commands.textContent).toContain(
+      "python3 scripts/ghostty_korean_control_keys.py apply",
+    );
+    expect(commands.textContent).toContain(
+      "python3 scripts/ghostty_korean_control_keys.py verify",
+    );
+
+    const restore = screen.getByRole("region", {
+      name: "Ghostty 설정 이력으로 복원 코드",
+    });
+    expect(restore.textContent).toContain(
+      "--history '/absolute/path/to/setting_history.json'",
+    );
+    expect(document.body.textContent).toContain("Ghostty 1.3.1");
+    expect(document.body.textContent).toContain("Control-A와 Control-N");
+    expect(document.body.textContent).toContain("Command-R");
   });
 
   test("makes every landing section heading a shareable anchor", () => {
@@ -220,6 +268,7 @@ describe("cli-tools website", () => {
       ["tools", "5가지 재미있는 도구, 그리고 실용성까지."],
       ["tagline", "터미널을 떠나지 않고, 분석하고 정리하고 다음 작업으로."],
       ["iterm-korean", "한글 입력은 그대로, 터미널 단축키도 그대로."],
+      ["ghostty-korean", "Ghostty에서도 한글 입력과 Control 키를 함께."],
       ["zzz", "명령은 백그라운드로. 결과는 로그로."],
       ["utilities", "반복 작업을 한 명령으로."],
       ["analysis", "저장소를 읽고, 숫자로 남기세요."],
@@ -245,7 +294,7 @@ describe("cli-tools website", () => {
 
   test("scrolls to a shared section hash after the landing content mounts", async () => {
     const scrollIntoView = vi.spyOn(Element.prototype, "scrollIntoView");
-    window.history.replaceState(null, "", "/cli-tools/#iterm-korean");
+    window.history.replaceState(null, "", "/cli-tools/#ghostty-korean");
 
     try {
       renderApp();
@@ -253,7 +302,7 @@ describe("cli-tools website", () => {
       await waitFor(() => {
         expect(scrollIntoView).toHaveBeenCalledOnce();
       });
-      expect(scrollIntoView.mock.instances[0].id).toBe("iterm-korean");
+      expect(scrollIntoView.mock.instances[0].id).toBe("ghostty-korean");
     } finally {
       window.history.replaceState(null, "", "/cli-tools/");
       scrollIntoView.mockRestore();

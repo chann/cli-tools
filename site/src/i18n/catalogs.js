@@ -1,4 +1,6 @@
 import {
+  ghosttyKoreanControlCommand,
+  ghosttyKoreanControlRestoreCommand,
   installAll,
   iterm2KoreanControlCommand,
   iterm2KoreanControlRestoreCommand,
@@ -35,6 +37,11 @@ function createCatalog(copy) {
       ...copy.itermKeys,
       command: iterm2KoreanControlCommand,
       restoreCommand: iterm2KoreanControlRestoreCommand,
+    },
+    ghosttyKeys: {
+      ...copy.ghosttyKeys,
+      command: ghosttyKoreanControlCommand,
+      restoreCommand: ghosttyKoreanControlRestoreCommand,
     },
     tools: localizeTools(copy.tools),
     utility: {
@@ -182,14 +189,31 @@ const ko = createCatalog({
     safeguards: [
       { title: "입력 유지", description: "한글 입력 소스를 ABC로 전환하지 않고 iTerm2 안에서만 동작합니다." },
       { title: "충돌 차단", description: "전역 및 프로필 매핑을 먼저 검사하고 다른 동작과 겹치면 변경 전에 멈춥니다." },
-      { title: "정확한 복원", description: "개인 백업 영수증으로 소유한 두 항목만 제거하고 이후 사용자 변경은 덮어쓰지 않습니다." },
+      { title: "정확한 복원", description: "비공개 설정 이력에 기록된 두 항목만 제거하고 이후 사용자 변경은 덮어쓰지 않습니다." },
     ],
     codeLabel: "iTerm2 한글 단축키 설정",
-    restoreCodeLabel: "영수증으로 복원",
-    note: "uv와 iTerm2 Python API 승인이 필요합니다. apply가 출력한 개인 영수증의 절대 경로만 restore에 사용하세요.",
+    restoreCodeLabel: "iTerm2 설정 이력으로 복원",
+    note: "uv와 iTerm2 Python API 승인이 필요합니다. apply가 출력한 비공개 setting_history.json 절대 경로만 restore에 사용하세요.",
+  },
+  ghosttyKeys: {
+    label: "05 / macOS · Ghostty",
+    title: "Ghostty에서도 한글 입력과 Control 키를 함께.",
+    description: "Ghostty 1.3.1의 네이티브 text 액션으로 물리 Control-C와 Control-G를 정확한 PTY 바이트에 연결합니다. 입력 소스는 바꾸지 않습니다.",
+    mappingLabel: "Ghostty 물리 키와 PTY 바이트 매핑",
+    physicalLabel: "물리 키",
+    byteLabel: "PTY 바이트",
+    mappingNote: "Ghostty 설정의 text 액션이 한글 조합과 무관하게 0x03과 0x07을 PTY로 전송합니다.",
+    safeguards: [
+      { title: "유효 설정 검사", description: "XDG와 macOS 설정을 함께 검사하고 실제 지시문이 있는 단일 파일만 수정합니다." },
+      { title: "기존 키 보존", description: "Control-A와 Control-N을 포함한 기존 유효 키맵이 달라지면 자동으로 원본을 복구합니다." },
+      { title: "설정 이력 복원", description: "비공개 setting_history.json에 기록된 관리 블록만 제거하고 이후 설정은 보존합니다." },
+    ],
+    codeLabel: "Ghostty 한글 단축키 설정",
+    restoreCodeLabel: "Ghostty 설정 이력으로 복원",
+    note: "apply 후 기존 창에서 Command-R 같은 설정 reload 단축키를 누르세요. macOS 기본값은 Command-Shift-,입니다.",
   },
   zzz: {
-    label: "05 / 백그라운드",
+    label: "06 / 백그라운드",
     title: "명령은 백그라운드로. 결과는 로그로.",
     descriptionBefore: "는 프롬프트를 바로 돌려주고 완료 여부를 알림으로 알려줍니다.",
     behaviors: [
@@ -205,7 +229,7 @@ const ko = createCatalog({
     previewLabel: "zzz 실행 흐름 예시",
   },
   utility: {
-    label: "06 / 유틸리티",
+    label: "07 / 유틸리티",
     title: "반복 작업을 한 명령으로.",
     descriptionBefore: "는 데이터, 네트워크, 코드, 파일 작업을 주제별 하위 명령으로 묶습니다.",
     tabsLabel: "dev-tools 주제",
@@ -220,7 +244,7 @@ const ko = createCatalog({
     ],
   },
   analysis: {
-    label: "07 / 분석",
+    label: "08 / 분석",
     title: "저장소를 읽고, 숫자로 남기세요.",
     description: "코드와 Git 이력을 같은 기준으로 읽어 규모와 작업 흐름을 설명합니다.",
     items: [
@@ -245,7 +269,7 @@ const ko = createCatalog({
     ],
   },
   workflow: {
-    label: "08 / 시작 흐름",
+    label: "09 / 시작 흐름",
     title: "복제하고, 고르고, 바로 확인합니다.",
     description: "별도 계정이나 설정 화면 없이 익숙한 Cargo 흐름으로 시작합니다.",
     steps: [
@@ -267,7 +291,7 @@ const ko = createCatalog({
     ],
   },
   faq: {
-    label: "09 / 자주 묻는 질문",
+    label: "10 / 자주 묻는 질문",
     title: "설치 전에 궁금한 점.",
     description: "도구 선택부터 데이터 처리 방식까지 먼저 확인하세요.",
     items: [
@@ -505,14 +529,31 @@ const en = createCatalog({
     safeguards: [
       { title: "Input stays put", description: "Keep Korean selected and scope the behavior to iTerm2 instead of switching to ABC." },
       { title: "Conflicts stop", description: "Audit global and profile mappings first, then stop before changing anything if another action overlaps." },
-      { title: "Exact restore", description: "Use a private ownership receipt to remove only the two managed entries without overwriting later user edits." },
+      { title: "Exact restore", description: "Remove only the two entries recorded in private setting history without overwriting later user edits." },
     ],
     codeLabel: "Configure Korean control keys in iTerm2",
-    restoreCodeLabel: "Restore from a receipt",
-    note: "Requires uv and iTerm2 Python API approval. Restore only with the absolute private receipt path printed by apply.",
+    restoreCodeLabel: "Restore iTerm2 setting history",
+    note: "Requires uv and iTerm2 Python API approval. Restore only with the absolute private setting_history.json path printed by apply.",
+  },
+  ghosttyKeys: {
+    label: "05 / macOS · Ghostty",
+    title: "Keep Korean input in Ghostty, too.",
+    description: "On Ghostty 1.3.1, native text actions map physical Control-C and Control-G to exact PTY bytes without switching the input source.",
+    mappingLabel: "Ghostty physical keys mapped to PTY bytes",
+    physicalLabel: "Physical key",
+    byteLabel: "PTY byte",
+    mappingNote: "Ghostty text actions send 0x03 and 0x07 to the PTY independently of Korean composition.",
+    safeguards: [
+      { title: "Effective config audit", description: "Inspect XDG and macOS configs together, then edit only the single file with real directives." },
+      { title: "Existing keys stay", description: "Automatically restore the original if any effective binding changes, including Control-A and Control-N." },
+      { title: "Setting history restore", description: "Remove only the managed block recorded in private setting_history.json and preserve later config edits." },
+    ],
+    codeLabel: "Configure Korean control keys in Ghostty",
+    restoreCodeLabel: "Restore Ghostty setting history",
+    note: "After apply, use your reload shortcut, such as Command-R, in existing windows. The macOS default is Command-Shift-,.",
   },
   zzz: {
-    label: "05 / BACKGROUND",
+    label: "06 / BACKGROUND",
     title: "Commands in the background. Results in logs.",
     descriptionBefore: " returns your prompt immediately and notifies you when the command finishes.",
     behaviors: [
@@ -525,7 +566,7 @@ const en = createCatalog({
     previewLabel: "Example zzz execution flow",
   },
   utility: {
-    label: "06 / UTILITIES",
+    label: "07 / UTILITIES",
     title: "Make repetitive tasks one command.",
     descriptionBefore: " groups data, network, code, and file work into focused subcommands.",
     tabsLabel: "dev-tools topics",
@@ -540,7 +581,7 @@ const en = createCatalog({
     ],
   },
   analysis: {
-    label: "07 / ANALYSIS",
+    label: "08 / ANALYSIS",
     title: "Read the repository. Keep the numbers.",
     description: "Use the same frame for code and Git history to explain project size and work patterns.",
     items: [
@@ -550,7 +591,7 @@ const en = createCatalog({
     ],
   },
   workflow: {
-    label: "08 / GET STARTED",
+    label: "09 / GET STARTED",
     title: "Clone, choose, and verify.",
     description: "Start with the Cargo workflow you know, without a separate account or settings screen.",
     steps: [
@@ -560,7 +601,7 @@ const en = createCatalog({
     ],
   },
   faq: {
-    label: "09 / FAQ",
+    label: "10 / FAQ",
     title: "Questions before you install.",
     description: "Check tool selection and data behavior before you begin.",
     items: [
@@ -716,14 +757,31 @@ const ja = createCatalog({
     safeguards: [
       { title: "入力を維持", description: "韓国語を選択したまま、ABC へ切り替えず iTerm2 内だけで動作します。" },
       { title: "競合で停止", description: "グローバルとプロファイルの割り当てを先に検査し、別の動作と重なる場合は変更前に停止します。" },
-      { title: "正確に復元", description: "非公開の所有権レシートで管理対象の2項目だけを削除し、後から行ったユーザー変更は上書きしません。" },
+      { title: "正確に復元", description: "非公開の設定履歴に記録された2項目だけを削除し、後から行ったユーザー変更は上書きしません。" },
     ],
     codeLabel: "iTerm2 の韓国語コントロールキー設定",
-    restoreCodeLabel: "レシートから復元",
-    note: "uv と iTerm2 Python API の許可が必要です。apply が表示した非公開レシートの絶対パスだけを restore に使用してください。",
+    restoreCodeLabel: "iTerm2 の設定履歴から復元",
+    note: "uv と iTerm2 Python API の許可が必要です。apply が表示した非公開の setting_history.json の絶対パスだけを restore に使用してください。",
+  },
+  ghosttyKeys: {
+    label: "05 / macOS · Ghostty",
+    title: "Ghosttyでも韓国語入力とControlキーを両立。",
+    description: "Ghostty 1.3.1 のネイティブ text アクションで、物理 Control-C と Control-G を正確な PTY バイトへ割り当てます。入力ソースは切り替えません。",
+    mappingLabel: "Ghostty の物理キーと PTY バイトの割り当て",
+    physicalLabel: "物理キー",
+    byteLabel: "PTY バイト",
+    mappingNote: "Ghostty の text アクションが韓国語の組み立てに関係なく 0x03 と 0x07 を PTY へ送信します。",
+    safeguards: [
+      { title: "有効設定を検査", description: "XDG と macOS の設定を一緒に検査し、実際の項目がある単一ファイルだけを編集します。" },
+      { title: "既存キーを維持", description: "Control-A と Control-N を含む有効な割り当てが変わると、元の設定を自動復元します。" },
+      { title: "設定履歴から復元", description: "非公開の setting_history.json に記録された管理ブロックだけを削除し、後の変更は保持します。" },
+    ],
+    codeLabel: "Ghostty の韓国語コントロールキー設定",
+    restoreCodeLabel: "Ghostty の設定履歴から復元",
+    note: "apply 後は既存のウィンドウで Command-R などの設定再読み込みキーを使います。macOS の既定値は Command-Shift-, です。",
   },
   zzz: {
-    label: "05 / バックグラウンド",
+    label: "06 / バックグラウンド",
     title: "コマンドはバックグラウンドへ。結果はログへ。",
     descriptionBefore: "はプロンプトをすぐ戻し、コマンドの完了を通知します。",
     behaviors: [
@@ -736,7 +794,7 @@ const ja = createCatalog({
     previewLabel: "zzz の実行フロー例",
   },
   utility: {
-    label: "06 / ユーティリティ",
+    label: "07 / ユーティリティ",
     title: "繰り返し作業を一つのコマンドに。",
     descriptionBefore: "はデータ、ネットワーク、コード、ファイル操作をテーマ別サブコマンドにまとめます。",
     tabsLabel: "dev-tools のテーマ",
@@ -751,7 +809,7 @@ const ja = createCatalog({
     ],
   },
   analysis: {
-    label: "07 / 分析",
+    label: "08 / 分析",
     title: "リポジトリを読み、数字に残す。",
     description: "コードと Git 履歴を同じ基準で読み、規模と作業の流れを説明します。",
     items: [
@@ -761,7 +819,7 @@ const ja = createCatalog({
     ],
   },
   workflow: {
-    label: "08 / はじめ方",
+    label: "09 / はじめ方",
     title: "複製して、選んで、すぐ確認。",
     description: "別のアカウントや設定画面なしで、使い慣れた Cargo の流れから始めます。",
     steps: [
@@ -771,7 +829,7 @@ const ja = createCatalog({
     ],
   },
   faq: {
-    label: "09 / よくある質問",
+    label: "10 / よくある質問",
     title: "インストール前の疑問。",
     description: "ツールの選び方からデータの扱いまで、先に確認できます。",
     items: [
@@ -927,14 +985,31 @@ const zh = createCatalog({
     safeguards: [
       { title: "保持输入", description: "继续使用韩文输入，不切换到 ABC，且行为仅限于 iTerm2。" },
       { title: "冲突即停止", description: "先检查全局和配置文件映射；如果与其他操作重叠，则在修改前停止。" },
-      { title: "精确恢复", description: "使用私有所有权收据只删除两个受管条目，不覆盖用户之后的修改。" },
+      { title: "精确恢复", description: "只删除私有设置历史中记录的两个受管条目，不覆盖用户之后的修改。" },
     ],
     codeLabel: "配置 iTerm2 韩文控制键",
-    restoreCodeLabel: "使用收据恢复",
-    note: "需要 uv 和 iTerm2 Python API 授权。restore 只能使用 apply 输出的私有收据绝对路径。",
+    restoreCodeLabel: "从 iTerm2 设置历史恢复",
+    note: "需要 uv 和 iTerm2 Python API 授权。restore 只能使用 apply 输出的私有 setting_history.json 绝对路径。",
+  },
+  ghosttyKeys: {
+    label: "05 / macOS · Ghostty",
+    title: "在 Ghostty 中也兼顾韩文输入和 Control 键。",
+    description: "在 Ghostty 1.3.1 中，使用原生 text 操作把物理 Control-C 和 Control-G 映射到准确的 PTY 字节，并保持当前输入源。",
+    mappingLabel: "Ghostty 物理按键与 PTY 字节映射",
+    physicalLabel: "物理按键",
+    byteLabel: "PTY 字节",
+    mappingNote: "Ghostty 的 text 操作不受韩文组合输入影响，直接向 PTY 发送 0x03 和 0x07。",
+    safeguards: [
+      { title: "检查有效设置", description: "同时检查 XDG 和 macOS 设置，只编辑包含实际指令的单个文件。" },
+      { title: "保留现有按键", description: "如果包括 Control-A 和 Control-N 在内的有效映射发生变化，就自动恢复原文件。" },
+      { title: "从设置历史恢复", description: "只删除私有 setting_history.json 中记录的受管块，并保留之后的设置修改。" },
+    ],
+    codeLabel: "配置 Ghostty 韩文控制键",
+    restoreCodeLabel: "从 Ghostty 设置历史恢复",
+    note: "apply 后请在现有窗口中使用 Command-R 等重新加载设置的快捷键。macOS 默认是 Command-Shift-,。",
   },
   zzz: {
-    label: "05 / 后台运行",
+    label: "06 / 后台运行",
     title: "命令在后台，结果进日志。",
     descriptionBefore: "会立即返还提示符，并在命令完成时通知你。",
     behaviors: [
@@ -947,7 +1022,7 @@ const zh = createCatalog({
     previewLabel: "zzz 运行流程示例",
   },
   utility: {
-    label: "06 / 实用工具",
+    label: "07 / 实用工具",
     title: "用一条命令处理重复工作。",
     descriptionBefore: "把数据、网络、代码和文件任务整理为按主题划分的子命令。",
     tabsLabel: "dev-tools 主题",
@@ -962,7 +1037,7 @@ const zh = createCatalog({
     ],
   },
   analysis: {
-    label: "07 / 分析",
+    label: "08 / 分析",
     title: "读懂仓库，留下数字。",
     description: "用同一标准读取代码和 Git 历史，说明项目规模与工作方式。",
     items: [
@@ -972,7 +1047,7 @@ const zh = createCatalog({
     ],
   },
   workflow: {
-    label: "08 / 开始使用",
+    label: "09 / 开始使用",
     title: "克隆、选择、立即验证。",
     description: "无需单独账号或设置页面，沿用熟悉的 Cargo 流程即可开始。",
     steps: [
@@ -982,7 +1057,7 @@ const zh = createCatalog({
     ],
   },
   faq: {
-    label: "09 / 常见问题",
+    label: "10 / 常见问题",
     title: "安装前常见问题。",
     description: "先了解工具选择和数据处理方式。",
     items: [

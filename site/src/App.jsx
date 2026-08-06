@@ -355,21 +355,20 @@ function ToolExplorer() {
   );
 }
 
-function ItermKeysSection() {
+function TerminalKeysSection({ id, messageKey }) {
   const { messages } = useI18n();
+  const terminal = messages[messageKey];
 
   return (
-    <RevealSection className="iterm-keys section-shell" id="iterm-korean">
-      <div className="iterm-keys__content">
+    <RevealSection className="terminal-keys section-shell" id={id}>
+      <div className="terminal-keys__content">
         <div className="section-heading">
-          <p className="section-label">{messages.itermKeys.label}</p>
-          <SectionTitle anchor="iterm-korean">
-            {messages.itermKeys.title}
-          </SectionTitle>
-          <p>{messages.itermKeys.description}</p>
+          <p className="section-label">{terminal.label}</p>
+          <SectionTitle anchor={id}>{terminal.title}</SectionTitle>
+          <p>{terminal.description}</p>
         </div>
         <div className="behavior-list">
-          {messages.itermKeys.safeguards.map((safeguard) => (
+          {terminal.safeguards.map((safeguard) => (
             <div key={safeguard.title}>
               <strong>{safeguard.title}</strong>
               <span>{safeguard.description}</span>
@@ -377,35 +376,35 @@ function ItermKeysSection() {
           ))}
         </div>
         <CodeBlock
-          code={messages.itermKeys.command}
-          label={messages.itermKeys.codeLabel}
+          code={terminal.command}
+          label={terminal.codeLabel}
         />
         <CodeBlock
-          code={messages.itermKeys.restoreCommand}
-          label={messages.itermKeys.restoreCodeLabel}
+          code={terminal.restoreCommand}
+          label={terminal.restoreCodeLabel}
         />
-        <p className="iterm-keys__note">{messages.itermKeys.note}</p>
+        <p className="terminal-keys__note">{terminal.note}</p>
       </div>
       <div
-        className="iterm-keys__mapping"
+        className="terminal-keys__mapping"
         role="group"
-        aria-label={messages.itermKeys.mappingLabel}
+        aria-label={terminal.mappingLabel}
       >
-        <div className="iterm-keys__mapping-header">
-          <span>{messages.itermKeys.physicalLabel}</span>
-          <span>{messages.itermKeys.byteLabel}</span>
+        <div className="terminal-keys__mapping-header">
+          <span>{terminal.physicalLabel}</span>
+          <span>{terminal.byteLabel}</span>
         </div>
-        <div className="iterm-keys__mapping-row">
+        <div className="terminal-keys__mapping-row">
           <kbd>Control-C</kbd>
           <ArrowRight aria-hidden="true" weight="bold" />
           <code>0x03</code>
         </div>
-        <div className="iterm-keys__mapping-row">
+        <div className="terminal-keys__mapping-row">
           <kbd>Control-G</kbd>
           <ArrowRight aria-hidden="true" weight="bold" />
           <code>0x07</code>
         </div>
-        <p>{messages.itermKeys.mappingNote}</p>
+        <p>{terminal.mappingNote}</p>
       </div>
     </RevealSection>
   );
@@ -676,7 +675,8 @@ export default function App() {
       <InstallSection />
       <ToolExplorer />
       <TaglineReveal />
-      <ItermKeysSection />
+      <TerminalKeysSection id="iterm-korean" messageKey="itermKeys" />
+      <TerminalKeysSection id="ghostty-korean" messageKey="ghosttyKeys" />
       <ZzzSection />
       <UtilityExplorer />
       <AnalysisSection />
