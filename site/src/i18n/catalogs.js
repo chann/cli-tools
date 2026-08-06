@@ -210,11 +210,11 @@ const ko = createCatalog({
       { title: "로그 저장", description: "출력을 날짜와 시간 기준 경로에 자동으로 남깁니다." },
       {
         title: "macOS 알림",
-        description: "alerter를 설치하면 원래 iTerm2 세션이나 Terminal 탭으로 돌아갑니다.",
+        description: "iTerm2에서는 외부 도구 없이 터미널 자체 알림 채널로 완료 여부를 받습니다.",
       },
     ],
     codeLabel: "zzz 시작하기",
-    note: "alerter가 없으면 terminal-notifier 또는 일반 완료 알림으로 폴백합니다.",
+    note: "iTerm2에서 첫 줄이 알림을 띄우지 않으면 Settings > Profiles > Terminal에서 Notification Center alerts를 켜고 macOS 알림 및 집중 모드 설정도 확인하세요. iTerm2에는 alerter가 필요하지 않으며, alerter는 Terminal.app의 클릭 가능한 알림에만 사용됩니다.",
     previewLabel: "zzz 실행 흐름 예시",
   },
   utility: {
@@ -539,10 +539,10 @@ const en = createCatalog({
     behaviors: [
       { title: "Immediate return", description: "Keep using aliases and functions from your interactive shell." },
       { title: "Saved logs", description: "Store output automatically in paths organized by date and time." },
-      { title: "macOS alerts", description: "With alerter installed, return to the original iTerm2 session or Terminal tab." },
+      { title: "macOS alerts", description: "In iTerm2, receive completion alerts through the terminal's native channel with no external notifier." },
     ],
     codeLabel: "Get started with zzz",
-    note: "Without alerter, zzz falls back to terminal-notifier or a standard completion alert.",
+    note: "If the first line does not show an iTerm2 alert, enable Settings > Profiles > Terminal > Notification Center alerts, then check macOS Notifications and Focus. iTerm2 does not need alerter; alerter is used only for clickable Terminal.app alerts.",
     previewLabel: "Example zzz execution flow",
   },
   utility: {
@@ -758,10 +758,10 @@ const ja = createCatalog({
     behaviors: [
       { title: "すぐに復帰", description: "対話型シェルの alias と function をそのまま使えます。" },
       { title: "ログを保存", description: "出力を日付と時刻ごとのパスに自動保存します。" },
-      { title: "macOS 通知", description: "alerter を入れると、元の iTerm2 セッションや Terminal タブへ戻れます。" },
+      { title: "macOS 通知", description: "iTerm2 では外部ツールを使わず、ターミナル標準の通知経路で完了通知を受け取れます。" },
     ],
     codeLabel: "zzz を始める",
-    note: "alerter がない場合は terminal-notifier または標準の完了通知にフォールバックします。",
+    note: "最初の行で iTerm2 の通知が出ない場合は、Settings > Profiles > Terminal > Notification Center alerts を有効にし、macOS の通知と集中モードも確認してください。iTerm2 に alerter は不要で、alerter は Terminal.app のクリック可能な通知にのみ使われます。",
     previewLabel: "zzz の実行フロー例",
   },
   utility: {
@@ -977,10 +977,10 @@ const zh = createCatalog({
     behaviors: [
       { title: "立即返回", description: "继续使用交互式 shell 中的 alias 和 function。" },
       { title: "保存日志", description: "按日期和时间自动保存输出。" },
-      { title: "macOS 通知", description: "安装 alerter 后，可返回原来的 iTerm2 会话或 Terminal 标签页。" },
+      { title: "macOS 通知", description: "在 iTerm2 中无需外部工具，直接通过终端原生通知通道接收完成提醒。" },
     ],
     codeLabel: "开始使用 zzz",
-    note: "如果没有 alerter，zzz 会回退到 terminal-notifier 或普通完成通知。",
+    note: "如果第一行没有显示 iTerm2 通知，请启用 Settings > Profiles > Terminal > Notification Center alerts，并检查 macOS 通知与专注模式。iTerm2 不需要 alerter；alerter 仅用于 Terminal.app 的可点击通知。",
     previewLabel: "zzz 运行流程示例",
   },
   utility: {

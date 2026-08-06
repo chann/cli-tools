@@ -274,21 +274,46 @@ dev-tools silent python script.py
 백그라운드에서 실행되어 프롬프트가 즉시 반환되며, macOS에서는 명령이 끝나면
 성공 또는 실패 여부를 시스템 알림으로 전송합니다.
 
-클릭 가능한 iTerm2 및 Terminal.app 알림을 사용하려면
-[`terminal-notifier`](https://github.com/julienXX/terminal-notifier)를
-설치합니다:
+### iTerm2
+
+iTerm2 알림은
+[네이티브 OSC 9 채널](https://iterm2.com/documentation-escape-codes.html)을
+사용하므로 `alerter`나 `terminal-notifier`가 필요하지 않습니다. 먼저
+**Settings > Profiles > Terminal > Notification Center alerts**를 켠 뒤, `zzz`를
+시험하기 전에 iTerm2 자체 알림을 확인합니다:
 
 ```bash
-brew install terminal-notifier
+printf '\033]9;zzz notification test\033\\'
+zzz --wait true
 ```
 
-iTerm2와 Terminal.app에서는 명령을 시작한 터미널 아이콘이 알림에 표시됩니다.
-알림을 누르면 Herdr를 실행 중인 iTerm2 세션을 포함해 명령을 시작한 정확한
-세션이나 탭으로 키보드 포커스가 돌아갑니다. 처음 사용할 때 macOS가 Automation
-권한을 요청할 수 있습니다. `terminal-notifier`가 없으면 두 터미널 모두 정확한
-세션 포커스를 지원하지 않는 일반 완료 알림으로 폴백합니다.
+첫 명령으로 알림이 뜨지 않으면 **System Settings > Notifications > iTerm2**와
+집중 모드가 알림을 막고 있지 않은지 확인하세요. `zzz`도 같은 escape sequence를
+명령을 시작한 TTY에 기록하므로 `TERM_SESSION_ID`가 없거나 형식이 달라도
+동작합니다.
 
-Ghostty는 자체 macOS 네이티브 알림 채널을 사용하므로 `terminal-notifier`가
+### Terminal.app
+
+현재 macOS에서 클릭 가능한 Terminal.app 알림을 사용하려면
+[`alerter`](https://github.com/vjeantet/alerter)를 설치하고, `zzz`보다 먼저
+의존성을 직접 시험합니다:
+
+```bash
+brew install vjeantet/tap/alerter
+alerter --message "zzz notification test" --timeout 5
+```
+
+알림에는 Terminal.app 아이콘이 표시되며, 누르면 명령을 시작한 탭으로 키보드
+포커스가 돌아갑니다. 처음 사용할 때 macOS가 Automation 및 알림 권한을 요청할
+수 있습니다. `zzz`는 클릭 대기 프로세스를 분리하므로 `--wait`도 명령과 알림이
+시작되면 반환됩니다. 읽지 않은 알림과 클릭 대기 프로세스는 10분 뒤 종료됩니다.
+
+Terminal.app에서는 `alerter`가 없을 때
+[`terminal-notifier`](https://github.com/julienXX/terminal-notifier)를 레거시
+폴백으로 사용합니다. 두 도구가 모두 없으면 정확한 탭 포커스가 없는 일반 완료
+알림으로 폴백합니다.
+
+Ghostty는 자체 macOS 네이티브 알림 채널을 사용하므로 두 외부 알림 도구가
 필요하지 않습니다. 알림에는 Ghostty 앱 아이콘이 표시되며, 누르면 명령을 시작한
 정확한 Ghostty 화면으로 돌아갑니다. 처음 사용할 때 macOS가 알림 권한을 요청할
 수 있습니다. 원래 대상이 닫혔다면 `zzz`는 새 창을 만들지 않습니다.

@@ -443,7 +443,7 @@ function ZzzSection() {
           ))}
         </div>
         <CodeBlock
-          code={`brew install vjeantet/tap/alerter
+          code={`printf '\\033]9;zzz notification test\\033\\\\'
 
 zzz cargo test
 zzz --wait cargo test

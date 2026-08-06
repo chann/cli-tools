@@ -277,25 +277,46 @@ prompt immediately (no trailing `&` needed); its output is captured to the log
 file. On macOS, `zzz` sends a system notification when the background command
 finishes, reporting whether it succeeded or failed.
 
-Install [`alerter`](https://github.com/vjeantet/alerter) for clickable iTerm2
-and Terminal.app notifications on current macOS releases:
+### iTerm2
+
+iTerm2 notifications use its
+[native OSC 9 channel](https://iterm2.com/documentation-escape-codes.html) and do
+not require `alerter` or `terminal-notifier`. First enable
+**Settings > Profiles > Terminal > Notification Center alerts**, then verify
+iTerm2 itself before testing `zzz`:
+
+```bash
+printf '\033]9;zzz notification test\033\\'
+zzz --wait true
+```
+
+If the first command does not show a notification, check **System Settings >
+Notifications > iTerm2** and make sure Focus is not suppressing alerts. `zzz`
+writes the same escape sequence to the originating TTY, so it also works when
+`TERM_SESSION_ID` is missing or has changed format.
+
+### Terminal.app
+
+Install [`alerter`](https://github.com/vjeantet/alerter) for clickable
+Terminal.app notifications on current macOS releases, then test the dependency
+directly before testing `zzz`:
 
 ```bash
 brew install vjeantet/tap/alerter
+alerter --message "zzz notification test" --timeout 5
 ```
 
-In iTerm2 and Terminal.app, the notification uses the launching terminal's icon.
-Clicking it returns keyboard focus to the exact launching session or tab,
-including an iTerm2 session that hosts Herdr. macOS may ask for Automation
-and notification permission the first time. `zzz` keeps the click listener in a
-detached worker, so `--wait` still returns as soon as the command and notification
-launch finish. Unread alerts and their click workers expire after 10 minutes
-instead of leaving helper processes behind indefinitely.
+The notification uses Terminal.app's icon. Clicking it returns keyboard focus
+to the launching tab. macOS may ask for Automation and notification permission
+the first time. `zzz` keeps the click listener in a detached worker, so `--wait`
+still returns as soon as the command and notification launch finish. Unread
+alerts and their click workers expire after 10 minutes instead of leaving helper
+processes behind indefinitely.
 
-The legacy
+For Terminal.app, the legacy
 [`terminal-notifier`](https://github.com/julienXX/terminal-notifier) remains a
-fallback when `alerter` is unavailable. If neither tool is installed, these
-terminals fall back to a generic completion notification without exact-session
+fallback when `alerter` is unavailable. If neither tool is installed,
+Terminal.app falls back to a generic completion notification without exact-tab
 focus.
 
 Ghostty uses its built-in native macOS notification channel, so it does not

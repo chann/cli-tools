@@ -219,6 +219,24 @@ describe("cli-tools website", () => {
     expect(document.body.textContent).not.toContain("영수증");
   });
 
+  test("provides a native iTerm2 notification preflight before zzz examples", () => {
+    renderApp();
+
+    const commands = screen.getByRole("region", {
+      name: "zzz 시작하기 코드",
+    });
+    expect(commands.textContent).toContain(
+      "printf '\\033]9;zzz notification test\\033\\\\'",
+    );
+    expect(commands.textContent).not.toContain("brew install");
+    expect(document.body.textContent).toContain(
+      "Settings > Profiles > Terminal",
+    );
+    expect(document.body.textContent).toContain(
+      "iTerm2에는 alerter가 필요하지 않으며",
+    );
+  });
+
   test("nests concise Ghostty support inside terminal integration", () => {
     const { container } = renderApp();
     const integration = container.querySelector("#term-korean");
