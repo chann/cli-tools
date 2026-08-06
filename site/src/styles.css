@@ -751,34 +751,6 @@ samp {
   text-decoration: none;
 }
 
-.section-anchor__mark {
-  display: inline-flex;
-  align-items: center;
-  color: var(--accent);
-  font-size: 0.55em;
-  line-height: 1;
-  margin-inline-start: 0.28em;
-  opacity: 0.58;
-  transform: translateY(-0.04em);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-  vertical-align: 0.12em;
-  white-space: nowrap;
-}
-
-.section-anchor__mark svg {
-  width: 1em;
-  height: 1em;
-}
-
-.section-anchor:hover .section-anchor__mark,
-.section-anchor:focus-visible .section-anchor__mark,
-.section-shell:target .section-anchor__mark {
-  opacity: 1;
-  transform: translateY(-0.12em);
-}
-
 .section-heading > p:last-child,
 .final-cta__description {
   max-width: 38rem;
@@ -1202,6 +1174,46 @@ samp {
   line-height: 1rem;
   text-wrap: pretty;
   word-break: keep-all;
+}
+
+.terminal-keys__ghostty {
+  margin-top: 32px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  scroll-margin-top: 96px;
+}
+
+.terminal-keys__ghostty-label {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+}
+
+.terminal-keys__ghostty h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+  word-break: keep-all;
+}
+
+.terminal-keys__ghostty > p:not(.terminal-keys__ghostty-label, .terminal-keys__note) {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-wrap: pretty;
+  word-break: keep-all;
+}
+
+.terminal-keys__ghostty .code-block {
+  margin-top: 20px;
+  background: var(--surface-raised);
 }
 
 .terminal-keys__mapping {

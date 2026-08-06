@@ -7,7 +7,6 @@ import {
   Check,
   ClipboardText,
   GitBranch,
-  LinkSimple,
 } from "@phosphor-icons/react";
 import {
   AnimatePresence,
@@ -92,9 +91,6 @@ function SectionTitle({ anchor, children, className, headingId, headingRef }) {
     <h2 className={className} id={headingId} ref={headingRef}>
       <a className="section-anchor" href={`#${anchor}`}>
         {children}
-        <span className="section-anchor__mark" aria-hidden="true">
-          <LinkSimple weight="bold" />
-        </span>
       </a>
     </h2>
   );
@@ -355,16 +351,16 @@ function ToolExplorer() {
   );
 }
 
-function TerminalKeysSection({ id, messageKey }) {
+function TerminalIntegrationSection() {
   const { messages } = useI18n();
-  const terminal = messages[messageKey];
+  const terminal = messages.itermKeys;
 
   return (
-    <RevealSection className="terminal-keys section-shell" id={id}>
+    <RevealSection className="terminal-keys section-shell" id="iterm-korean">
       <div className="terminal-keys__content">
         <div className="section-heading">
           <p className="section-label">{terminal.label}</p>
-          <SectionTitle anchor={id}>{terminal.title}</SectionTitle>
+          <SectionTitle anchor="iterm-korean">{terminal.title}</SectionTitle>
           <p>{terminal.description}</p>
         </div>
         <div className="behavior-list">
@@ -384,6 +380,21 @@ function TerminalKeysSection({ id, messageKey }) {
           label={terminal.restoreCodeLabel}
         />
         <p className="terminal-keys__note">{terminal.note}</p>
+        <div
+          className="terminal-keys__ghostty"
+          id="ghostty-korean"
+          role="group"
+          aria-label={terminal.ghostty.ariaLabel}
+        >
+          <p className="terminal-keys__ghostty-label">{terminal.ghostty.label}</p>
+          <h3>{terminal.ghostty.title}</h3>
+          <p>{terminal.ghostty.description}</p>
+          <CodeBlock
+            code={terminal.ghostty.command}
+            label={terminal.ghostty.codeLabel}
+          />
+          <p className="terminal-keys__note">{terminal.ghostty.note}</p>
+        </div>
       </div>
       <div
         className="terminal-keys__mapping"
@@ -675,8 +686,7 @@ export default function App() {
       <InstallSection />
       <ToolExplorer />
       <TaglineReveal />
-      <TerminalKeysSection id="iterm-korean" messageKey="itermKeys" />
-      <TerminalKeysSection id="ghostty-korean" messageKey="ghosttyKeys" />
+      <TerminalIntegrationSection />
       <ZzzSection />
       <UtilityExplorer />
       <AnalysisSection />
