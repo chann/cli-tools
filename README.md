@@ -5,6 +5,9 @@
 Rust-based command-line tools for repository analysis, Git workflow maintenance,
 everyday developer utilities, and silent command logging.
 
+The repository also includes a reversible macOS helper that keeps physical
+`Control-C` and `Control-G` working in iTerm2 while Korean input stays selected.
+
 ## Tools
 
 | Command | Crate | Purpose |
@@ -36,6 +39,59 @@ Build or test the full workspace:
 cargo build --release --workspace --bins
 cargo test --workspace --all-targets
 ```
+
+## iTerm2 Korean Control Keys (macOS)
+
+On iTerm2 `3.6.11`, `scripts/iterm2_korean_control_keys.py` maps physical
+`Control-C` to PTY byte `0x03` and physical `Control-G` to `0x07`. It does not
+switch the input source, run a resident process, or request Accessibility or
+Input Monitoring permission.
+
+This helper requires macOS, exactly iTerm2 `3.6.11`,
+[`uv`](https://docs.astral.sh/uv/), and enabled and authorized iTerm2 Python API
+access. Run each command from the repository root:
+
+```bash
+# Inspect global and profile mappings without changing preferences
+uv run scripts/iterm2_korean_control_keys.py preflight
+
+# Create a private backup and apply the two mappings
+uv run scripts/iterm2_korean_control_keys.py apply
+
+# Read the live configuration back
+uv run scripts/iterm2_korean_control_keys.py verify
+```
+
+`apply` stops before writing if it finds a conflicting global or profile
+mapping. It prints a private receipt under
+`~/Library/Application Support/cli-tools/iterm2-korean-control-keys/`; receipt
+directories use mode `0700` and files use `0600`.
+
+To restore, pass the literal absolute receipt path printed by `apply`—do not
+use a glob:
+
+```bash
+uv run scripts/iterm2_korean_control_keys.py restore \
+  --receipt '/absolute/path/printed-by-apply/receipt.json'
+```
+
+Restore removes only entries owned by that receipt and refuses to overwrite an
+owned entry changed later. It restores the original physical-key preference,
+including an originally absent value, when the managed map returns to its
+original state. If unrelated mappings changed meanwhile, it conservatively
+keeps that preference enabled.
+
+Verify the real terminal path with Korean input selected:
+
+```bash
+swift scripts/current_macos_input_source.swift
+python3 scripts/probe_control_bytes.py
+```
+
+Press physical `Control-C`, then physical `Control-G`. The probe must print
+`PASS: 03 07`; confirm Korean composition still works afterward. See the
+[research and acceptance matrix](docs/research/2026-08-04-macos-korean-terminal-control-keys.md)
+for the rationale and broader terminal findings.
 
 ## code-cost
 
@@ -274,6 +330,7 @@ cli-tools/
 │   ├── git-tools/      # Git workflow and health tools
 │   ├── work-summary/   # Git work summary analyzer
 │   └── zzz/            # Standalone silent command logger
+├── scripts/             # iTerm2 migration and terminal probes
 ├── Cargo.toml
 └── versioning.md
 ```

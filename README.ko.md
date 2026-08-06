@@ -5,6 +5,9 @@
 저장소 분석, Git 워크플로우 관리, 개발자용 데이터 변환, 무음 명령 로그
 저장을 위한 Rust 기반 CLI 도구 모음입니다.
 
+한글 입력을 유지한 채 iTerm2에서 물리 `Control-C`와 `Control-G`를 사용할 수
+있도록 설정하는 복원 가능한 macOS 도우미도 포함합니다.
+
 ## 도구
 
 | 명령어 | Crate | 용도 |
@@ -36,6 +39,58 @@ cargo install --path crates/zzz --force
 cargo build --release --workspace --bins
 cargo test --workspace --all-targets
 ```
+
+## iTerm2 한글 Control 키 설정 (macOS)
+
+iTerm2 `3.6.11`에서 `scripts/iterm2_korean_control_keys.py`는 물리
+`Control-C`를 PTY 바이트 `0x03`에, 물리 `Control-G`를 `0x07`에 연결합니다.
+입력 소스를 바꾸거나 상주 프로세스를 실행하지 않으며 손쉬운 사용 또는 입력
+모니터링 권한을 요청하지 않습니다.
+
+이 도우미는 macOS, 정확히 iTerm2 `3.6.11`,
+[`uv`](https://docs.astral.sh/uv/), 활성화하고 승인한 iTerm2 Python API 접근이
+필요합니다. 저장소 루트에서 각 명령을 실행하세요:
+
+```bash
+# 환경 설정을 바꾸지 않고 전역 및 프로필 매핑 확인
+uv run scripts/iterm2_korean_control_keys.py preflight
+
+# 개인 백업을 만들고 두 매핑 적용
+uv run scripts/iterm2_korean_control_keys.py apply
+
+# 실제 설정을 다시 읽어 검증
+uv run scripts/iterm2_korean_control_keys.py verify
+```
+
+`apply`는 충돌하는 전역 또는 프로필 매핑을 발견하면 쓰기 전에 멈춥니다.
+개인 영수증 경로는
+`~/Library/Application Support/cli-tools/iterm2-korean-control-keys/` 아래에
+출력되며 영수증 디렉토리는 `0700`, 파일은 `0600` 모드를 사용합니다.
+
+복원할 때는 glob을 사용하지 말고 `apply`가 출력한 영수증의 절대 경로를
+그대로 전달하세요:
+
+```bash
+uv run scripts/iterm2_korean_control_keys.py restore \
+  --receipt '/absolute/path/printed-by-apply/receipt.json'
+```
+
+복원은 해당 영수증이 소유한 항목만 제거하고, 소유 항목이 나중에 바뀌었다면
+덮어쓰지 않고 중단합니다. 관리한 매핑이 원래 상태로 돌아가면 처음에 값이
+없었던 경우까지 포함해 물리 키 설정을 원래대로 복원합니다. 그동안 관련 없는
+매핑이 바뀌었다면 해당 설정은 보수적으로 활성 상태로 유지합니다.
+
+한글 입력을 선택한 상태에서 실제 터미널 경로를 확인하세요:
+
+```bash
+swift scripts/current_macos_input_source.swift
+python3 scripts/probe_control_bytes.py
+```
+
+물리 `Control-C`, 물리 `Control-G` 순서로 누르면 `PASS: 03 07`이 출력되어야
+합니다. 이어서 한글 조합이 그대로 동작하는지도 확인하세요. 설계 근거와 전체
+검증표는 [연구 문서](docs/research/2026-08-04-macos-korean-terminal-control-keys.md)를
+참고하세요.
 
 ## code-cost
 
@@ -248,6 +303,7 @@ cli-tools/
 │   ├── git-tools/      # Git 워크플로우와 건강도 도구
 │   ├── work-summary/   # Git 업무 요약 분석기
 │   └── zzz/            # 독립 무음 명령 로그 저장기
+├── scripts/             # iTerm2 마이그레이션과 터미널 검사 도구
 ├── Cargo.toml
 └── versioning.md
 ```
