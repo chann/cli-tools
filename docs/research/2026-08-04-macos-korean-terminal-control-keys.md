@@ -1,6 +1,6 @@
 # macOS Korean Input and Terminal Control Keys Research
 
-Status: research complete; implementation decision pending
+Status: implemented; target chords physically verified in iTerm2
 
 ## Executive Summary
 
@@ -347,6 +347,59 @@ canonical input, echo, and signal generation, restore state on every normal or
 signal exit path, and display byte values without interpreting them. Source
 inspection and unit tests do not substitute for the physical Korean-input
 keypress test.
+
+## Implementation Evidence (2026-08-06)
+
+The selected iTerm2-only configuration is active on iTerm2 `3.6.11`. The
+implementation audited the global map and both configured profiles without
+adding profile-local mappings:
+
+- `Default [D24B5D35-BE7E-4C85-8072-439C74BCE0DA]`;
+- `tmux [DF566FE8-2D85-46C9-9184-5EC59ABAF16F]`;
+- before-map hash
+  `a84de76c228e1613145f69d51efc0530a73e9412e8e16046295c97f19e1af106`;
+- after-map hash
+  `6e6d37ddcf18a30bfc9884ba783ea6482b39e511efd6fb123b33b63cccdfd998`;
+- `0x63-0x40000-0x8 -> {"Action": 11, "Text": "0x03"}`; and
+- `0x67-0x40000-0x5 -> {"Action": 11, "Text": "0x07"}`.
+
+The first apply produced a private receipt, live read-back passed, and an exact
+restore drill returned the map to the before hash. The originally absent
+`LanguageAgnosticKeyBindings` key was proven absent again through a fresh
+preference-domain export. A second apply then produced the active receipt:
+
+```text
+~/Library/Application Support/cli-tools/iterm2-korean-control-keys/
+  20260806T015400.204770Z/receipt.json
+```
+
+Its directory and receipt modes are `0700` and `0600`. The receipt owns only
+the two entries above and records that the physical-key preference was
+originally absent.
+
+iTerm2 `3.6.11` rejects the Python client's documented `None` unset request as
+`INVALID_VALUE`. After explicit user approval, the exact-absence path was
+limited to one key: set `LanguageAgnosticKeyBindings` to `false` through iTerm2,
+delete only that persisted key with `/usr/bin/defaults`, export the domain
+again, and fail unless the key is absent. Tests reject every other deletion
+key. Normal map and preference writes remain on iTerm2's API.
+
+With Apple's 2-Set Korean input source active, the user ran the raw probe and
+reported:
+
+```text
+PASS: 03 07
+```
+
+The user also confirmed normal Korean composition afterward. Combined with the
+existing `VINTR = ^C` and `ISIG` evidence, the physical `Control-C` byte reaches
+the terminal interrupt path and physical `Control-G` reaches the PTY as `0x07`.
+The pre-existing global mapping objects remained canonically identical, and
+both profiles were proven to inherit the global C/G mappings without a local
+override. A separate physical replay of the pre-existing
+`Control-Command-=` and `Shift-Return` shortcuts was not reported, so their
+runtime behavior is supported by structural preservation rather than a second
+manual spot check.
 
 ## Decision
 

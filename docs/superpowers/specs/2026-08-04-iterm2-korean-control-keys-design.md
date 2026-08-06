@@ -1,7 +1,7 @@
 # iTerm2 Korean Control Keys Design
 
 Date: 2026-08-04
-Status: Approved
+Status: Implemented; target chords physically verified
 
 ## Context
 
@@ -80,6 +80,15 @@ plist file and do not replace the map through
 `async_set_global_key_bindings()`: that high-level helper decodes and re-encodes
 every entry and can discard existing fields such as `Keycode`, `Modifiers`,
 `Apply Mode`, and `Escaping`.
+
+iTerm2 `3.6.11` has one verified exception to the API-only boundary: although
+the Python client documents `None` as an unset operation, the server rejects
+JSON `null` as `INVALID_VALUE`. The user explicitly approved a scoped exact
+restore path. It first sets `LanguageAgnosticKeyBindings` to `false` through
+iTerm2, then invokes `/usr/bin/defaults delete` for exactly that domain and key,
+and finally exports the domain again to prove absence. The implementation
+refuses every other deletion key. It never edits the live plist file or imports
+or replaces the preference domain.
 
 The raw dictionary mutation must copy the original object, add only the two
 approved entries, and retain all unknown keys and values unchanged. Equality
@@ -165,6 +174,10 @@ installation, restore may safely remove the owned entries but must leave the
 global physical-key preference enabled and report that conservative decision.
 This avoids breaking newer user mappings that may now depend on it.
 
+For an originally absent value on iTerm2 `3.6.11`, the scoped deletion exception
+in Configuration Boundary is the only permitted exact-unset path. Failure to
+prove absence triggers compensating rollback to the complete pre-restore state.
+
 ## Data Flow
 
 ```text
@@ -239,6 +252,30 @@ Synthetic events, preference read-back, and PTY defaults are useful diagnostics
 but do not replace the physical-key proof. If the environment cannot observe a
 real user keypress, implementation stops at a clearly labeled interaction gate
 instead of claiming runtime success.
+
+### Completed Evidence
+
+On 2026-08-06, the migration passed 35 standard-library migration tests and two
+pseudo-terminal probe tests. Live preflight audited the Default and tmux
+profiles. The map moved from canonical hash
+`a84de76c228e1613145f69d51efc0530a73e9412e8e16046295c97f19e1af106`
+to `6e6d37ddcf18a30bfc9884ba783ea6482b39e511efd6fb123b33b63cccdfd998`.
+An exact restore drill returned the original hash and proved the originally
+absent physical-key preference absent before the final reapply.
+
+The active private receipt is:
+
+```text
+~/Library/Application Support/cli-tools/iterm2-korean-control-keys/
+  20260806T015400.204770Z/receipt.json
+```
+
+Its directory and file modes are `0700` and `0600`, and it owns only the two
+approved portable mappings. The user ran the probe with Korean input active and
+reported `PASS: 03 07`, then confirmed normal Korean composition. Existing map
+objects and profile-local maps were structurally unchanged. The known
+pre-existing keycoded shortcuts were not separately replayed physically, so
+their evidence is structural rather than a manual runtime spot check.
 
 ## Scope Expansion Gate
 
