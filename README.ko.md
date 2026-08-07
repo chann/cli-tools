@@ -16,6 +16,7 @@
 | `work-summary` | `crates/work-summary` | Git 활동, 작업량, 기여 가치를 요약합니다. |
 | `git-tools` | `crates/git-tools` | 브랜치 정리, 마커 스캔, 프로젝트 건강도 확인, changelog 생성을 지원합니다. |
 | `dev-tools` | `crates/dev-tools` | 데이터, 인코딩, 네트워크, 텍스트, 시스템 유틸리티 모음입니다. |
+| `prompt-export` | `crates/prompt-export` | Claude Code / Codex 프롬프트와 에이전트 출력을 마크다운으로 내보냅니다. |
 | `zzz` | `crates/zzz` | 명령을 조용히 실행하고 stdout을 `~/.commands`에 저장합니다. |
 
 `zzz`는 별도의 설치 대상입니다. `dev-tools`를 설치해도 `zzz` 바이너리는
@@ -30,6 +31,7 @@ cargo install --path crates/code-cost --force
 cargo install --path crates/work-summary --force
 cargo install --path crates/git-tools --force
 cargo install --path crates/dev-tools --force
+cargo install --path crates/prompt-export --force
 cargo install --path crates/zzz --force
 ```
 
@@ -267,6 +269,29 @@ dev-tools silent git status --short
 dev-tools silent python script.py
 ```
 
+## prompt-export
+
+Claude Code나 Codex에 입력한 프롬프트와 (선택적으로) 에이전트의 답변을
+나중에 LLM으로 분석할 수 있도록 마크다운으로 내보냅니다. Claude Code 세션
+로그(`~/.claude/projects`)와 Codex 롤아웃(`~/.codex/sessions`)을 읽어,
+사람이 직접 입력한 프롬프트(도구 결과, 슬래시 명령 기록, 주입된 컨텍스트는
+제외)와 사용자에게 보인 에이전트 텍스트만 남깁니다.
+
+```bash
+prompt-export --today                        # 오늘 두 도구에 입력한 프롬프트
+prompt-export --week --source claude        # 이번 주 Claude Code 프롬프트
+prompt-export --month --role all            # 이번 달 프롬프트 + 에이전트 출력
+prompt-export --from 2026-08-01 --to 2026-08-07 --project cli-tools
+prompt-export --week -e prompts.md          # 파일로 저장
+```
+
+- `--source claude|codex|all` 로그 소스 선택 (기본 `all`)
+- `--role user|assistant|all` 내보낼 대상 선택 (기본 `user`)
+- `--today` / `--week` (월요일부터) / `--month`, 또는 `--from`/`--to`에
+  `YYYY-MM-DD` 날짜 지정. 기간 옵션이 없으면 전체 기록을 내보냅니다
+- `--project <substring>` 프로젝트 경로가 일치하는 세션만 유지
+- `-e/--export <file>` 마크다운을 stdout 대신 파일로 저장
+
 ## zzz
 
 `zzz`는 명령 출력을 조용히 기록하는 독립 실행 명령입니다. Unix에서는 대화형
@@ -370,6 +395,7 @@ cli-tools/
 │   ├── code-cost/      # 저장소 가치 분석기
 │   ├── dev-tools/      # 개발자 유틸리티 모음
 │   ├── git-tools/      # Git 워크플로우와 건강도 도구
+│   ├── prompt-export/  # Claude Code / Codex 프롬프트 내보내기
 │   ├── work-summary/   # Git 업무 요약 분석기
 │   └── zzz/            # 독립 무음 명령 로그 저장기
 ├── scripts/             # iTerm2/Ghostty 마이그레이션과 터미널 검사 도구

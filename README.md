@@ -17,6 +17,7 @@ stays selected.
 | `work-summary` | `crates/work-summary` | Summarize Git activity, effort, and contribution value. |
 | `git-tools` | `crates/git-tools` | Clean branches, scan markers, check project health, and manage changelogs. |
 | `dev-tools` | `crates/dev-tools` | Run common data, encoding, network, text, and system utilities. |
+| `prompt-export` | `crates/prompt-export` | Export Claude Code / Codex prompts and agent outputs as Markdown. |
 | `zzz` | `crates/zzz` | Run a command silently and save stdout to `~/.commands`. |
 
 `zzz` is a separate install target. Installing `dev-tools` no longer installs the
@@ -31,6 +32,7 @@ cargo install --path crates/code-cost --force
 cargo install --path crates/work-summary --force
 cargo install --path crates/git-tools --force
 cargo install --path crates/dev-tools --force
+cargo install --path crates/prompt-export --force
 cargo install --path crates/zzz --force
 ```
 
@@ -268,6 +270,29 @@ dev-tools silent git status --short
 dev-tools silent python script.py
 ```
 
+## prompt-export
+
+Export the prompts you typed into Claude Code or Codex — and optionally the
+agents' replies — as Markdown for later LLM analysis. Reads Claude Code session
+logs from `~/.claude/projects` and Codex rollouts from `~/.codex/sessions`,
+keeping only human-typed prompts (tool results, slash-command records, and
+injected context are filtered out) and user-visible agent text.
+
+```bash
+prompt-export --today                        # today's prompts from both tools
+prompt-export --week --source claude        # this week's Claude Code prompts
+prompt-export --month --role all            # prompts + agent output this month
+prompt-export --from 2026-08-01 --to 2026-08-07 --project cli-tools
+prompt-export --week -e prompts.md          # save to a file
+```
+
+- `--source claude|codex|all` selects the log source (default `all`)
+- `--role user|assistant|all` selects whose text to export (default `user`)
+- `--today` / `--week` (since Monday) / `--month`, or `--from`/`--to` with
+  `YYYY-MM-DD` dates; without a period option the full history is exported
+- `--project <substring>` keeps only sessions whose project path matches
+- `-e/--export <file>` writes the Markdown to a file instead of stdout
+
 ## zzz
 
 `zzz` is a standalone shortcut for silent command logging. It runs the command
@@ -393,6 +418,7 @@ cli-tools/
 │   ├── code-cost/      # Repository value analyzer
 │   ├── dev-tools/      # Developer utility collection
 │   ├── git-tools/      # Git workflow and health tools
+│   ├── prompt-export/  # Claude Code / Codex prompt exporter
 │   ├── work-summary/   # Git work summary analyzer
 │   └── zzz/            # Standalone silent command logger
 ├── scripts/             # iTerm2/Ghostty migrations and terminal probes
