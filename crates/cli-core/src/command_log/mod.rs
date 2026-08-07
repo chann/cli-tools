@@ -362,7 +362,8 @@ fn spawn_with_completion_notification(
     )
 }
 
-fn home_dir() -> Result<PathBuf> {
+/// Resolve the user's home directory from HOME (or USERPROFILE on Windows).
+pub fn home_dir() -> Result<PathBuf> {
     env::var_os("HOME")
         .or_else(|| env::var_os("USERPROFILE"))
         .map(PathBuf::from)

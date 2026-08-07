@@ -1,0 +1,19 @@
+[package]
+name = "prompt-export"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "prompt-export"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+cli-core = { path = "../cli-core" }
+serde_json = { workspace = true }
+walkdir = { workspace = true }

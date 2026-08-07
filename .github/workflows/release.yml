@@ -10,7 +10,7 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
-  RELEASE_BINS: code-cost dev-tools git-tools work-summary zzz
+  RELEASE_BINS: code-cost dev-tools git-tools prompt-export work-summary zzz
 
 jobs:
   validate-version:
