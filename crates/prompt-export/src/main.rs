@@ -1,5 +1,6 @@
 mod claude;
 mod codex;
+mod session_log;
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Duration, Local, Utc};

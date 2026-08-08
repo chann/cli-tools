@@ -1,10 +1,10 @@
-use crate::{Entry, Filter, Role, Source};
-use chrono::{DateTime, Utc};
+use crate::{session_log, Entry, Filter, Role, Source};
 use serde_json::Value;
-use std::fs;
-use std::io::{BufRead, BufReader};
 use std::path::Path;
 use walkdir::WalkDir;
+
+#[cfg(test)]
+use std::fs;
 
 /// Collect prompts and outputs from `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`.
 ///
@@ -19,13 +19,8 @@ pub fn collect(root: &Path, filter: &Filter) -> Vec<Entry> {
         {
             continue;
         }
-        // A file last written before the window opens has no lines in range.
-        if let (Some(since), Ok(metadata)) = (filter.date_range.start(), file.metadata()) {
-            if let Ok(modified) = metadata.modified() {
-                if DateTime::<Utc>::from(modified) < since {
-                    continue;
-                }
-            }
+        if !session_log::may_contain_entries(file.path(), filter.date_range) {
+            continue;
         }
         collect_file(file.path(), filter, &mut entries);
     }
@@ -33,23 +28,10 @@ pub fn collect(root: &Path, filter: &Filter) -> Vec<Entry> {
 }
 
 fn collect_file(path: &Path, filter: &Filter, entries: &mut Vec<Entry>) {
-    let Ok(file) = fs::File::open(path) else {
-        return;
-    };
-    let mut session_id = path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or("unknown")
-        .to_string();
+    let mut session_id = session_log::fallback_session_id(path);
     let mut project = String::new();
 
-    for line in BufReader::new(file).lines() {
-        let Ok(line) = line else {
-            continue;
-        };
-        let Ok(value) = serde_json::from_str::<Value>(&line) else {
-            continue;
-        };
+    for value in session_log::json_values(path) {
         let Some(payload) = value.get("payload") else {
             continue;
         };
@@ -81,12 +63,7 @@ fn collect_file(path: &Path, filter: &Filter, entries: &mut Vec<Entry>) {
                 if text.trim().is_empty() {
                     continue;
                 }
-                let Some(timestamp) = value
-                    .get("timestamp")
-                    .and_then(Value::as_str)
-                    .and_then(|raw| DateTime::parse_from_rfc3339(raw).ok())
-                    .map(|parsed| parsed.with_timezone(&Utc))
-                else {
+                let Some(timestamp) = session_log::timestamp(&value) else {
                     continue;
                 };
                 if !filter.accepts_time(timestamp) || !filter.accepts_project(&project) {

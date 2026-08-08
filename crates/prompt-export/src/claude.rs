@@ -1,8 +1,6 @@
-use crate::{Entry, Filter, Role, Source};
-use chrono::{DateTime, Utc};
+use crate::{session_log, Entry, Filter, Role, Source};
 use serde_json::Value;
 use std::fs;
-use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 /// Non-human user lines are wrapped in these markers by the Claude Code CLI.
@@ -42,13 +40,8 @@ pub fn collect(root: &Path, filter: &Filter) -> Vec<Entry> {
             if path.extension().and_then(|ext| ext.to_str()) != Some("jsonl") {
                 continue;
             }
-            // A file last written before the window opens has no lines in range.
-            if let (Some(since), Ok(metadata)) = (filter.date_range.start(), file.metadata()) {
-                if let Ok(modified) = metadata.modified() {
-                    if DateTime::<Utc>::from(modified) < since {
-                        continue;
-                    }
-                }
+            if !session_log::may_contain_entries(&path, filter.date_range) {
+                continue;
             }
             collect_file(&path, filter, &mut entries);
         }
@@ -57,38 +50,20 @@ pub fn collect(root: &Path, filter: &Filter) -> Vec<Entry> {
 }
 
 fn collect_file(path: &Path, filter: &Filter, entries: &mut Vec<Entry>) {
-    let Ok(file) = fs::File::open(path) else {
-        return;
-    };
-    let fallback_session = path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or("unknown")
-        .to_string();
+    let fallback_session = session_log::fallback_session_id(path);
 
     // One assistant API response is split across consecutive lines that share
     // a message id; merge those text blocks into a single entry.
     let mut last_message_id = String::new();
 
-    for line in BufReader::new(file).lines() {
-        let Ok(line) = line else {
-            continue;
-        };
-        let Ok(value) = serde_json::from_str::<Value>(&line) else {
-            continue;
-        };
+    for value in session_log::json_values(path) {
         let Some((role, text)) = parse_line(&value) else {
             continue;
         };
         if !filter.accepts_role(role) {
             continue;
         }
-        let Some(timestamp) = value
-            .get("timestamp")
-            .and_then(Value::as_str)
-            .and_then(|raw| DateTime::parse_from_rfc3339(raw).ok())
-            .map(|parsed| parsed.with_timezone(&Utc))
-        else {
+        let Some(timestamp) = session_log::timestamp(&value) else {
             continue;
         };
         if !filter.accepts_time(timestamp) {
