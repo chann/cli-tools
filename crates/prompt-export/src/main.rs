@@ -2,8 +2,9 @@ mod claude;
 mod codex;
 
 use anyhow::{Context, Result};
-use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Utc};
+use chrono::{DateTime, Duration, Local, Utc};
 use clap::Parser;
+use cli_core::date_range::{DateRange, DateRangeArgs};
 use cli_core::ui::Theme;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -29,20 +30,8 @@ struct Cli {
     )]
     role: String,
 
-    #[arg(long, help = "Today's entries only")]
-    today: bool,
-
-    #[arg(long, help = "This week's entries (since Monday)")]
-    week: bool,
-
-    #[arg(long, help = "This month's entries")]
-    month: bool,
-
-    #[arg(long, help = "Start date (YYYY-MM-DD)")]
-    from: Option<String>,
-
-    #[arg(long, help = "End date (YYYY-MM-DD)")]
-    to: Option<String>,
+    #[command(flatten)]
+    date_range: DateRangeArgs,
 
     #[arg(
         long,
@@ -99,8 +88,7 @@ pub struct Entry {
 }
 
 pub struct Filter {
-    pub since: Option<DateTime<Utc>>,
-    pub until: Option<DateTime<Utc>>,
+    pub date_range: DateRange,
     pub include_user: bool,
     pub include_assistant: bool,
     pub project: Option<String>,
@@ -114,17 +102,14 @@ impl Filter {
         }
     }
 
-    /// `since` is inclusive; `until` is exclusive (first instant past the
-    /// range) so millisecond timestamps in the final second are kept.
     pub fn accepts_time(&self, timestamp: DateTime<Utc>) -> bool {
-        self.since.map_or(true, |since| timestamp >= since)
-            && self.until.map_or(true, |until| timestamp < until)
+        self.date_range.contains(timestamp)
     }
 
     pub fn accepts_project(&self, project: &str) -> bool {
         self.project
             .as_ref()
-            .map_or(true, |needle| project.contains(needle.as_str()))
+            .is_none_or(|needle| project.contains(needle.as_str()))
     }
 }
 
@@ -144,10 +129,8 @@ fn main() -> Result<()> {
         other => anyhow::bail!("Unknown source: {other}. Use claude, codex, or all"),
     };
 
-    let (since, until) = parse_date_filters(&cli)?;
     let filter = Filter {
-        since,
-        until,
+        date_range: cli.date_range.resolve()?,
         include_user,
         include_assistant,
         project: cli.project.clone(),
@@ -186,57 +169,6 @@ fn main() -> Result<()> {
     }
 
     Ok(())
-}
-
-/// Same flags as work-summary (--today/--week/--month/--from/--to), but end
-/// bounds are exclusive next-midnight and DST-ambiguous times do not panic.
-fn parse_date_filters(cli: &Cli) -> Result<(Option<DateTime<Utc>>, Option<DateTime<Utc>>)> {
-    let today = Local::now().date_naive();
-
-    if cli.today {
-        return Ok((Some(day_start(today)?), Some(day_end(today)?)));
-    }
-
-    if cli.week {
-        let monday = today - Duration::days(today.weekday().num_days_from_monday() as i64);
-        return Ok((Some(day_start(monday)?), None));
-    }
-
-    if cli.month {
-        let first = today.with_day(1).unwrap();
-        return Ok((Some(day_start(first)?), None));
-    }
-
-    let from_date = match &cli.from {
-        Some(raw) => Some(day_start(parse_date(raw, "--from")?)?),
-        None => None,
-    };
-    let to_date = match &cli.to {
-        Some(raw) => Some(day_end(parse_date(raw, "--to")?)?),
-        None => None,
-    };
-    Ok((from_date, to_date))
-}
-
-fn parse_date(raw: &str, flag: &str) -> Result<NaiveDate> {
-    NaiveDate::parse_from_str(raw, "%Y-%m-%d")
-        .with_context(|| format!("Invalid {flag} date format. Use YYYY-MM-DD"))
-}
-
-fn day_start(date: NaiveDate) -> Result<DateTime<Utc>> {
-    // DST fall-back makes some local wall-clock times ambiguous; take the
-    // earlier instant instead of panicking.
-    date.and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(Local)
-        .earliest()
-        .map(|resolved| resolved.with_timezone(&Utc))
-        .with_context(|| format!("Could not interpret {date} midnight in the local timezone"))
-}
-
-/// Exclusive end bound: the first instant of the following day.
-fn day_end(date: NaiveDate) -> Result<DateTime<Utc>> {
-    day_start(date + Duration::days(1))
 }
 
 fn render_markdown(entries: &[Entry], filter: &Filter) -> (String, usize) {
@@ -293,7 +225,10 @@ fn render_markdown(entries: &[Entry], filter: &Filter) -> (String, usize) {
         )
     };
     // The exclusive end bound reads better as the last included second.
-    let displayed_until = filter.until.map(|until| until - Duration::seconds(1));
+    let displayed_until = filter
+        .date_range
+        .end()
+        .map(|until| until - Duration::seconds(1));
 
     let mut markdown = String::new();
     markdown.push_str("# Prompt Export\n\n");
@@ -303,7 +238,7 @@ fn render_markdown(entries: &[Entry], filter: &Filter) -> (String, usize) {
     ));
     markdown.push_str(&format!(
         "- Period: {} ~ {}\n",
-        describe(filter.since, "beginning"),
+        describe(filter.date_range.start(), "beginning"),
         describe(displayed_until, "now")
     ));
     markdown.push_str(&format!("- Entries: {total}\n"));
@@ -347,8 +282,7 @@ mod tests {
 
     fn filter_between(since: Option<&str>, until: Option<&str>) -> Filter {
         Filter {
-            since: since.map(at),
-            until: until.map(at),
+            date_range: DateRange::new(since.map(at), until.map(at)),
             include_user: true,
             include_assistant: false,
             project: None,

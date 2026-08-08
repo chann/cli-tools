@@ -2,6 +2,7 @@ pub mod time_estimator;
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
+use cli_core::date_range::DateRange;
 use git2::{Commit, DiffOptions, Repository};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -39,8 +40,7 @@ impl CommitAnalyzer {
     pub fn analyze_commits(
         &self,
         limit: Option<usize>,
-        from_date: Option<DateTime<Utc>>,
-        to_date: Option<DateTime<Utc>>,
+        date_range: &DateRange,
     ) -> Result<Vec<CommitInfo>> {
         let mut revwalk = self.repo.revwalk()?;
         revwalk.push_head()?;
@@ -59,16 +59,8 @@ impl CommitAnalyzer {
             let commit = self.repo.find_commit(oid)?;
 
             if let Ok(info) = self.extract_commit_info(&commit) {
-                if let Some(from) = from_date {
-                    if info.timestamp < from {
-                        continue;
-                    }
-                }
-
-                if let Some(to) = to_date {
-                    if info.timestamp > to {
-                        continue;
-                    }
+                if !date_range.contains(info.timestamp) {
+                    continue;
                 }
 
                 commits.push(info);

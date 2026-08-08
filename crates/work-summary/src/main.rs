@@ -4,8 +4,8 @@ mod patterns;
 mod summary;
 
 use anyhow::{Context, Result};
-use chrono::{Datelike, DateTime, Duration, Local, NaiveDate, Utc};
 use clap::Parser;
+use cli_core::date_range::{DateRange, DateRangeArgs};
 use comfy_table::{presets::UTF8_FULL, Cell, Color, Table};
 use git::{time_estimator::TimeEstimator, CommitAnalyzer};
 use owo_colors::OwoColorize;
@@ -47,20 +47,8 @@ struct Cli {
     #[arg(long, help = "Show detailed analysis")]
     detail: bool,
 
-    #[arg(long, help = "Start date (YYYY-MM-DD)")]
-    from: Option<String>,
-
-    #[arg(long, help = "End date (YYYY-MM-DD)")]
-    to: Option<String>,
-
-    #[arg(long, help = "Analyze today's commits only")]
-    today: bool,
-
-    #[arg(long, help = "Analyze this week's commits")]
-    week: bool,
-
-    #[arg(long, help = "Analyze this month's commits")]
-    month: bool,
+    #[command(flatten)]
+    date_range: DateRangeArgs,
 
     #[arg(long, help = "Limit to N most recent commits")]
     limit: Option<usize>,
@@ -91,6 +79,7 @@ fn main() -> Result<()> {
     } else {
         std::mem::take(&mut cli.paths)
     };
+    let date_range = cli.date_range.resolve()?;
 
     println!("{}", "Work Summary".bold().bright_cyan());
     println!("{}\n", format!("v{}", env!("CARGO_PKG_VERSION")).dimmed());
@@ -98,7 +87,7 @@ fn main() -> Result<()> {
     let mut summaries = Vec::new();
 
     for path in &paths {
-        match analyze_repository(path, &cli) {
+        match analyze_repository(path, &cli, &date_range) {
             Ok(summary) => summaries.push(summary),
             Err(e) => {
                 eprintln!("{}: {} - {}", "Error".red(), path.display(), e);
@@ -127,13 +116,15 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn analyze_repository(path: &PathBuf, cli: &Cli) -> Result<RepositorySummary> {
+fn analyze_repository(
+    path: &PathBuf,
+    cli: &Cli,
+    date_range: &DateRange,
+) -> Result<RepositorySummary> {
     let analyzer = CommitAnalyzer::new(path)
         .context(format!("Failed to open repository at {}", path.display()))?;
 
-    let (from_date, to_date) = parse_date_filters(cli)?;
-
-    let commits = analyzer.analyze_commits(cli.limit, from_date, to_date)?;
+    let commits = analyzer.analyze_commits(cli.limit, date_range)?;
 
     if commits.is_empty() {
         return Ok(RepositorySummary::new(
@@ -153,63 +144,6 @@ fn analyze_repository(path: &PathBuf, cli: &Cli) -> Result<RepositorySummary> {
         estimated_hours,
         cli.hourly_rate,
     ))
-}
-
-fn parse_date_filters(cli: &Cli) -> Result<(Option<DateTime<Utc>>, Option<DateTime<Utc>>)> {
-    if cli.today {
-        let now = Local::now();
-        let start_of_day = now.date_naive().and_hms_opt(0, 0, 0).unwrap();
-        let end_of_day = now.date_naive().and_hms_opt(23, 59, 59).unwrap();
-
-        return Ok((
-            Some(start_of_day.and_local_timezone(Local).unwrap().with_timezone(&Utc)),
-            Some(end_of_day.and_local_timezone(Local).unwrap().with_timezone(&Utc)),
-        ));
-    }
-
-    if cli.week {
-        let now = Local::now();
-        let days_since_monday = now.weekday().num_days_from_monday();
-        let start_of_week = now - Duration::days(days_since_monday as i64);
-        let start_of_week = start_of_week.date_naive().and_hms_opt(0, 0, 0).unwrap();
-
-        return Ok((
-            Some(start_of_week.and_local_timezone(Local).unwrap().with_timezone(&Utc)),
-            None,
-        ));
-    }
-
-    if cli.month {
-        let now = Local::now();
-        let start_of_month = NaiveDate::from_ymd_opt(
-            now.year(),
-            now.month(),
-            1,
-        ).unwrap().and_hms_opt(0, 0, 0).unwrap();
-
-        return Ok((
-            Some(start_of_month.and_local_timezone(Local).unwrap().with_timezone(&Utc)),
-            None,
-        ));
-    }
-
-    let from_date = if let Some(from_str) = &cli.from {
-        let date = NaiveDate::parse_from_str(from_str, "%Y-%m-%d")
-            .context("Invalid --from date format. Use YYYY-MM-DD")?;
-        Some(date.and_hms_opt(0, 0, 0).unwrap().and_local_timezone(Local).unwrap().with_timezone(&Utc))
-    } else {
-        None
-    };
-
-    let to_date = if let Some(to_str) = &cli.to {
-        let date = NaiveDate::parse_from_str(to_str, "%Y-%m-%d")
-            .context("Invalid --to date format. Use YYYY-MM-DD")?;
-        Some(date.and_hms_opt(23, 59, 59).unwrap().and_local_timezone(Local).unwrap().with_timezone(&Utc))
-    } else {
-        None
-    };
-
-    Ok((from_date, to_date))
 }
 
 fn print_simple_summary(summary: &TotalSummary) {

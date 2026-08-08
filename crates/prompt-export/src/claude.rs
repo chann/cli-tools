@@ -43,7 +43,7 @@ pub fn collect(root: &Path, filter: &Filter) -> Vec<Entry> {
                 continue;
             }
             // A file last written before the window opens has no lines in range.
-            if let (Some(since), Ok(metadata)) = (filter.since, file.metadata()) {
+            if let (Some(since), Ok(metadata)) = (filter.date_range.start(), file.metadata()) {
                 if let Ok(modified) = metadata.modified() {
                     if DateTime::<Utc>::from(modified) < since {
                         continue;
