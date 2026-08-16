@@ -23,5 +23,6 @@ This project is a collection of Rust-based CLI utilities.
 When adding a new command to `dev-tools`:
 1. Create a new module in `crates/dev-tools/src/commands/`.
 2. Register the module in `crates/dev-tools/src/commands/mod.rs`.
-3. Add the command to the `Commands` enum in `crates/dev-tools/src/main.rs`.
-4. Implement the logic in the new module, using `cli-core` where appropriate.
+3. Add a new variant to the `Commands` enum in `crates/dev-tools/src/commands/mod.rs`.
+4. Add a dispatch arm in `crates/dev-tools/src/main.rs`.
+5. Implement the logic in the new module, using `cli-core` where appropriate.
