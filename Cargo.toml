@@ -15,7 +15,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["CHANN"]
 license = "MIT"
-repository = "https://github.com/channprj/cli-tools"
+repository = "https://github.com/chann/cli-tools"
 
 [workspace.dependencies]
 # CLI
