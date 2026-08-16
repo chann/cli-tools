@@ -4,6 +4,7 @@ mod json;
 mod csv_export;
 mod html;
 mod markdown;
+mod currency;
 
 pub use formatter::Formatter;
 pub use table::TableFormatter;
@@ -11,6 +12,7 @@ pub use json::JsonFormatter;
 pub use csv_export::CsvExporter;
 pub use html::HtmlExporter;
 pub use markdown::MarkdownExporter;
+pub use currency::{format_currency_krw, format_integer};
 
 use anyhow::Result;
 

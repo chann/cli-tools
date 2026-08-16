@@ -6,6 +6,7 @@ mod summary;
 use anyhow::{Context, Result};
 use clap::Parser;
 use cli_core::date_range::{DateRange, DateRangeArgs};
+use cli_core::output::format_currency_krw;
 use comfy_table::{presets::UTF8_FULL, Cell, Color, Table};
 use git::{time_estimator::TimeEstimator, CommitAnalyzer};
 use owo_colors::OwoColorize;
@@ -52,23 +53,6 @@ struct Cli {
 
     #[arg(long, help = "Limit to N most recent commits")]
     limit: Option<usize>,
-}
-
-fn format_currency(value: f64) -> String {
-    let value = value.round() as i64;
-    let value_str = value.to_string();
-    let mut result = String::new();
-    let mut count = 0;
-
-    for ch in value_str.chars().rev() {
-        if count > 0 && count % 3 == 0 {
-            result.push(',');
-        }
-        result.push(ch);
-        count += 1;
-    }
-
-    format!("₩{}", result.chars().rev().collect::<String>())
 }
 
 fn main() -> Result<()> {
@@ -163,7 +147,7 @@ fn print_simple_summary(summary: &TotalSummary) {
         println!(
             "  {}: {}",
             "Value (Mid-level)".dimmed(),
-            format_currency(repo.analysis.value_estimate.recommended_value)
+            format_currency_krw(repo.analysis.value_estimate.recommended_value)
                 .bright_green()
         );
     }
@@ -176,7 +160,7 @@ fn print_simple_summary(summary: &TotalSummary) {
         println!("  Total Hours: {:.1}h", summary.total_hours);
         println!(
             "  Total Value: {}",
-            format_currency(summary.total_value).bright_green()
+            format_currency_krw(summary.total_value).bright_green()
         );
         println!("  Contributors: {}", summary.total_contributors);
     }
@@ -358,7 +342,7 @@ fn print_value_estimates(repo: &RepositorySummary) {
 
     for level in &repo.analysis.value_estimate.developer_levels {
         let is_recommended = level.level == "Mid-level";
-        let total_value = format_currency(level.total_value);
+        let total_value = format_currency_krw(level.total_value);
 
         table.add_row(vec![
             if is_recommended {
@@ -367,7 +351,7 @@ fn print_value_estimates(repo: &RepositorySummary) {
                 Cell::new(&level.level)
             },
             Cell::new(format!("{}x", level.multiplier)),
-            Cell::new(format_currency(level.hourly_rate)),
+            Cell::new(format_currency_krw(level.hourly_rate)),
             if is_recommended {
                 Cell::new(total_value).fg(Color::Green)
             } else {
@@ -389,7 +373,7 @@ fn print_total_summary(summary: &TotalSummary) {
     println!("  Total Hours: {:.1}h", summary.total_hours);
     println!(
         "  Total Value (Mid-level): {}",
-        format_currency(summary.total_value).bright_green()
+        format_currency_krw(summary.total_value).bright_green()
     );
     println!("  Unique Contributors: {}", summary.total_contributors);
 }
