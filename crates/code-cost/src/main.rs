@@ -5,6 +5,7 @@ mod metrics;
 
 use anyhow::Result;
 use clap::Parser;
+use cli_core::output::format_integer;
 use cli_core::ui::Theme;
 use std::path::PathBuf;
 
@@ -159,7 +160,7 @@ fn display_results(
                     Cell::new(format!("{:>6}", analysis.total_files)),
                     Cell::new(format!("{:>7}", analysis.commit_count)),
                     Cell::new(format!("{:>10.1}", cost.estimated_hours)),
-                    Cell::new(format!("₩{:>12}", format_number(cost.total_cost as u64)))
+                    Cell::new(format!("₩{:>12}", format_integer(cost.total_cost as i64)))
                         .fg(Color::Green),
                 ]);
             }
@@ -185,7 +186,7 @@ fn display_results(
                                 Theme::value(&lang.name),
                                 Theme::dim("-"),
                                 Theme::highlight(&format!("{:.1}", percentage)),
-                                format_number(lang.lines as u64),
+                                format_integer(lang.lines as i64),
                                 lang.files
                             );
                         }
@@ -231,21 +232,21 @@ fn display_results(
                     println!("{}", Theme::info("AI Dev Simulation Token Cost (Claude Opus 4.7 xhigh):"));
                     println!(
                         "  • Base Codebase Tokens: {}",
-                        Theme::value(&format_number(cost.token_cost.base_tokens as u64))
+                        Theme::value(&format_integer(cost.token_cost.base_tokens as i64))
                     );
                     println!(
                         "  • Estimated Prompt Tokens: {} {}",
-                        Theme::value(&format_number(cost.token_cost.estimated_prompt_tokens as u64)),
+                        Theme::value(&format_integer(cost.token_cost.estimated_prompt_tokens as i64)),
                         Theme::dim("(10x context multiplier)")
                     );
                     println!(
                         "  • Estimated Output Tokens: {} {}",
-                        Theme::value(&format_number(cost.token_cost.estimated_output_tokens as u64)),
+                        Theme::value(&format_integer(cost.token_cost.estimated_output_tokens as i64)),
                         Theme::dim("(1.5x revision multiplier)")
                     );
                     println!(
                         "  • Total API Cost: ₩{}",
-                        Theme::highlight(&format_number(cost.token_cost.total_cost_krw.round() as u64))
+                        Theme::highlight(&format_integer(cost.token_cost.total_cost_krw.round() as i64))
                     );
                     println!();
 
@@ -256,8 +257,8 @@ fn display_results(
                             println!(
                                 "  • {:<12} ₩{:>8}/hr → ₩{}",
                                 Theme::value(&level.level),
-                                format_number(level.hourly_rate as u64),
-                                Theme::highlight(&format_number(level.estimated_cost as u64))
+                                format_integer(level.hourly_rate as i64),
+                                Theme::highlight(&format_integer(level.estimated_cost as i64))
                             );
                         }
                         println!();
@@ -284,7 +285,7 @@ fn display_results(
             println!(
                 "  {} {}",
                 Theme::dim("Total estimated cost:"),
-                Theme::highlight(&format!("₩{}", format_number(total_cost as u64)))
+                Theme::highlight(&format!("₩{}", format_integer(total_cost as i64)))
             );
         }
         OutputFormat::Json | OutputFormat::JsonPretty => {
@@ -358,15 +359,4 @@ fn export_results(
     }
 
     Ok(())
-}
-
-fn format_number(n: u64) -> String {
-    n.to_string()
-        .as_bytes()
-        .rchunks(3)
-        .rev()
-        .map(std::str::from_utf8)
-        .collect::<Result<Vec<&str>, _>>()
-        .unwrap()
-        .join(",")
 }
