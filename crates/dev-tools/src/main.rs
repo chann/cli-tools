@@ -224,6 +224,9 @@ async fn main() -> Result<()> {
                 }
             }
         }
+        Commands::DateDiff { from, to } => {
+            commands::date_diff::run(&from, to.as_deref())?;
+        }
         Commands::Tz { query } => {
             commands::tz::show(query.as_deref())?;
         }

@@ -22,6 +22,7 @@ pub mod cron;
 pub mod crontab;
 pub mod csv;
 pub mod currency;
+pub mod date_diff;
 pub mod detach;
 pub mod dictionary;
 pub mod diff;
@@ -247,6 +248,13 @@ pub enum Commands {
     Time {
         /// Input (unix timestamp or ISO8601 string). If empty, shows current time.
         input: Option<String>,
+    },
+    /// Calculate the difference between two dates
+    DateDiff {
+        /// Start date (YYYY-MM-DD, "YYYY-MM-DD HH:MM:SS", RFC3339, or unix timestamp)
+        from: String,
+        /// End date (defaults to now)
+        to: Option<String>,
     },
     /// Visualize project structure
     Tree {
