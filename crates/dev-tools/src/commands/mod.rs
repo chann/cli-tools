@@ -17,6 +17,7 @@ pub mod check_links;
 pub mod checksum;
 pub mod completion;
 pub mod compress;
+pub mod contrast;
 pub mod crates;
 pub mod cron;
 pub mod crontab;
@@ -338,6 +339,13 @@ pub enum Commands {
     Color {
         /// Color value (#RRGGBB or R,G,B)
         input: String,
+    },
+    /// WCAG contrast ratio between two colors
+    Contrast {
+        /// Foreground color (#RRGGBB or R,G,B)
+        foreground: String,
+        /// Background color (#RRGGBB or R,G,B)
+        background: String,
     },
     /// Data size conversion
     Size {

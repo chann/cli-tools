@@ -145,6 +145,9 @@ async fn main() -> Result<()> {
         Commands::Sys => {
             commands::sys::show()?;
         }
+        Commands::Contrast { foreground, background } => {
+            commands::contrast::run(&foreground, &background)?;
+        }
         Commands::Color { input } => {
             commands::color::convert(&input)?;
         }

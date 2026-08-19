@@ -3,8 +3,9 @@ use owo_colors::OwoColorize;
 use cli_core::ui::Theme;
 use cli_core::output::TableFormatter;
 
-pub fn convert(input: &str) -> Result<()> {
-    let (r, g, b) = if input.starts_with('#') || (input.len() == 6 && input.chars().all(|c| c.is_ascii_hexdigit())) {
+/// Parse a color given as #RRGGBB, bare RRGGBB hex, or "R,G,B".
+pub(crate) fn parse(input: &str) -> Result<(u8, u8, u8)> {
+    if input.starts_with('#') || (input.len() == 6 && input.chars().all(|c| c.is_ascii_hexdigit())) {
         // Hex to RGB
         let hex = input.trim_start_matches('#');
         if hex.len() != 6 {
@@ -13,7 +14,7 @@ pub fn convert(input: &str) -> Result<()> {
         let r = u8::from_str_radix(&hex[0..2], 16)?;
         let g = u8::from_str_radix(&hex[2..4], 16)?;
         let b = u8::from_str_radix(&hex[4..6], 16)?;
-        (r, g, b)
+        Ok((r, g, b))
     } else if input.contains(',') {
         // RGB to Hex
         let parts: Vec<&str> = input.split(',').map(|s| s.trim()).collect();
@@ -23,10 +24,14 @@ pub fn convert(input: &str) -> Result<()> {
         let r: u8 = parts[0].parse()?;
         let g: u8 = parts[1].parse()?;
         let b: u8 = parts[2].parse()?;
-        (r, g, b)
+        Ok((r, g, b))
     } else {
         anyhow::bail!("Invalid input. Use #RRGGBB or R,G,B format.");
-    };
+    }
+}
+
+pub fn convert(input: &str) -> Result<()> {
+    let (r, g, b) = parse(input)?;
 
     let hex = format!("#{:02X}{:02X}{:02X}", r, g, b);
     let (h, s, l) = rgb_to_hsl(r, g, b);
