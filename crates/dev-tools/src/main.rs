@@ -224,6 +224,9 @@ async fn main() -> Result<()> {
                 }
             }
         }
+        Commands::Tz { query } => {
+            commands::tz::show(query.as_deref())?;
+        }
         Commands::Unicode { text } => {
             commands::unicode::inspect(&text)?;
         }

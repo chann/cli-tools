@@ -85,6 +85,7 @@ pub mod totp;
 pub mod translate;
 pub mod tree;
 pub mod typescript;
+pub mod tz;
 pub mod ulid;
 pub mod unicode;
 pub mod unit;
@@ -477,6 +478,11 @@ pub enum Commands {
     Crontab {
         #[command(subcommand)]
         action: Option<CrontabAction>,
+    },
+    /// World clock and IANA timezone lookup
+    Tz {
+        /// Search query (e.g., "seoul", "new york"). Omit for the world clock.
+        query: Option<String>,
     },
     /// Inspect Unicode characters in a string
     Unicode {
