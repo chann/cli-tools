@@ -260,6 +260,23 @@ dev-tools password --check "P@ssw0rd123"
 dev-tools morse "HELLO WORLD"
 dev-tools morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
 dev-tools ip
+
+# crontab 관리 (스케줄 검증과 함께 목록 / 추가 / 삭제 / 수정)
+dev-tools crontab
+dev-tools crontab add "0 9 * * 1-5" "backup.sh" -m "weekday backup"
+dev-tools crontab edit 1 --schedule "@daily"
+dev-tools crontab remove 1
+
+# 날짜와 타임존
+dev-tools tz                      # 세계 시계
+dev-tools tz seoul                # IANA 타임존 검색
+dev-tools date-diff 2026-01-01 2026-08-19
+dev-tools date-diff 2026-12-25    # 오늘 기준 D-day
+
+# 네트워크, 문서, 접근성
+dev-tools subnet 192.168.1.0/24
+dev-tools toc README.md --max-depth 3
+dev-tools contrast "#767676" "#ffffff"
 ```
 
 명령 로그 저장용 `dev-tools silent`도 계속 사용할 수 있습니다:

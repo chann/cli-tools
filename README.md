@@ -261,6 +261,23 @@ dev-tools password --check "P@ssw0rd123"
 dev-tools morse "HELLO WORLD"
 dev-tools morse --decode ".... . .-.. .-.. --- / .-- --- .-. .-.. -.."
 dev-tools ip
+
+# Crontab management (list / add / remove / edit with schedule validation)
+dev-tools crontab
+dev-tools crontab add "0 9 * * 1-5" "backup.sh" -m "weekday backup"
+dev-tools crontab edit 1 --schedule "@daily"
+dev-tools crontab remove 1
+
+# Dates and timezones
+dev-tools tz                      # world clock
+dev-tools tz seoul                # search IANA timezones
+dev-tools date-diff 2026-01-01 2026-08-19
+dev-tools date-diff 2026-12-25    # D-day against now
+
+# Network, docs, and accessibility
+dev-tools subnet 192.168.1.0/24
+dev-tools toc README.md --max-depth 3
+dev-tools contrast "#767676" "#ffffff"
 ```
 
 `dev-tools silent` remains available for command logging:
