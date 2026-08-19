@@ -447,6 +447,9 @@ async fn main() -> Result<()> {
         Commands::Uptime { urls } => {
             commands::uptime::check_multiple(urls).await?;
         }
+        Commands::Subnet { cidr } => {
+            commands::subnet::run(&cidr)?;
+        }
         Commands::Portscan { host, start, end, timeout } => {
             commands::portscan::scan(&host, start, end, timeout).await?;
         }

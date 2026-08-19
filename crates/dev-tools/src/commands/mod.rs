@@ -78,6 +78,7 @@ pub mod snowflake;
 pub mod speedtest;
 pub mod sql;
 pub mod stat;
+pub mod subnet;
 pub mod sys;
 pub mod text;
 pub mod time;
@@ -867,6 +868,11 @@ pub enum Commands {
     Uptime {
         /// URLs to check
         urls: Vec<String>,
+    },
+    /// IPv4 subnet calculator
+    Subnet {
+        /// CIDR notation (e.g., 192.168.1.0/24)
+        cidr: String,
     },
     /// Scan remote ports
     Portscan {
