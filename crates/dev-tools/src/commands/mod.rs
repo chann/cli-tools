@@ -19,6 +19,7 @@ pub mod completion;
 pub mod compress;
 pub mod crates;
 pub mod cron;
+pub mod crontab;
 pub mod csv;
 pub mod currency;
 pub mod detach;
@@ -471,6 +472,11 @@ pub enum Commands {
     Cron {
         /// Cron expression (e.g., "0 0 * * *")
         expression: String,
+    },
+    /// Manage user crontab entries (list, add, remove, edit)
+    Crontab {
+        #[command(subcommand)]
+        action: Option<CrontabAction>,
     },
     /// Inspect Unicode characters in a string
     Unicode {
@@ -1154,5 +1160,37 @@ pub enum Commands {
         /// Rotate hue by degrees
         #[arg(long)]
         hue: Option<i32>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum CrontabAction {
+    /// Show crontab entries with descriptions and next run times (default)
+    List,
+    /// Add an entry (schedule is validated before install)
+    Add {
+        /// Cron schedule (e.g., "0 9 * * 1-5" or "@daily")
+        schedule: String,
+        /// Command to run
+        command: String,
+        /// Comment line to add above the entry
+        #[arg(short = 'm', long)]
+        comment: Option<String>,
+    },
+    /// Remove an entry by its list index
+    Remove {
+        /// Entry number shown by `crontab list`
+        index: usize,
+    },
+    /// Edit an entry's schedule and/or command by its list index
+    Edit {
+        /// Entry number shown by `crontab list`
+        index: usize,
+        /// New cron schedule
+        #[arg(short, long)]
+        schedule: Option<String>,
+        /// New command
+        #[arg(short, long)]
+        command: Option<String>,
     },
 }

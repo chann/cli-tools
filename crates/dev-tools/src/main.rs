@@ -211,6 +211,19 @@ async fn main() -> Result<()> {
         Commands::Cron { expression } => {
             commands::cron::explain(&expression)?;
         }
+        Commands::Crontab { action } => {
+            use commands::CrontabAction;
+            match action.unwrap_or(CrontabAction::List) {
+                CrontabAction::List => commands::crontab::list()?,
+                CrontabAction::Add { schedule, command, comment } => {
+                    commands::crontab::add(&schedule, &command, comment.as_deref())?;
+                }
+                CrontabAction::Remove { index } => commands::crontab::remove(index)?,
+                CrontabAction::Edit { index, schedule, command } => {
+                    commands::crontab::edit(index, schedule.as_deref(), command.as_deref())?;
+                }
+            }
+        }
         Commands::Unicode { text } => {
             commands::unicode::inspect(&text)?;
         }
