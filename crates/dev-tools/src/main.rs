@@ -227,6 +227,9 @@ async fn main() -> Result<()> {
         Commands::DateDiff { from, to } => {
             commands::date_diff::run(&from, to.as_deref())?;
         }
+        Commands::Toc { file, min_depth, max_depth } => {
+            commands::toc::run(&file, min_depth, max_depth)?;
+        }
         Commands::Tz { query } => {
             commands::tz::show(query.as_deref())?;
         }

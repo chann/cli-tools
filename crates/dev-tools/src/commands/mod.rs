@@ -82,6 +82,7 @@ pub mod subnet;
 pub mod sys;
 pub mod text;
 pub mod time;
+pub mod toc;
 pub mod toml;
 pub mod totp;
 pub mod translate;
@@ -492,6 +493,17 @@ pub enum Commands {
     Tz {
         /// Search query (e.g., "seoul", "new york"). Omit for the world clock.
         query: Option<String>,
+    },
+    /// Generate a table of contents from a Markdown file
+    Toc {
+        /// Markdown file path
+        file: PathBuf,
+        /// Minimum heading level to include (1-6)
+        #[arg(long, default_value = "1")]
+        min_depth: usize,
+        /// Maximum heading level to include (1-6)
+        #[arg(long, default_value = "3")]
+        max_depth: usize,
     },
     /// Inspect Unicode characters in a string
     Unicode {
