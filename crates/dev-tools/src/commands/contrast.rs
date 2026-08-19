@@ -15,7 +15,7 @@ pub fn run(foreground: &str, background: &str) -> Result<()> {
         "Preview:".dimmed(),
         format!(" {} ", foreground).truecolor(fg.0, fg.1, fg.2).on_truecolor(bg.0, bg.1, bg.2),
         format!(" {} ", background).on_truecolor(bg.0, bg.1, bg.2).truecolor(fg.0, fg.1, fg.2),
-        Theme::highlight(&format!("{:.2}:1", ratio))
+        Theme::highlight(format!("{:.2}:1", ratio))
     );
 
     let mut table = TableFormatter::create_table();

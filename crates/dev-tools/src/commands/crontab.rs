@@ -33,7 +33,7 @@ pub fn list() -> Result<()> {
         return Ok(());
     }
 
-    println!("\n{}", Theme::header(&format!("Crontab ({} entries)", entries.len())));
+    println!("\n{}", Theme::header(format!("Crontab ({} entries)", entries.len())));
     let mut table = TableFormatter::create_table();
     table.set_header(vec![
         TableFormatter::header_cell("#"),
@@ -68,7 +68,7 @@ pub fn add(schedule: &str, command: &str, comment: Option<&str>) -> Result<()> {
     add_entry(&mut lines, schedule, command, comment);
     write_crontab(&render(&lines))?;
 
-    println!("{} {}", Theme::success("Added:"), Theme::value(&format!("{} {}", schedule, command)));
+    println!("{} {}", Theme::success("Added:"), Theme::value(format!("{} {}", schedule, command)));
     print_next_run(schedule);
     Ok(())
 }

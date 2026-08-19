@@ -7,8 +7,8 @@ use std::net::Ipv4Addr;
 pub fn run(cidr: &str) -> Result<()> {
     let info = analyze(cidr)?;
 
-    println!("\n{}", Theme::header(&format!("Subnet {}", cidr)));
-    let row = |label: &str, value: String| println!("  {:<14} {}", label.dimmed(), Theme::value(&value));
+    println!("\n{}", Theme::header(format!("Subnet {}", cidr)));
+    let row = |label: &str, value: String| println!("  {:<14} {}", label.dimmed(), Theme::value(value));
 
     row("Netmask:", info.netmask.to_string());
     row("Wildcard:", info.wildcard.to_string());

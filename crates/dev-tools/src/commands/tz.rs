@@ -68,7 +68,7 @@ pub fn show(query: Option<&str>) -> Result<()> {
     }
     println!("{}", table);
     if zones.len() > LIMIT {
-        println!("{}", Theme::dim(&format!("... and {} more. Narrow the query to see them.", zones.len() - LIMIT)));
+        println!("{}", Theme::dim(format!("... and {} more. Narrow the query to see them.", zones.len() - LIMIT)));
     }
     Ok(())
 }

@@ -12,8 +12,8 @@ pub fn run(from: &str, to: Option<&str>) -> Result<()> {
     };
 
     println!("\n{}", Theme::header("Date Difference"));
-    println!("  {} {}", "From:".dimmed(), Theme::value(&from_dt.format("%Y-%m-%d %H:%M:%S %:z (%a)").to_string()));
-    println!("  {} {}", "To:  ".dimmed(), Theme::value(&to_dt.format("%Y-%m-%d %H:%M:%S %:z (%a)").to_string()));
+    println!("  {} {}", "From:".dimmed(), Theme::value(from_dt.format("%Y-%m-%d %H:%M:%S %:z (%a)").to_string()));
+    println!("  {} {}", "To:  ".dimmed(), Theme::value(to_dt.format("%Y-%m-%d %H:%M:%S %:z (%a)").to_string()));
     println!();
 
     let b = breakdown(from_dt.date_naive(), to_dt.date_naive());
@@ -26,7 +26,7 @@ pub fn run(from: &str, to: Option<&str>) -> Result<()> {
         ""
     };
 
-    println!("  {}{}", Theme::highlight(&format!("{} days", format_integer(b.total_days))), direction.dimmed());
+    println!("  {}{}", Theme::highlight(format!("{} days", format_integer(b.total_days))), direction.dimmed());
     if b.years > 0 || b.months > 0 {
         println!("  = {}", calendar_line(&b));
     }
